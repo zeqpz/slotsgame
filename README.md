@@ -27,15 +27,16 @@ Full design + math spec: [DESIGN.md](DESIGN.md)
 
 ```
 python -m venv .venv
-.venv/Scripts/pip install -r math-sdk/requirements-local.txt   # or see below
+.venv/Scripts/pip install -r req-local.txt
+.venv/Scripts/pip install -e math-sdk
 .venv/Scripts/python.exe beta/server.py
 ```
 
 Open http://localhost:8722. First launch decompresses the books into a local cache
 (~30s). Details, controls, and debug tricks: [beta/README.md](beta/README.md).
 
-Dependency note: the SDK's `requirements.txt` starts with a self-referencing git line —
-either install it as-is, or skip line 1 and run `pip install -e math-sdk` instead.
+(`req-local.txt` is the SDK's `requirements.txt` minus its self-referencing git line;
+the editable install of `math-sdk` replaces it.)
 
 ## Regenerate / retune the math
 
