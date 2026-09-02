@@ -1,0 +1,296 @@
+{
+    "game_id": "smukiez_tag_run",
+    "bet_modes": [
+        {
+            "bet_mode": "base",
+            "cost": 1.0,
+            "rtp": 0.965,
+            "max_win": 5000.0
+        },
+        {
+            "bet_mode": "bonus",
+            "cost": 100.0,
+            "rtp": 0.965,
+            "max_win": 5000.0
+        },
+        {
+            "bet_mode": "extremebonus",
+            "cost": 400.0,
+            "rtp": 0.965,
+            "max_win": 5000.0
+        }
+    ],
+    "fences": [
+        {
+            "bet_mode": "base",
+            "fences": [
+                {
+                    "name": "wincap",
+                    "avg_win": "5000.0",
+                    "rtp": "0.001",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": 5000.0,
+                        "win_range_end": 5000.0,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "0",
+                    "avg_win": "0",
+                    "rtp": "0",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": 0,
+                        "win_range_end": 0,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "freegame",
+                    "hr": "170",
+                    "rtp": "0.27",
+                    "identity_condition": {
+                        "search": [
+                            {
+                                "name": "symbol",
+                                "value": "scatter"
+                            }
+                        ],
+                        "win_range_start": -1,
+                        "win_range_end": -1,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "extremegame",
+                    "hr": "2000",
+                    "rtp": "0.07",
+                    "identity_condition": {
+                        "search": [
+                            {
+                                "name": "symbol",
+                                "value": "scatter_extreme"
+                            }
+                        ],
+                        "win_range_start": -1,
+                        "win_range_end": -1,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "basegame",
+                    "hr": "3.4",
+                    "rtp": "0.624",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": -1,
+                        "win_range_end": -1,
+                        "opposite": false
+                    }
+                }
+            ]
+        },
+        {
+            "bet_mode": "bonus",
+            "fences": [
+                {
+                    "name": "wincap",
+                    "avg_win": "5000.0",
+                    "rtp": "0.004",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": 5000.0,
+                        "win_range_end": 5000.0,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "freegame",
+                    "hr": "x",
+                    "rtp": "0.961",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": -1,
+                        "win_range_end": -1,
+                        "opposite": false
+                    }
+                }
+            ]
+        },
+        {
+            "bet_mode": "extremebonus",
+            "fences": [
+                {
+                    "name": "wincap",
+                    "avg_win": "5000.0",
+                    "rtp": "0.01",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": 5000.0,
+                        "win_range_end": 5000.0,
+                        "opposite": false
+                    }
+                },
+                {
+                    "name": "extremegame",
+                    "hr": "x",
+                    "rtp": "0.955",
+                    "identity_condition": {
+                        "search": [],
+                        "win_range_start": -1,
+                        "win_range_end": -1,
+                        "opposite": false
+                    }
+                }
+            ]
+        }
+    ],
+    "dresses": [
+        {
+            "bet_mode": "base",
+            "dresses": [
+                {
+                    "fence": "basegame",
+                    "scale_factor": "1.2",
+                    "identity_condition_win_range": [
+                        1,
+                        2
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "basegame",
+                    "scale_factor": "1.5",
+                    "identity_condition_win_range": [
+                        10,
+                        20
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "freegame",
+                    "scale_factor": "0.8",
+                    "identity_condition_win_range": [
+                        1000,
+                        2000
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "freegame",
+                    "scale_factor": "1.2",
+                    "identity_condition_win_range": [
+                        3000,
+                        4000
+                    ],
+                    "prob": 1.0
+                }
+            ]
+        },
+        {
+            "bet_mode": "bonus",
+            "dresses": [
+                {
+                    "fence": "freegame",
+                    "scale_factor": "0.9",
+                    "identity_condition_win_range": [
+                        20,
+                        50
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "freegame",
+                    "scale_factor": "0.8",
+                    "identity_condition_win_range": [
+                        1000,
+                        2000
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "freegame",
+                    "scale_factor": "1.2",
+                    "identity_condition_win_range": [
+                        3000,
+                        4000
+                    ],
+                    "prob": 1.0
+                }
+            ]
+        },
+        {
+            "bet_mode": "extremebonus",
+            "dresses": [
+                {
+                    "fence": "extremegame",
+                    "scale_factor": "0.9",
+                    "identity_condition_win_range": [
+                        100,
+                        250
+                    ],
+                    "prob": 1.0
+                },
+                {
+                    "fence": "extremegame",
+                    "scale_factor": "1.2",
+                    "identity_condition_win_range": [
+                        3000,
+                        4500
+                    ],
+                    "prob": 1.0
+                }
+            ]
+        }
+    ],
+    "bias": [
+        {
+            "bet_mode": "base",
+            "bias": [
+                {
+                    "criteria": "basegame",
+                    "range": [
+                        2.5,
+                        5.5
+                    ],
+                    "prob": 0.7
+                },
+                {
+                    "criteria": "freegame",
+                    "range": [
+                        200.0,
+                        500.0
+                    ],
+                    "prob": 0.2
+                }
+            ]
+        },
+        {
+            "bet_mode": "bonus",
+            "bias": [
+                {
+                    "criteria": "",
+                    "range": [
+                        0.0,
+                        0.0
+                    ],
+                    "prob": 0.0
+                }
+            ]
+        },
+        {
+            "bet_mode": "extremebonus",
+            "bias": [
+                {
+                    "criteria": "",
+                    "range": [
+                        0.0,
+                        0.0
+                    ],
+                    "prob": 0.0
+                }
+            ]
+        }
+    ]
+}

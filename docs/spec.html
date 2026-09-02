@@ -1,0 +1,410 @@
+<title>Smukiez Tag Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --ground: #EEEDE8;
+    --surface: #F7F6F2;
+    --ink: #1B1820;
+    --ink-soft: #565060;
+    --line: #1B1820;
+    --line-faint: #D8D5CC;
+    --spray: #D6336C;
+    --spray-soft: #F9E3EC;
+    --cap: #0E7D73;
+    --cap-soft: #E1F0EE;
+    --tagyellow: #C99A0A;
+    --tagyellow-bg: #FBF3D9;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #151318;
+      --surface: #1F1C24;
+      --ink: #EDEAE4;
+      --ink-soft: #A49DAD;
+      --line: #EDEAE4;
+      --line-faint: #37323F;
+      --spray: #F0568B;
+      --spray-soft: #3A1F2C;
+      --cap: #3FBFB2;
+      --cap-soft: #16302E;
+      --tagyellow: #F5C518;
+      --tagyellow-bg: #332B10;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #151318;
+    --surface: #1F1C24;
+    --ink: #EDEAE4;
+    --ink-soft: #A49DAD;
+    --line: #EDEAE4;
+    --line-faint: #37323F;
+    --spray: #F0568B;
+    --spray-soft: #3A1F2C;
+    --cap: #3FBFB2;
+    --cap-soft: #16302E;
+    --tagyellow: #F5C518;
+    --tagyellow-bg: #332B10;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    margin: 0;
+    padding: 0 20px 96px;
+  }
+  main { max-width: 76ch; margin: 0 auto; }
+
+  header { padding: 56px 0 8px; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--spray);
+    font-weight: 600;
+  }
+  h1 {
+    font-family: "Archivo Black", "Archivo", sans-serif;
+    font-size: clamp(40px, 8vw, 64px);
+    line-height: .95;
+    margin: 10px 0 0;
+    text-transform: uppercase;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+  .drip { display: block; margin-top: 6px; width: min(420px, 80%); height: 26px; }
+  .lede { font-size: 17px; max-width: 62ch; color: var(--ink-soft); margin: 18px 0 0; }
+  .lede strong { color: var(--ink); }
+
+  h2 {
+    font-family: "Archivo Black", "Archivo", sans-serif;
+    font-size: 21px;
+    text-transform: uppercase;
+    letter-spacing: .01em;
+    margin: 64px 0 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    text-wrap: balance;
+  }
+  h2 .tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--spray);
+    letter-spacing: .12em;
+    white-space: nowrap;
+  }
+  h3 { font-size: 16px; font-weight: 700; margin: 28px 0 6px; }
+  p { margin: 10px 0; }
+  main > p, main > ul, section > p, section > ul { max-width: 68ch; }
+  li { margin: 5px 0; }
+  code {
+    font-family: var(--mono);
+    font-size: .88em;
+    background: var(--cap-soft);
+    color: var(--cap);
+    padding: 1px 5px;
+  }
+
+  .callout {
+    border: 2px solid var(--line);
+    background: var(--surface);
+    padding: 18px 20px;
+    margin: 24px 0;
+    box-shadow: 6px 6px 0 var(--spray);
+  }
+  .callout .eyebrow { color: var(--spray); }
+  .callout p { margin: 8px 0 0; }
+
+  .tablewrap { overflow-x: auto; margin: 16px 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    font-size: 14.5px;
+  }
+  th, td { padding: 8px 12px; text-align: left; vertical-align: top; }
+  th {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--line);
+    color: var(--ink-soft);
+  }
+  tbody tr + tr td { border-top: 1px solid var(--line-faint); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td code { white-space: nowrap; }
+  .sym {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--spray);
+    white-space: nowrap;
+  }
+
+  /* board diagram */
+  .board-demo { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin: 20px 0 8px; }
+  .board { display: grid; grid-template-columns: repeat(5, 44px); gap: 4px; }
+  .cell {
+    width: 44px; height: 40px;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+  }
+  .cell.painted { background: var(--spray); border-color: var(--spray); color: #fff; }
+  .cell.kept { background: var(--tagyellow-bg); color: var(--tagyellow); border-color: var(--tagyellow); }
+  .board-note { max-width: 34ch; font-size: 14px; color: var(--ink-soft); }
+
+  .wall { display: flex; gap: 5px; margin: 14px 0 4px; }
+  .wall span {
+    flex: 1; height: 16px; border: 2px solid var(--line); background: var(--surface);
+  }
+  .wall span.done { background: var(--tagyellow); border-color: var(--tagyellow); }
+  .wall-label { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+
+  footer {
+    margin-top: 72px; padding-top: 16px;
+    border-top: 2px solid var(--line);
+    font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  a { color: var(--spray); }
+  a:focus-visible, :focus-visible { outline: 2px solid var(--cap); outline-offset: 2px; }
+</style>
+
+<main>
+<header>
+  <div class="eyebrow">Stake Engine · systems &amp; math spec · v0.1</div>
+  <h1>Smukiez<br>Tag Run</h1>
+  <svg class="drip" viewBox="0 0 420 26" aria-hidden="true" preserveAspectRatio="none">
+    <path fill="var(--spray)" d="M0 0h420v7H0z"/>
+    <path fill="var(--spray)" d="M28 7c0 8 3 15 5 15s5-7 5-15zM120 7c0 12 3 19 5 19s5-7 5-19zM236 7c0 6 2 11 4 11s4-5 4-11zM342 7c0 10 3 16 5 16s5-6 5-16z"/>
+  </svg>
+  <p class="lede">Run the streets, stack streetwear, paint the wall. A 5&times;4, 30-line slot where
+  <strong>Paint Drip wilds</strong> paint whole reels, <strong>Smukiez characters</strong> multiply the run,
+  and finishing the mural — the <strong>Full Wall</strong> — pays the 5,000&times; max win.
+  Systems first; graffiti-cartoon art layers on after.</p>
+</header>
+
+<section>
+  <h2><span class="tag">00</span> The build</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>layer</th><th>tech</th><th>status</th></tr></thead>
+    <tbody>
+      <tr><td>Math model</td><td>StakeEngine <code>math-sdk</code> (Python 3.12) — <code>games/smukiez_tag_run/</code></td><td>built &amp; simulating</td></tr>
+      <tr><td>Optimization</td><td>SDK Rust optimizer via <code>run.py --optimize</code></td><td>wired</td></tr>
+      <tr><td>Frontend</td><td><code>web-sdk</code> (Svelte 5 + PixiJS 8), fork of the <code>lines</code> app</td><td>next phase</td></tr>
+      <tr><td>RGS client</td><td><code>stake-engine</code> npm (Authenticate / Play / EndRound)</td><td>with frontend</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout">
+    <div class="eyebrow">Platform reality — two brief items adapted</div>
+    <p>Stake Engine pre-simulates every outcome into weighted “books”; the RGS draws one per bet and
+    <strong>no state survives between rounds</strong>. So the Full Wall progressive becomes an
+    <strong>in-round climax</strong>: paint all 5 reels during free spins → mural completes → 5,000&times; wincap.
+    Base-game drips persist within their spin only; full drip persistence lives in the bonus, which is one
+    round internally. A cosmetic cross-session “career wall” can still live client-side.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="tag">01</span> Board &amp; symbols</h2>
+  <p>5 reels &times; 4 rows, 30 fixed paylines, wins pay left to right. RTP <strong>96.5%</strong> in every
+  mode, max win <strong>5,000&times;</strong>. Pays are total-bet multiples per line (5 / 4 / 3 of a kind).</p>
+
+  <div class="board-demo">
+    <div class="board" aria-label="Example board: reel 2 painted by a drip, character kept on top">
+      <div class="cell">H1</div><div class="cell painted">W</div><div class="cell">L3</div><div class="cell">C2</div><div class="cell">L5</div>
+      <div class="cell">L2</div><div class="cell painted">W</div><div class="cell">H4</div><div class="cell">L1</div><div class="cell">BS</div>
+      <div class="cell">L4</div><div class="cell kept">C1</div><div class="cell">L2</div><div class="cell">H2</div><div class="cell">L2</div>
+      <div class="cell">H5</div><div class="cell painted">W</div><div class="cell">L1</div><div class="cell">L4</div><div class="cell">H3</div>
+    </div>
+    <p class="board-note">A drip lands on reel 2 and floods it. Paint goes <em>around</em> characters and
+    scatters — the reel still counts as fully painted.</p>
+  </div>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th>sym</th><th>identity</th><th class="num">5</th><th class="num">4</th><th class="num">3</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">W</td><td>Paint Drip — expanding wild, substitutes all pays</td><td class="num">25</td><td class="num">10</td><td class="num">4</td></tr>
+      <tr><td class="sym">C3</td><td>Character 3 — rare, 8–10&times; spin multiplier</td><td class="num">25</td><td class="num">10</td><td class="num">4</td></tr>
+      <tr><td class="sym">C2</td><td>Character 2 — uncommon, 5&times; spin multiplier</td><td class="num">20</td><td class="num">8</td><td class="num">3</td></tr>
+      <tr><td class="sym">C1</td><td>Character 1 — common, 2–3&times; spin multiplier</td><td class="num">15</td><td class="num">6</td><td class="num">2.5</td></tr>
+      <tr><td class="sym">H1</td><td>Bag of Cash</td><td class="num">12</td><td class="num">5</td><td class="num">2</td></tr>
+      <tr><td class="sym">H2</td><td>Cartoon Glock</td><td class="num">10</td><td class="num">4</td><td class="num">1.5</td></tr>
+      <tr><td class="sym">H3</td><td>Gold Chain</td><td class="num">8</td><td class="num">3</td><td class="num">1.2</td></tr>
+      <tr><td class="sym">H4</td><td>Fresh Kicks</td><td class="num">6</td><td class="num">2.5</td><td class="num">1</td></tr>
+      <tr><td class="sym">H5</td><td>Boombox</td><td class="num">5</td><td class="num">2</td><td class="num">0.8</td></tr>
+      <tr><td class="sym">H6</td><td>Skateboard</td><td class="num">4.5</td><td class="num">1.8</td><td class="num">0.7</td></tr>
+      <tr><td class="sym">H7</td><td>Limited Drop Box</td><td class="num">4</td><td class="num">1.6</td><td class="num">0.6</td></tr>
+      <tr><td class="sym">L1–L10</td><td>Spray Can · Markers · Beanie · Hangtag · Dice · Shirt · Hoodie · Weed Bag · Freight Train · Brick Wall</td><td class="num">2.5–0.6</td><td class="num">1–0.3</td><td class="num">0.4–0.1</td></tr>
+      <tr><td class="sym">BS</td><td>Crew Leader — bonus scatter (no line pay)</td><td class="num" colspan="3">3 / 4 / 5 → 8 / 10 / 12 free spins</td></tr>
+      <tr><td class="sym">ES</td><td>The Phantom — extreme scatter (no line pay)</td><td class="num" colspan="3">2 direct · 1 + trigger upgrades</td></tr>
+    </tbody>
+  </table></div>
+  <p>Every delivered item icon is a paying symbol — 17 items across two tiers, plus wild, two scatters,
+  and the three characters. Strips are tuned so the bigger pool keeps the base game active.</p>
+</section>
+
+<section>
+  <h2><span class="tag">02</span> Paint Drips</h2>
+  <ul>
+    <li>A landed drip <strong>expands vertically</strong> and paints its whole reel wild (around scatters/characters).</li>
+    <li><strong>Color bonus:</strong> each winning line pays <code>1 + painted-reels-crossed × paint-level</code>.
+        Paint level: +1&times; base and standard bonus · +2&times; at Extreme start · Tag Meter upgrades to +3&times;.</li>
+    <li>Base game: drips live on reels 2–4 of the strips; the paint lasts that spin.</li>
+    <li>Free spins: painted reels are <strong>sticky for the entire bonus</strong>; new drips arrive via the
+        per-spin <code>landing_drips</code> tables (free-spin strips carry no W — drip rate is a pure tuning dial).</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">03</span> Characters</h2>
+  <p>Characters pay as premiums <em>and</em> multiply the whole spin when it wins: values
+  <strong>sum within a type</strong> (stacks) and <strong>multiply across types</strong> —
+  the brief’s 3&times; + 5&times; = 15&times; rule — capped at 128&times;. Values are drawn per landing:
+  C1 = 2&times;/3&times;, C2 = 5&times;, C3 = 8&times;/10&times; (free spins skew the draws higher).</p>
+</section>
+
+<section>
+  <h2><span class="tag">04</span> Bonuses, Tag Meter, Full Wall</h2>
+  <h3>Standard Bonus</h3>
+  <p>3/4/5 Crew Leaders → 8/10/12 free spins. Sticky drips, +1&times; paint, Tag Meter target 4.</p>
+  <h3>Extreme Bonus</h3>
+  <p><em>Direct:</em> 2 Phantoms → 10 spins. <em>Upgrade:</em> standard trigger + a Phantom on the same spin.
+  Painted reels from the trigger spin <strong>carry over</strong>, paint starts at +2&times;, richer character
+  draws, Tag Meter target 3.</p>
+  <h3>Tag Meter</h3>
+  <p>Every winning free spin adds a tag. Full meter → <strong>+2 free spins</strong> (max +6 per bonus) and a
+  <strong>paint-level upgrade</strong>, then it resets. No scatter retriggers — the meter is the extension
+  mechanic, which keeps rounds bounded.</p>
+  <h3>Full Wall</h3>
+  <div class="wall" aria-label="Mural progress: four of five sections painted">
+    <span class="done"></span><span class="done"></span><span class="done"></span><span class="done"></span><span></span>
+  </div>
+  <div class="wall-label">4 / 5 sections — one reel from the mural</div>
+  <p>Each painted reel fills a mural section. <strong>All five during free spins = Full Wall</strong>: the round
+  pays up to the 5,000&times; cap and the bonus ends on the finished piece. Raw sim frequency ~0.25% of standard
+  and ~7% of extreme bonuses; live frequency is shaped further down by optimizer weights.</p>
+</section>
+
+<section>
+  <h2><span class="tag">05</span> Bet modes</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>mode</th><th class="num">cost</th><th>entry</th><th>RTP split</th></tr></thead>
+    <tbody>
+      <tr><td>base</td><td class="num">1&times;</td><td>natural triggers</td><td><code>wincap .001 · freegame .27 (hr 170) · extreme .07 (hr 2000) · basegame .624</code></td></tr>
+      <tr><td>bonus buy</td><td class="num">100&times;</td><td>guaranteed Standard Bonus</td><td><code>wincap .004 · freegame .961</code></td></tr>
+      <tr><td>extreme buy</td><td class="num">400&times;</td><td>guaranteed Extreme Bonus</td><td><code>wincap .01 · extremegame .955</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="tag">06</span> Math architecture</h2>
+  <ul>
+    <li>Sims split into forced criteria per mode — <code>wincap</code>, <code>extremegame</code>,
+        <code>freegame</code>, <code>basegame</code>, <code>0</code> — with custom board forcing that plants
+        exact Crew Leader <em>and</em> Phantom counts on one board.</li>
+    <li>Five deterministic strips (<code>gen_reels.py</code>): BR0 base · BRE base-with-Phantoms ·
+        FR0 / FRE free spins · FRWCAP drip-rich wincap strip. Live extreme frequency comes from optimizer
+        weights, not strip odds.</li>
+    <li>Wincap books converge organically: the hot strip completes the wall, and the wall pays exactly the cap.</li>
+    <li><code>analyze_books.py</code> prints per-criteria payout distributions, wall %, painted-section and
+        character-multiplier histograms for every tuning pass.</li>
+    <li>Calibration lesson: sticky full-reel wilds &times; total-spin multipliers compound violently — the first
+        cut walled ~100% of bonuses. Final drip EV ≈ 0.10–0.13 per spin with character density halved.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">07</span> Frontend event contract</h2>
+  <p>Standard SDK events (<code>reveal</code>, <code>winInfo</code> with <code>meta.paintMult</code> /
+  <code>meta.charMult</code>, <code>setWin</code>, <code>setTotalWin</code>, <code>freeSpinTrigger</code>,
+  <code>updateFreeSpin</code>, <code>freeSpinEnd</code>, <code>enterBonus</code>, <code>wincap</code>,
+  <code>finalWin</code>) plus the Smukiez set — rows are padded +1, amounts in cents:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>type</th><th>payload</th><th>drives</th></tr></thead>
+    <tbody>
+      <tr><td><code>paintDrips</code></td><td><code>drips:[{reel,row}]</code></td><td>drip lands → reel flood animation</td></tr>
+      <tr><td><code>paintedWall</code></td><td><code>paintedReels[], paintLevel, sections, totalSections</code></td><td>wall/mural meter state</td></tr>
+      <tr><td><code>characterMults</code></td><td><code>characters:[{name,mult,positions[]}], totalMult</code></td><td>character celebration before winInfo</td></tr>
+      <tr><td><code>tagMeter</code></td><td><code>tags, target</code></td><td>meter tick</td></tr>
+      <tr><td><code>tagMeterFull</code></td><td><code>extraSpins, paintLevel, totalFs</code></td><td>meter payoff moment</td></tr>
+      <tr><td><code>fullWall</code></td><td><code>amount</code></td><td>mural completion → max-win sequence</td></tr>
+      <tr><td><code>extremeTrigger</code></td><td><code>positions[], reason</code></td><td>Phantom reveal on trigger spin</td></tr>
+    </tbody>
+  </table></div>
+  <p>Free-spin <code>reveal</code> boards arrive post-expansion (painted reels as W columns); the drip events
+  carry what changed so the client animates the transition — same convention as the SDK expanding-wilds sample.</p>
+</section>
+
+<section>
+  <h2><span class="tag">08</span> Roadmap</h2>
+  <ul>
+    <li><strong>Done:</strong> 140k-sim run → Rust optimization → PAR sheet → RGS format checks.
+        All three modes verify at exactly RTP 0.96500 on the optimized tables; base hit rate 1-in-3.3.</li>
+    <li><strong>Done:</strong> playable no-art beta (<code>beta/server.py</code> → localhost:8722) — a local
+        RGS stand-in drawing from the optimized tables, animating the full event stream with play money.</li>
+    <li>Tune strips/paytable until optimized hit-rates feel right; then lock v1 math.</li>
+    <li>Fork <code>web-sdk</code>, build the seven custom event handlers, cosmetic career wall.</li>
+    <li>Upload <code>library/publish_files/</code> + built frontend via the Stake Engine dashboard.</li>
+    <li>v2: drip bleed to adjacent reels · stacked-character events · ways-pay variant.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="tag">09</span> Art asset checklist</h2>
+  <p><strong>Delivered &amp; wired into the beta:</strong> the Smukiez wall (game background), Brick Wall
+  Chunk (Full Wall meter), <strong>Crew Leader — the money-counting kid (BS scatter)</strong>,
+  <strong>The Phantom — the skull kid (ES extreme scatter)</strong>, the <strong>spray-paint reel
+  frame</strong> (replaces the boxed board/grid chrome), the <strong>Full Wall mural</strong> (sliced into
+  five reel sections — each painted reel reveals its piece, the complete art crowns the max-win takeover
+  and fills the wall meter), the <strong>green spray win-frame</strong> (line-win highlight), a weed-bud
+  SMUKIEZ wordmark (staged for logo/banner use), and all <strong>17 item icons wired as paying symbols</strong>:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>sym</th><th>file</th><th>sym</th><th>file</th></tr></thead>
+    <tbody>
+      <tr><td class="sym">H1</td><td>moneybag</td><td class="sym">L1</td><td>spraypaintcan</td></tr>
+      <tr><td class="sym">H2</td><td>glock</td><td class="sym">L2</td><td>marker</td></tr>
+      <tr><td class="sym">H3</td><td>Chain</td><td class="sym">L3</td><td>beanie</td></tr>
+      <tr><td class="sym">H4</td><td>Shoes</td><td class="sym">L4</td><td>Tag (hangtag)</td></tr>
+      <tr><td class="sym">H5</td><td>Boombox</td><td class="sym">L5</td><td>Dice</td></tr>
+      <tr><td class="sym">H6</td><td>Skateboard</td><td class="sym">L6</td><td>smukiezshirt</td></tr>
+      <tr><td class="sym">H7</td><td>Box (limited drop)</td><td class="sym">L7</td><td>Hoodie</td></tr>
+      <tr><td class="sym">L8</td><td>weedbag</td><td class="sym">L9</td><td>Train</td></tr>
+      <tr><td class="sym">L10</td><td>Brickwall</td><td></td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Still needed — symbols (game-critical, priority order):</strong></p>
+  <ul>
+    <li><strong>Paint Drip wild (W)</strong> — the hero: base icon <em>plus</em> a full-reel expanded state
+        (top splash + drip column) for the flood animation</li>
+    <li><strong>Characters C1 / C2 / C3</strong> — three distinct Smukiez kids (common 2–3&times;,
+        uncommon 5&times;, rare 8–10&times;), each with a multiplier-badge spot</li>
+  </ul>
+  <p><strong>Still needed — frame &amp; feature UI:</strong></p>
+  <ul>
+    <li>Tag Meter frame (spray-tally marks) · free-spins banners (standard + extreme variants)</li>
+    <li>Big Win / Mega Win celebration frames (the Full Wall takeover is covered by the mural)</li>
+    <li>Transparent-background logo lockup (the wall piece works for splash; a cutout version for UI)</li>
+    <li>Buy-menu art (Limited drop box could double for standard; an extreme variant — e.g. the Phantom)</li>
+  </ul>
+  <p style="font-size:13px; color: var(--ink-soft)">Spec: 1000&times;1000 transparent PNG per symbol (matches
+  the delivered set) · bold-outline cartoon style · distinct silhouettes per the brief's readability rule.</p>
+</section>
+
+<footer>
+  <span>SMUKIEZ TAG RUN · MATH v0.2</span>
+  <span>5&times;4 · 30 LINES · RTP 96.5 · MAX 5000&times;</span>
+</footer>
+</main>
