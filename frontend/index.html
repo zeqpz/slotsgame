@@ -715,15 +715,15 @@
   .spinbtn:hover:not(:disabled)::after { scale: 1.13; }
   .spinbtn:hover:not(:disabled)::before { scale: 1.04; }
   .spinbtn.spun::after { animation: btnFloat 3.8s ease-in-out infinite, spin360 .8s cubic-bezier(.55,.05,.15,1); }
+  /* arrows shrink away as the skip pops in (.4s delay to match the skip), pop back when it leaves */
+  .spinbtn.arrows-away::after { scale: 0 !important; transition-delay: .4s; }
 
   .skipbtn {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    background: url("assets/skip_btn.png") center/cover no-repeat; border-radius: 12px;
-    border: none; padding: 0; cursor: pointer;
-    font-family: var(--disp); font-size: 15px; color: #17300a; text-transform: uppercase;
-    letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.4);
-    display: flex; align-items: center; justify-content: center;
+    position: absolute; inset: 21%;          /* smaller — the green square sits inside the spin circle */
+    background: url("assets/skip_btn.png") center/cover no-repeat;
+    border: none; padding: 0; cursor: pointer; font-size: 0;   /* image only, no "SKIP" text */
     opacity: 0; scale: .6; pointer-events: none;
+    animation: btnFloat 4.2s ease-in-out infinite;   /* gentle drift, like the spin arrows */
     transition: opacity .2s ease, scale .25s cubic-bezier(.3,.7,.4,1.5);
   }
   .skipbtn.show { opacity: 1; scale: 1; pointer-events: auto; transition-delay: .4s; }
@@ -819,7 +819,7 @@
     <div id="betVal">$1.00</div>
     <button id="betUp" aria-label="Raise bet">+</button>
   </div>
-  <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip">SKIP</button></span>
+  <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip"></button></span>
   <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
   <div class="popanchor">
     <button class="info auto" id="autoBtn" aria-label="Auto play" title="Auto play">
@@ -1185,6 +1185,12 @@ async function renderReveal(ev) {
   clearFx();
   setChars(null);
   bounceFx();   // background bounce + board pop on every reveal, free spins included
+  // show the skip only while the reels are actually spinning — it disappears the moment
+  // they land (a beat before the win tally finishes), and re-appears for each free spin.
+  if (state.playing && !state.noSkip && !state.skip) {
+    document.getElementById("skipBtn").classList.add("show");
+    document.getElementById("spinBtn").classList.add("arrows-away");   // arrows shrink out as skip pops in
+  }
   // snapshot the outgoing board before it is overwritten — each reel starts its spin on it
   const prev = reelEls.map((_, r) => ({
     row: (shownSym[r] || []).slice(),
@@ -1206,6 +1212,8 @@ async function renderReveal(ev) {
   await Promise.all(
     reelEls.map((_, r) => spinReel(r, ev, strips ? strips[r] : null, spans[r], prev[r]))
   );
+  document.getElementById("skipBtn").classList.remove("show");   // reels landed — skip is done
+  document.getElementById("spinBtn").classList.remove("arrows-away");   // arrows pop back as skip leaves
   hushReels();   // cut it short if the round was skipped; otherwise it has already faded
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
@@ -2393,7 +2401,9 @@ boot();
   try {
     if (typeof setButtons === "function") {
       var _orig = setButtons;
-      setButtons = function(on){ _orig(on); if (skip) skip.classList.toggle("show", !on && !state.noSkip); };
+      // skip visibility now tracks the reel spin (shown/hidden in renderReveal); here we only
+      // guarantee it is gone once the round ends.
+      setButtons = function(on){ _orig(on); if (on) { if (skip) skip.classList.remove("show"); if (spin) spin.classList.remove("arrows-away"); } };
     }
   } catch(_){}
 })();
