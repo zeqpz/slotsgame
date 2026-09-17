@@ -693,6 +693,75 @@
     .bonuspop, .bonuspanel { animation: none !important; }
   }
   label.turbo { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+  /* --- 2026-09-17 art buttons: spin plate+arrows, skip overlay, bonus plate+text --- */
+  .spinwrap { position: relative; display: inline-flex; }
+  .spinbtn {
+    position: relative; width: 78px; height: 78px;
+    background: none !important; border: none !important; padding: 0 !important;
+    overflow: visible; color: transparent; font-size: 0; cursor: pointer;
+  }
+  .spinbtn::before {
+    content: ""; position: absolute; inset: 0;
+    background: url("assets/spin_btn_bg.png") center/contain no-repeat;
+    transition: scale .18s ease;
+  }
+  .spinbtn::after {
+    content: ""; position: absolute; inset: 13% 15%;
+    background: url("assets/spin_btn_arrows.png") center/contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    animation: btnFloat 3.8s ease-in-out infinite;
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+  }
+  .spinbtn:hover:not(:disabled)::after { scale: 1.13; }
+  .spinbtn:hover:not(:disabled)::before { scale: 1.04; }
+  .spinbtn.spun::after { animation: btnFloat 3.8s ease-in-out infinite, spin360 .8s cubic-bezier(.55,.05,.15,1); }
+
+  .skipbtn {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    background: url("assets/skip_btn.png") center/cover no-repeat; border-radius: 12px;
+    border: none; padding: 0; cursor: pointer;
+    font-family: var(--disp); font-size: 15px; color: #17300a; text-transform: uppercase;
+    letter-spacing: .04em; text-shadow: 0 1px 0 rgba(255,255,255,.4);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; scale: .6; pointer-events: none;
+    transition: opacity .2s ease, scale .25s cubic-bezier(.3,.7,.4,1.5);
+  }
+  .skipbtn.show { opacity: 1; scale: 1; pointer-events: auto; transition-delay: .4s; }
+
+  .bonusbtn {
+    position: relative; width: 146px; height: 74px;
+    background: none !important; border: none !important; padding: 0 !important;
+    overflow: visible; color: transparent; font-size: 0; cursor: pointer;
+  }
+  .bonusbtn::before {
+    content: ""; position: absolute; inset: 0;
+    background: url("assets/bonus_btn_bg.png") center/contain no-repeat;
+    transition: scale .18s ease;
+  }
+  .bonusbtn::after {
+    content: ""; position: absolute; inset: 5% 6%;
+    background: url("assets/bonus_btn_text.png") center/contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    animation: btnFloat 4s ease-in-out infinite;
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+  }
+  .bonusbtn:hover:not(:disabled)::after { scale: 1.14; }
+  .bonusbtn:hover:not(:disabled)::before { scale: 1.04; }
+  .bonusbtn.clicked { animation: btnBounce2 .34s cubic-bezier(.3,.7,.4,1.4); }
+  .bonusbtn:disabled { opacity: .5; }
+  .bonusbtn:disabled::after { animation-play-state: paused; }
+
+  @keyframes btnFloat {
+    0% { translate: 0 0; rotate: 0deg; } 25% { translate: 2px -3px; rotate: .8deg; }
+    50% { translate: -1px 2px; rotate: -.6deg; } 75% { translate: -3px -1px; rotate: .4deg; }
+    100% { translate: 0 0; rotate: 0deg; }
+  }
+  @keyframes spin360 { from { rotate: 0deg; } to { rotate: 360deg; } }
+  @keyframes btnBounce2 { 0% { scale: 1; } 30% { scale: .9; } 65% { scale: 1.07; } 100% { scale: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .spinbtn::after, .bonusbtn::after { animation: none !important; }
+    .skipbtn { transition: opacity .12s ease !important; }
+  }
 </style>
 </head>
 <body>
@@ -750,8 +819,8 @@
     <div id="betVal">$1.00</div>
     <button id="betUp" aria-label="Raise bet">+</button>
   </div>
-  <button class="spin" id="spinBtn">Spin</button>
-  <button class="buy" id="bonusBtn">Bonus</button>
+  <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip">SKIP</button></span>
+  <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
   <div class="popanchor">
     <button class="info auto" id="autoBtn" aria-label="Auto play" title="Auto play">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 9.2A8.2 8.2 0 0 1 19.6 10.2"/><polygon points="16.2,10.6 23.4,10.6 19.8,14.2"/><path d="M18.8 14.8A8.2 8.2 0 0 1 4.4 13.8"/><polygon points="7.8,13.4 0.6,13.4 4.2,9.8"/></svg>
@@ -2302,6 +2371,32 @@ async function boot() {
   }
 }
 boot();
+</script>
+<script>
+/* 2026-09-17 art-button behaviour — additive; wraps setButtons for the skip overlay */
+(function(){
+  var spin = document.getElementById("spinBtn"),
+      bonus = document.getElementById("bonusBtn"),
+      skip = document.getElementById("skipBtn");
+  if (spin) {
+    spin.addEventListener("click", function(){ spin.classList.remove("spun"); void spin.offsetWidth; spin.classList.add("spun"); });
+    spin.addEventListener("animationend", function(e){ if (e.animationName === "spin360") spin.classList.remove("spun"); });
+  }
+  if (bonus) {
+    bonus.addEventListener("click", function(){ bonus.classList.remove("clicked"); void bonus.offsetWidth; bonus.classList.add("clicked"); });
+    bonus.addEventListener("animationend", function(e){ if (e.animationName === "btnBounce2") bonus.classList.remove("clicked"); });
+  }
+  if (skip) {
+    skip.addEventListener("click", function(ev){ ev.stopPropagation();
+      try { if (state.playing && !state.noSkip) { try { sfx("skip"); } catch(_){} state.skip = true; } } catch(_){} });
+  }
+  try {
+    if (typeof setButtons === "function") {
+      var _orig = setButtons;
+      setButtons = function(on){ _orig(on); if (skip) skip.classList.toggle("show", !on && !state.noSkip); };
+    }
+  } catch(_){}
+})();
 </script>
 </body>
 </html>
