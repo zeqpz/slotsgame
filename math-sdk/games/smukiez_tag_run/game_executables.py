@@ -128,7 +128,10 @@ class GameExecutables(GameCalculations):
         """
         n_bs = self.count_special_symbols("scatter")
         n_es = self.count_special_symbols("scatter_extreme")
-        min_bs = min(self.config.freespin_triggers[self.gametype].keys())
+        trig_map = self.config.freespin_triggers[self.gametype]
+        min_bs = min(trig_map.keys())
+        # cascades can accumulate more scatters than the table defines — cap at the top tier
+        bs_key = min(n_bs, max(trig_map.keys()))
         conds = self.get_current_distribution_conditions()
 
         trigger = None
@@ -139,11 +142,11 @@ class GameExecutables(GameCalculations):
         elif n_bs >= min_bs and n_es >= 1:
             trigger = "extreme"
             self.bonus_type = "extreme_upgrade"
-            self.tot_fs = self.config.freespin_triggers[self.gametype][n_bs]
+            self.tot_fs = trig_map[bs_key]
         elif n_bs >= min_bs:
             trigger = "standard"
             self.bonus_type = "standard"
-            self.tot_fs = self.config.freespin_triggers[self.gametype][n_bs]
+            self.tot_fs = trig_map[bs_key]
 
         if trigger is None:
             return None

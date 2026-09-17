@@ -3,7 +3,7 @@
 from game_override import GameStateOverride
 from game_events import paint_drips_event, painted_wall_event, character_mults_event
 from src.calculations.lines import Lines
-from src.events.events import reveal_event
+from src.events.events import reveal_event, win_info_event, update_tumble_win_event
 
 
 class GameState(GameStateOverride):
@@ -73,10 +73,36 @@ class GameState(GameStateOverride):
         self.end_freespin()
 
     def evaluate_and_emit_wins(self):
-        """Shared per-reveal win pipeline: evaluate, record, and emit win events."""
+        """Cascade pipeline: evaluate lines, pay, explode the winning symbols (wilds stay
+        sticky), drop new symbols in, and repeat until a reveal produces no new win."""
         self.evaluate_smukiez_wins()
+        exploded = self._pay_and_mark_tumble()
+        # only keep cascading while something actually leaves the board — an all-wild win
+        # (wilds are sticky) pays once but explodes nothing, so it must not loop forever.
+        while self.win_data["totalWin"] > 0 and exploded and not self.wincap_triggered:
+            self.tumble_game_board()          # remove exploded symbols, refill from the strip, emit tumbleBoard
+            self.evaluate_smukiez_wins()
+            exploded = self._pay_and_mark_tumble()
+        self.set_end_tumble_event()           # final setWin / setTotalWin for the cascade sequence
+
+    def _pay_and_mark_tumble(self) -> bool:
+        """Record + emit this reveal's wins, flag winning non-wild symbols to explode.
+        Returns True if at least one symbol was flagged (i.e. the board will change)."""
+        if self.win_data["totalWin"] <= 0:
+            return False
         Lines.record_lines_wins(self)
         self.win_manager.update_spinwin(self.win_data["totalWin"])
         if self.active_char_mult > 1:
             character_mults_event(self)
-        Lines.emit_linewin_events(self)
+        win_info_event(self)
+        update_tumble_win_event(self)
+        self.evaluate_wincap()
+        # Wilds are sticky — they never explode, so painted reels and drips survive the cascade.
+        any_exploded = False
+        for win in self.win_data["wins"]:
+            for pos in win["positions"]:
+                sym = self.board[pos["reel"]][pos["row"]]
+                if not sym.check_attribute("wild"):
+                    sym.explode = True
+                    any_exploded = True
+        return any_exploded
