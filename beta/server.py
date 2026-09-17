@@ -138,6 +138,40 @@ class Handler(BaseHTTPRequestHandler):
     def _json(self, obj, code=200):
         self._send(code, json.dumps(obj).encode("utf-8"), "application/json")
 
+    def do_OPTIONS(self):
+        # CORS + Private Network Access preflight for the devsave helper
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "*")
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.send_header("Access-Control-Max-Age", "600")
+        self.end_headers()
+
+    def do_POST(self):
+        # dev helper: lets a browser page save pulled live-game files locally
+        url = urlparse(self.path)
+        if url.path == "/api/devsave":
+            name = os.path.basename(parse_qs(url.query).get("name", [""])[0])
+            if not name:
+                self._json({"error": "name required"}, 400)
+                return
+            length = min(int(self.headers.get("Content-Length", 0)), 30 * 1024 * 1024)
+            body = self.rfile.read(length)
+            out_dir = os.path.join(os.path.dirname(BETA_DIR), "live-pull", "v10")
+            os.makedirs(out_dir, exist_ok=True)
+            with open(os.path.join(out_dir, name), "wb") as f:
+                f.write(body)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            body_out = json.dumps({"saved": name, "bytes": length}).encode()
+            self.send_header("Content-Length", str(len(body_out)))
+            self.end_headers()
+            self.wfile.write(body_out)
+        else:
+            self._json({"error": "not found"}, 404)
+
     def do_GET(self):
         url = urlparse(self.path)
         if url.path in ("/", "/index.html"):

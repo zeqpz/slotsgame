@@ -148,7 +148,8 @@
   .cell.pulse { animation: pulse .6s ease-in-out; }
   @keyframes pulse { 0%,100% { transform: none; } 50% { transform: scale(1.12); } }
   @media (prefers-reduced-motion: reduce) {
-    .cell, .reel, .banner, .board, #bgwall, .spincol { animation: none !important; transition: none !important; }
+    .cell, .reel, .banner, .board, #bgwall, .spincol, .artbtn, .artbtn-bg, .artbtn-text,
+    .spinbtn, .artbtn-arrows { animation: none !important; transition: none !important; }
   }
 
   .ticker {
@@ -212,17 +213,103 @@
     border: 2px solid var(--line); font-family: var(--mono); font-size: 16px; font-weight: 700;
   }
   #betVal { font-family: var(--mono); font-size: 16px; font-weight: 700; min-width: 76px; text-align: center; }
-  .spin {
-    font-family: var(--disp); font-size: 20px; text-transform: uppercase; letter-spacing: .04em;
-    background: var(--spray); color: #fff; border: 2px solid var(--spray);
-    padding: 12px 42px;
+  /* art spin button: round painted plate + rotating arrows */
+  .spinbtn {
+    position: relative; width: 108px; height: 108px;
+    background: none; border: none; padding: 0; overflow: visible;
   }
-  .spin:hover:not(:disabled) { background: var(--spray-deep); }
+  .spinbtn.clicked { animation: btnBounce .34s cubic-bezier(.3,.7,.4,1.4); }
+  .spinbtn .artbtn-bg {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+    transition: scale .18s ease;
+  }
+  .artbtn-arrows {
+    position: absolute; left: 13%; top: 11%; width: 74%; height: 78%; object-fit: contain;
+    pointer-events: none;
+    animation: bonusFloat 3.8s ease-in-out infinite;
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+  }
+  .artbtn-arrows.spun {
+    animation: bonusFloat 3.8s ease-in-out infinite,
+      spin360 .8s cubic-bezier(.55,.05,.15,1);   /* slow start, fast middle, quick settle */
+  }
+  @keyframes spin360 { from { rotate: 0deg; } to { rotate: 360deg; } }
+  .spinbtn:hover .artbtn-arrows { scale: 1.14; }
+  .spinbtn:hover .artbtn-bg { scale: 1.04; }
+  .spinlabel { right: auto; left: 50%; translate: -50% 0; bottom: 2%; }
   .buy {
     font-family: var(--mono); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
     background: var(--panel2); color: var(--gold); border: 2px solid var(--gold); padding: 10px 14px;
   }
   .buy.purple { color: var(--purple); border-color: var(--purple); }
+
+  /* bonus buy screen */
+  #buyScreen {
+    position: fixed; inset: 0; z-index: 30; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(16, 14, 20, .86); padding: 20px;
+  }
+  #buyScreen.show { display: flex; }
+  .buysheet {
+    position: relative; background: var(--panel); border: 2px solid var(--spray);
+    box-shadow: 0 0 40px rgba(240, 86, 139, .25); padding: 20px 22px 22px;
+    width: 100%; max-width: 620px; animation: bin .22s ease-out;
+  }
+  .buysheet h3 {
+    margin: 0 0 14px; font-family: var(--disp); font-size: 20px;
+    text-transform: uppercase; letter-spacing: .02em;
+  }
+  .buyclose {
+    position: absolute; top: 8px; right: 10px; width: 32px; height: 32px;
+    background: var(--panel2); color: var(--ink); border: 2px solid var(--line);
+    font-size: 18px; line-height: 1;
+  }
+  .buyopts { display: flex; gap: 14px; flex-wrap: wrap; }
+  .buyopt {
+    flex: 1 1 230px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: var(--panel2); border: 2px solid var(--gold); padding: 14px; text-align: center;
+  }
+  .buyopt.extreme { border-color: var(--purple); }
+  .buyopt img { height: 112px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+  .buyopt .t { font-family: var(--disp); font-size: 14px; text-transform: uppercase; }
+  .buyopt .d { font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+  .buyopt .buy { margin-top: 4px; }
+
+  /* art bonus button: painted plate + floating BONUS text */
+  .buy.artbtn {
+    position: relative; width: 184px; height: 94px;
+    background: none; border: none; padding: 0; overflow: visible;
+  }
+  .buy.artbtn.clicked { animation: btnBounce .34s cubic-bezier(.3,.7,.4,1.4); }
+  @keyframes btnBounce { 0% { scale: 1; } 30% { scale: .9; } 65% { scale: 1.07; } 100% { scale: 1; } }
+  .artbtn-bg {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+    transition: scale .18s ease;
+  }
+  .artbtn-text {
+    position: absolute; left: 7%; top: 2%; width: 86%; height: 76%; object-fit: contain;
+    pointer-events: none;
+    animation: bonusFloat 3.8s ease-in-out infinite;
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+  }
+  @keyframes bonusFloat {
+    0%   { translate: 0 0; rotate: 0deg; }
+    25%  { translate: 2px -3px; rotate: .8deg; }
+    50%  { translate: -1px 2px; rotate: -.6deg; }
+    75%  { translate: -3px -1px; rotate: .4deg; }
+    100% { translate: 0 0; rotate: 0deg; }
+  }
+  .buy.artbtn:hover:not(:disabled) .artbtn-text { scale: 1.16; }
+  .buy.artbtn:hover:not(:disabled) .artbtn-bg { scale: 1.04; }
+  .buy.artbtn:disabled .artbtn-text { animation-play-state: paused; }
+  .artbtn-cost {
+    position: absolute; right: 9%; bottom: 7%;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; color: #fff;
+    background: rgba(20, 18, 24, .78); padding: 1px 7px; border: 1px solid var(--spray);
+    pointer-events: none;
+  }
   label.turbo { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
   .debug { font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); text-align: center; padding: 4px 0 10px; }
 </style>
@@ -269,14 +356,43 @@
   </div>
 </div>
 
+<div id="buyScreen" aria-label="Bonus buy menu">
+  <div class="buysheet">
+    <button class="buyclose" id="buyClose" aria-label="Close">&times;</button>
+    <h3>Buy a Bonus</h3>
+    <div class="buyopts">
+      <div class="buyopt">
+        <img src="/assets/BS.png" alt="Crew Leader" draggable="false">
+        <div class="t">Standard Bonus</div>
+        <div class="d">8&ndash;12 free spins &middot; sticky Paint Drips<br>+1x paint &middot; Tag Meter</div>
+        <button class="buy" id="bsStdBuy">Buy &middot; <span id="bsStdCost"></span></button>
+      </div>
+      <div class="buyopt extreme">
+        <img src="/assets/ES.png" alt="The Phantom" draggable="false">
+        <div class="t">Extreme Bonus</div>
+        <div class="d">10 free spins &middot; paint carries over<br>+2x paint start &middot; best Full Wall odds</div>
+        <button class="buy purple" id="bsExtBuy">Buy &middot; <span id="bsExtCost"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="bottom">
   <div class="betbox">
     <button id="betDown" aria-label="Lower bet">−</button>
     <div id="betVal">$1.00</div>
     <button id="betUp" aria-label="Raise bet">+</button>
   </div>
-  <button class="spin" id="spinBtn">Spin</button>
-  <button class="buy" id="buyBonus">Buy Bonus · <span id="buyBonusCost"></span></button>
+  <button class="spinbtn" id="spinBtn" aria-label="Spin">
+    <img class="artbtn-bg" src="/assets/spin_btn_bg.png" alt="" draggable="false">
+    <img class="artbtn-arrows" id="spinArrows" src="/assets/spin_btn_arrows.png" alt="Spin" draggable="false">
+    <span class="artbtn-cost spinlabel" id="spinLabel" hidden>SKIP &gt;&gt;</span>
+  </button>
+  <button class="buy artbtn" id="buyBonus" aria-label="Buy Bonus">
+    <img class="artbtn-bg" src="/assets/bonus_btn_bg.png" alt="" draggable="false">
+    <img class="artbtn-text" src="/assets/bonus_btn_text.png" alt="BONUS" draggable="false">
+    <span class="artbtn-cost" id="buyBonusCost"></span>
+  </button>
   <button class="buy purple" id="buyExtreme">Buy Extreme · <span id="buyExtremeCost"></span></button>
   <label class="turbo"><input type="checkbox" id="turbo"> TURBO</label>
 </div>
@@ -703,7 +819,7 @@ async function playRound(mode) {
 
 /* ---------- controls ---------- */
 function setButtons(on) {
-  $("spinBtn").textContent = on ? "Spin" : "Skip >>";
+  $("spinLabel").hidden = on;   // arrows mean "spin"; the chip appears as SKIP >> while playing
   $("buyBonus").disabled = !on || state.costs.bonus * bet() > state.balance;
   $("buyExtreme").disabled = !on || state.costs.extremebonus * bet() > state.balance;
   $("betUp").disabled = !on; $("betDown").disabled = !on;
@@ -712,6 +828,7 @@ function refreshBet() {
   $("betVal").textContent = fmt(bet());
   $("buyBonusCost").textContent = fmt(state.costs.bonus * bet());
   $("buyExtremeCost").textContent = fmt(state.costs.extremebonus * bet());
+  updateBuyScreen();
   setButtons(!state.playing);
 }
 
@@ -719,14 +836,47 @@ buildBoard();
 setTags(0, 4);
 eachCell((el, r, y) => setCell(r, y, { name: ["L1","L2","L3","L4","L5"][(r + y) % 5] }));
 
-$("spinBtn").addEventListener("click", () => playRound("base"));
+function spinFx() {
+  if (REDUCED_MOTION) return;
+  const b = $("spinBtn"), a = $("spinArrows");
+  b.classList.remove("clicked"); a.classList.remove("spun");
+  void b.offsetWidth;   // restart both animations
+  b.classList.add("clicked"); a.classList.add("spun");
+}
+$("spinBtn").addEventListener("click", () => { spinFx(); playRound("base"); });
 $("board").addEventListener("click", () => { if (state.playing) state.skip = true; });
-$("buyBonus").addEventListener("click", () => playRound("bonus"));
+/* ---------- bonus buy screen ---------- */
+function updateBuyScreen() {
+  $("bsStdCost").textContent = fmt(state.costs.bonus * bet());
+  $("bsExtCost").textContent = fmt(state.costs.extremebonus * bet());
+  $("bsStdBuy").disabled = state.costs.bonus * bet() > state.balance;
+  $("bsExtBuy").disabled = state.costs.extremebonus * bet() > state.balance;
+}
+function openBuyScreen() {
+  if (state.playing) return;
+  updateBuyScreen();
+  $("buyScreen").classList.add("show");
+}
+function closeBuyScreen() { $("buyScreen").classList.remove("show"); }
+$("buyClose").addEventListener("click", closeBuyScreen);
+$("buyScreen").addEventListener("click", e => { if (e.target === $("buyScreen")) closeBuyScreen(); });
+$("bsStdBuy").addEventListener("click", () => { closeBuyScreen(); playRound("bonus"); });
+$("bsExtBuy").addEventListener("click", () => { closeBuyScreen(); playRound("extremebonus"); });
+
+$("buyBonus").addEventListener("click", () => {
+  const b = $("buyBonus");
+  b.classList.remove("clicked");
+  void b.offsetWidth;   // restart the bounce
+  b.classList.add("clicked");
+  openBuyScreen();
+});
 $("buyExtreme").addEventListener("click", () => playRound("extremebonus"));
 $("betUp").addEventListener("click", () => { state.betIdx = Math.min(state.betIdx + 1, BETS.length - 1); refreshBet(); });
 $("betDown").addEventListener("click", () => { state.betIdx = Math.max(state.betIdx - 1, 0); refreshBet(); });
 document.addEventListener("keydown", e => {
-  if (e.code === "Space" && !e.repeat) { e.preventDefault(); playRound("base"); }
+  if (e.code === "Escape") { closeBuyScreen(); return; }
+  if ($("buyScreen").classList.contains("show")) return;   // sheet open: no spinning behind it
+  if (e.code === "Space" && !e.repeat) { e.preventDefault(); spinFx(); playRound("base"); }
 });
 
 fetch("/api/config").then(r => r.json()).then(cfg => {
