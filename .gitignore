@@ -2,3 +2,12 @@
 __pycache__/
 *.pyc
 *.log
+
+# scraped Discord dumps (other people's messages) — keep out of the public repo
+research/
+# superseded uploader; it embeds presigned S3 URLs / STS tokens
+upload_front.py
+# generated
+frontend_manifest.json
+# duplicate of frontend/assets kept for the Media page attempt
+upload_media/

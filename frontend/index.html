@@ -1,0 +1,2307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smukiez Tag Run</title>
+<style>
+  :root {
+    --bg: #141218;
+    --panel: #1E1B24;
+    --panel2: #26222E;
+    --line: #3A3444;
+    --ink: #EDEAE4;
+    --ink-soft: #9C94A8;
+    --spray: #F0568B;
+    --spray-deep: #C42A63;
+    --gold: #F5C518;
+    --purple: #A78BFA;
+    --teal: #3FBFB2;
+    --green: #4ADE80;
+    --orange: #FF8A2A;       /* the bottom-bar icon buttons and their pop-ups */
+    --mono: "Jraot Hollow", "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    --disp: "Jraot Hollow", "Archivo Black", "Archivo", sans-serif;
+    --wall-scale: contain;   /* background wall size — `cover` fills and crops, `contain` fits it all in */
+    --char-height: 86vh;     /* base size the crop window is derived from */
+    --char-stretch: 1.30;    /* stretched vertically — scaling up instead would widen them
+                                over the reels and re-crop their arms */
+    --char-drop: 12vh;       /* how far their feet run past the bottom edge. The figures fill
+                                their frames top-to-bottom, so past full height something must
+                                go: this takes it off the shoes and keeps the heads intact. */
+    --bounce: .2;            /* strength of the per-spin bounce/shake; 1 = the original full-force version */
+    /* Regulatory text must be readable — the graffiti face is not. */
+    --legible: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    --char-fade: 280ms;      /* crossfade between the character's clips (JS reads this) */
+    --char-inset: 0vw;       /* how far in from each edge the characters stand */
+    /* Board size lives here so the spin overlay's CELL_STEP can be derived from the same
+       numbers — hardcoding it separately means the reels mis-align the moment a cell resizes. */
+    --cell-w: 120px;
+    --cell-h: 103px;
+    --cell-gap: 7px;
+  }
+  @font-face {
+    font-family: "Jraot Hollow";
+    src: url("assets/jraot-hollow.ttf") format("truetype");
+    font-display: swap;
+  }
+  * { box-sizing: border-box; }
+  /* The game frame never scrolls: fitToScreen() scales #app to the window instead.
+     touch-action: manipulation is what turns off double-tap-to-zoom on phones. */
+  html, body { height: 100%; overflow: hidden; touch-action: manipulation; }
+  body {
+    margin: 0; color: var(--ink); background: var(--bg);
+    font-family: "Jraot Hollow", "Archivo", "Helvetica Neue", Arial, sans-serif;
+    position: relative;
+  }
+  #bgwall {
+    position: fixed; inset: -4%; z-index: -1; pointer-events: none;
+    background:
+      linear-gradient(rgba(20,18,24,.78), rgba(20,18,24,.9)),
+      url("assets/background.png") center / var(--wall-scale) no-repeat;
+  }
+  /* animated character, screened onto the wall on the right-hand side. The clips are
+     640x360 with the figure on pure black around 44-48% of the frame width, so the frame is
+     scaled to the box height and shifted to centre the figure. Screen blending drops the
+     black surround — and the figure's own dark tones read as the dark wall anyway.
+     The window is kept wide enough (0.80) for the frames where he swings out to the left;
+     the extra margin is pure black, so it costs nothing on screen. */
+  .charfx {
+    position: fixed; z-index: -1; bottom: calc(-1 * var(--char-drop));
+    /* 0.94 is wide enough to clear the widest frame in any clip — a narrower window sliced
+       the cartoon's arms off. No bottom mask either: it was fading out their feet. */
+    height: calc(var(--char-height) * var(--char-stretch));
+    width: calc(var(--char-height) * 0.94);
+    overflow: hidden; pointer-events: none; user-select: none;
+    mix-blend-mode: screen; opacity: .72;   /* they are scenery — the reels stay the focus */
+    transform-origin: 50% 100%;   /* they pop up off their feet, not out of the middle */
+  }
+  /* --char-shift centres each character's own column on the union of its clips' content:
+     char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
+  #charfx  { right: var(--char-inset); --char-shift: 40%; }
+  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; }
+  /* same beat as the wall's bounce — they hop and shake it off on every spin */
+  .charfx.bounce { animation: charbounce .7s cubic-bezier(.22,.9,.32,1.25); }
+  @keyframes charbounce {
+    0%   { transform: none; }
+    18%  { transform: translateY(calc(-11px * var(--bounce))) scale(calc(1 + .05 * var(--bounce))) rotate(calc(-1.4deg * var(--bounce))); }
+    38%  { transform: translateY(calc(6px * var(--bounce))) scale(calc(1 - .016 * var(--bounce))) rotate(calc(1.1deg * var(--bounce))); }
+    55%  { transform: translateY(calc(-3px * var(--bounce))) scale(calc(1 + .012 * var(--bounce))) rotate(calc(-.7deg * var(--bounce))); }
+    70%  { transform: translateY(calc(2px * var(--bounce))) rotate(calc(.4deg * var(--bounce))); }
+    85%  { transform: translateY(calc(-1px * var(--bounce))) rotate(calc(-.2deg * var(--bounce))); }
+    100% { transform: none; }
+  }
+  /* Narrow screens have no room beside the board, so instead of hiding them the pair is
+     shrunk and pushed outward — they frame the reels from the edges rather than sitting
+     under them. Mobile keeps its characters; it just sees less of each one. */
+  @media (max-width: 1080px) {
+    :root { --char-height: 74vh; --char-inset: -13vw; }
+    .charfx { opacity: .5; }
+  }
+  @media (max-width: 760px) {
+    :root { --char-height: 60vh; --char-inset: -20vw; }
+    .charfx { opacity: .42; }
+  }
+  /* Portrait phone: the board is scaled to the width and sits high, which leaves the lower
+     half of the screen empty — so the pair stands there, whole, one in each bottom corner
+     behind the controls. Sized so two of them fit across the screen with their feet on it. */
+  @media (max-width: 760px) and (orientation: portrait) {
+    :root { --char-height: 26vh; --char-inset: 0vw; --char-drop: 2vh; }
+    .charfx { opacity: .6; }
+  }
+  /* Landscape phone: short screen, board fitted to the height, room either side again. */
+  @media (max-height: 500px) {
+    :root { --char-height: 82vh; --char-inset: -4vw; --char-drop: 8vh; }
+    .charfx { opacity: .5; }
+  }
+  /* two stacked players: the standby always holds the next clip decoded and ready, so the
+     handover is a crossfade between two already-running videos rather than a load pause.
+     They blend against each other normally; .charfx screens the result onto the wall once. */
+  .charfx .charvid {
+    /* width is pinned to the UNstretched height, so the frame gets taller without getting
+       wider — the visible slice of each clip stays exactly where it was calibrated */
+    position: absolute; bottom: 0; left: 50%; height: 100%;
+    width: calc(var(--char-height) * 1.7778);
+    transform: translateX(calc(-1 * var(--char-shift)));
+    opacity: 0; transition: opacity var(--char-fade) linear;
+  }
+  .charfx .charvid.on { opacity: 1; }
+  #bgwall.bounce { animation: bgbounce .7s cubic-bezier(.22,.9,.32,1.25); }
+  @keyframes bgbounce {
+    0% { transform: none; }
+    38% { transform: translateY(calc(9px * var(--bounce))) scale(calc(1 + .022 * var(--bounce))); }
+    100% { transform: none; }
+  }
+  button { font-family: inherit; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  /* top bar */
+  .top {
+    display: flex; align-items: center; gap: 34px; flex-wrap: wrap;
+    padding: 12px 22px; border-bottom: 2px solid var(--line); background: var(--panel);
+  }
+  .top .spacer { flex: 1; }
+  /* Full Wall / Tag Meter ride in the header — same elements the game logic drives, the
+     segments just sized down to sit on one bar */
+  .meter { display: flex; flex-direction: column; gap: 5px; }
+  .meter .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
+  .meter .wall { width: 168px; }
+  .meter .wall span { height: 20px; }
+  .meter .tags span { width: 17px; height: 17px; }
+  .meter .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--ink-soft); }
+  .meter .meta b { color: var(--ink); }
+  .stat { text-align: right; }
+  .stat .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
+  /* the graffiti face sets numerals tight enough that they read as one blob — tracking
+     them apart is what makes the figures legible at this size */
+  .stat .val {
+    font-family: var(--mono); font-size: 25px; font-weight: 700;
+    letter-spacing: .22em; font-variant-numeric: tabular-nums;
+  }
+  .stat .val.up { color: var(--green); } .stat .val.down { color: var(--spray); }
+  /* the figure shakes itself as it rolls; anchored right so the number's edge stays put */
+  .stat .val.bump { animation: cashbump .5s cubic-bezier(.25,.8,.35,1); transform-origin: 100% 50%; }
+  @keyframes cashbump {
+    0%   { transform: none; }
+    15%  { transform: translate(-3px, -3px) scale(1.10) rotate(-1.6deg); }
+    32%  { transform: translate(3px, 1px) scale(1.04) rotate(1.3deg); }
+    50%  { transform: translate(-2px, -1px) scale(1.02) rotate(-.8deg); }
+    68%  { transform: translate(1.2px, 0) rotate(.45deg); }
+    84%  { transform: translate(-.5px, 0) rotate(-.2deg); }
+    100% { transform: none; }
+  }
+
+  /* Whole UI scales to the window so a round is always visible without scrolling — see
+     fitToScreen(): #app is laid out at window-size / fit and scaled back down, so the header
+     and controls still span the full width at any factor. The scenery (#bgwall, .charfx) is
+     viewport-sized already and stays outside it. */
+  #app {
+    position: absolute; left: 0; top: 0; width: 100%; min-height: 100%;
+    display: flex; flex-direction: column; transform-origin: 0 0;
+  }
+
+  /* Opening sequence: logo on black, fades out, disclosure fades in, then the game.
+     It sits above everything and is click-to-skip; boot() runs behind it either way. */
+  .intro {
+    position: fixed; inset: 0; z-index: 60; background: #000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 6vh 8vw; text-align: center; cursor: pointer;
+    transition: opacity .6s ease;
+  }
+  .intro.gone { opacity: 0; pointer-events: none; }
+  .intrologo {
+    max-width: min(620px, 74vw); width: 100%; height: auto;
+    opacity: 0; transition: opacity .9s ease, transform .9s ease; transform: scale(.94);
+  }
+  .intrologo.in { opacity: 1; transform: none; }
+  .intromsg {
+    position: absolute; max-width: 680px; margin: 0;
+    font-family: var(--legible); font-size: 13px; line-height: 1.75; color: var(--ink-soft);
+    opacity: 0; transition: opacity .8s ease;
+  }
+  .intromsg.in { opacity: 1; }
+  .introskip {
+    position: absolute; bottom: 5vh; font-family: var(--legible); font-size: 10.5px;
+    letter-spacing: .2em; text-transform: uppercase; color: #4a4453;
+    opacity: 0; transition: opacity .5s ease;
+  }
+  .introskip.in { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .intro, .intrologo, .intromsg, .introskip { transition: none !important; }
+    .popover { animation: none !important; }
+  }
+
+  .info {
+    width: 26px; height: 26px; border-radius: 50%; line-height: 1;
+    background: transparent; color: var(--orange); border: 2px solid var(--orange);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+  }
+  .info:hover, .info.open { background: var(--orange); color: #16130f; }
+  /* small panels that pop up over a bottom-bar button instead of covering the screen */
+  .popanchor { position: relative; display: inline-flex; }
+  .popover {
+    position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+    z-index: 30; min-width: 250px; background: var(--panel); border: 2px solid var(--orange);
+    padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.55); font-family: var(--legible);
+  }
+  .popover::after {   /* the little arrow pointing at its button */
+    content: ""; position: absolute; top: 100%; left: 50%; margin-left: -7px;
+    border: 7px solid transparent; border-top-color: var(--orange);
+  }
+  .popover { --px: -50%; transform-origin: 50% 100%; animation: popin .38s cubic-bezier(.2,.9,.3,1.35); }
+  .popover.right { left: auto; right: -4px; --px: 0%; transform: none; transform-origin: calc(100% - 17px) 100%; }
+  @keyframes popin {   /* display toggles restart it, so every open pops */
+    0%   { transform: translateX(var(--px)) scale(.55); opacity: 0; }
+    55%  { transform: translateX(var(--px)) scale(1.06); opacity: 1; }
+    75%  { transform: translateX(var(--px)) scale(.98); }
+    100% { transform: translateX(var(--px)) scale(1); }
+  }
+  .popover.right::after { left: auto; right: 10px; margin-left: 0; }
+  .popover[hidden] { display: none; }
+  .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
+  .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
+  .popover .autoopts { margin: 0 0 10px; }
+  .popover .autoopts button { padding: 7px 0; font-size: 13px; }
+  .popover .autoopts button.on { border-color: var(--orange); color: var(--orange); }
+  .popover .infoclose { font-size: 13px; padding: 6px 14px; background: var(--orange); border-color: var(--orange); color: #16130f; }
+  .popover .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); }
+  .vol { display: grid; grid-template-columns: 96px 1fr 38px; align-items: center; gap: 8px; font-size: 12px; color: var(--ink); margin: 7px 0; }
+  .vol input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; margin: 0; }
+  .vol b { text-align: right; font-family: var(--mono); color: var(--orange); }
+  .mute { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
+  .mute input { accent-color: var(--orange); }
+  /* Required disclosure — has to be reachable from inside the game, not just the lobby. */
+  .infowrap {
+    position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+    background: rgba(8, 6, 10, .78); padding: 20px;
+  }
+  .infowrap[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
+  .infopanel {
+    max-width: 780px; width: 100%; max-height: 86vh; overflow: auto;
+    background: var(--panel); border: 2px solid var(--line); padding: 22px 24px;
+  }
+  /* rules page — everything in the legible face; the graffiti font is for the game, not the fine print */
+  .infopanel section { margin-bottom: 20px; }
+  .infopanel h4 { font-family: var(--disp); font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
+  .infopanel .fine { font-size: 11.5px; color: var(--ink-soft); }
+  .kvgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0; }
+  .kvgrid > div { border: 1px solid var(--line); padding: 8px 10px; font-family: var(--legible); }
+  .kvgrid span { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); }
+  .kvgrid b { display: block; font-size: 18px; margin: 2px 0; }
+  .kvgrid small { color: var(--ink-soft); font-size: 11px; }
+  .paytable { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
+  .prow { display: grid; grid-template-columns: 48px 1fr; gap: 4px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-family: var(--legible); font-size: 12px; }
+  .prow .ptext { grid-column: 1 / -1; color: var(--ink); line-height: 1.55; }
+  .ptile { width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); background: var(--panel2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--disp); box-sizing: border-box; }
+  .ptile.wild { color: var(--spray); }  .ptile.char { color: var(--teal); }
+  .ptile span { font-size: 14px; }  .ptile small { font-size: 8px; letter-spacing: .14em; color: var(--ink-soft); }
+  .pname { font-weight: 600; }  .pname small { display: block; color: var(--ink-soft); font-weight: 400; font-size: 10px; letter-spacing: .12em; }
+  .pvals { grid-column: 1 / -1; display: flex; gap: 14px; flex-wrap: wrap; }
+  .pvals b { color: var(--gold); margin-right: 4px; }  .pvals em { font-style: normal; color: var(--ink-soft); margin-left: 4px; }
+  table.modes, table.guide { width: 100%; border-collapse: collapse; font-family: var(--legible); font-size: 12px; }
+  table.modes th, table.modes td, table.guide td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+  table.modes th { color: var(--ink-soft); font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
+  table td em { font-style: normal; color: var(--ink-soft); }
+  .plines { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; }
+  .pline { margin: 0; text-align: center; font-family: var(--legible); font-size: 10px; color: var(--ink-soft); }
+  .pline svg { width: 100%; display: block; }
+  .pline rect { fill: var(--panel2); stroke: var(--line); stroke-width: .6; }
+  .pline rect.on { fill: rgba(240, 86, 139, .35); }
+  .pline polyline { fill: none; stroke: var(--spray); stroke-width: 1.4; stroke-linejoin: round; }
+  @media (max-width: 640px) { .paytable, .kvgrid { grid-template-columns: 1fr; } }
+  /* autoplay count picker */
+  .autoopts { display: flex; gap: 8px; margin: 8px 0 16px; }
+  .autoopts button { flex: 1; padding: 10px 0; background: var(--panel2); color: var(--ink); border: 2px solid var(--line); font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .autoopts button.on { border-color: var(--gold); color: var(--gold); }
+  /* autoplay: the twin-arrow icon button; while running it shows the rounds left and turns */
+  .info.auto { width: auto; min-width: 34px; height: 34px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; }
+  .info.auto svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; stroke-width: 2.6; stroke-linecap: butt; }
+  .info.auto svg path { fill: none; }
+  .info.auto.on { background: var(--orange); color: #16130f; border-color: var(--orange); }
+  .info.auto.on svg { animation: autospin 1.6s linear infinite; }
+  .info.auto span { font-family: var(--mono); font-size: 13px; font-weight: 700; letter-spacing: .06em; }
+  @keyframes autospin { to { transform: rotate(360deg); } }
+  /* replay mode: a viewer, not a player — every way of staking is gone, not just disabled */
+  body.replay .betbox, body.replay #bonusBtn, body.replay #autoBtn, body.replay #spinBtn { display: none; }
+  .replaymeta { font-family: var(--legible); font-size: 13px; color: var(--ink); margin: 0 0 10px; line-height: 1.6; }
+  .replayres { font-family: var(--mono); font-size: 17px; letter-spacing: .08em; color: var(--gold); margin: 0 0 16px; line-height: 1.7; }
+  .meter[hidden] { display: none; }
+  .infopanel h3 {
+    margin: 0 0 12px; font-family: var(--disp); font-size: 22px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--spray);
+  }
+  .infopanel p { font-family: var(--legible); font-size: 13px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
+  .infopanel p.legal { color: var(--ink-soft); font-size: 11.5px; line-height: 1.7; }
+  .infoclose {
+    font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase;
+    background: var(--spray); color: #fff; border: 2px solid var(--spray); padding: 8px 22px;
+  }
+  .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); margin-left: 10px; }
+  .infopanel .cost { font-family: var(--mono); font-size: 22px; font-weight: 700; letter-spacing: .12em; color: var(--gold); margin: 0 0 16px; }
+  /* sound toggle sits with the info button; struck through while muted */
+  .info svg.spk { width: 14px; height: 14px; fill: currentColor; display: block; margin: 0 auto; }
+  .info .slash { display: none; } .info.off .slash { display: block; } .info.off .wave { display: none; }
+  .info.off { opacity: .65; }
+  /* a ten-figure balance (ARS, IDR...) must never push the header off the popout */
+  .stat .val.long { font-size: 17px; letter-spacing: .1em; }
+  .stat .val.vlong { font-size: 13px; letter-spacing: .06em; }
+  .meter .big { font-family: var(--mono); font-size: 18px; font-weight: 700; letter-spacing: .14em; color: var(--gold); line-height: 1.1; }
+  table.hist { width: 100%; border-collapse: collapse; font-family: var(--legible); font-size: 12px; margin-bottom: 6px; }
+  table.hist td, table.hist th { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.hist th { color: var(--ink-soft); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
+  table.hist td.win { color: var(--green); font-weight: 600; }
+  table.hist td.zero { color: var(--ink-soft); }
+  .banner.mega .big { color: var(--purple); } .banner.epic .big { color: var(--spray); }
+
+  /* main — slots front and center, info cards beneath */
+  .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 76px 20px 22px; align-items: center; }
+  .stage { position: relative; padding-bottom: 108px; }   /* room for the frame's bottom overhang */
+
+  /* no tinted panel behind the reels — the wall art shows straight through the board */
+  .board {
+    position: relative; display: flex; gap: var(--cell-gap); padding: 14px;
+  }
+  /* top/height are independent: the overall size stays, the frame just sits higher so its
+     bottom drips don't hang low under the board */
+  #paintframe {
+    position: absolute; left: -64px; top: -66px;
+    width: calc(100% + 128px); height: calc(100% + 170px);
+    z-index: 3; pointer-events: none; user-select: none;
+  }
+  .board.pop { animation: boardpop .38s cubic-bezier(.2,.9,.3,1.35); }
+  @keyframes boardpop {
+    0% { transform: none; box-shadow: none; }
+    40% { transform: scale(calc(1 + .035 * var(--bounce))); box-shadow: 0 0 26px rgba(240,86,139,.35); }
+    100% { transform: none; box-shadow: none; }
+  }
+  .reel { position: relative; display: flex; flex-direction: column; gap: var(--cell-gap); padding: 3px; border: 2px solid transparent; transition: border-color .3s, box-shadow .3s; }
+  .reel.spinning { overflow: hidden; }
+  .reel.spinning > .cell { visibility: hidden; }  /* result stays hidden until the overlay lands */
+  .reel.antic { border-color: var(--gold); box-shadow: 0 0 16px rgba(245,197,24,.5); }
+  .spincol {
+    position: absolute; top: 3px; left: 3px; width: calc(100% - 6px); z-index: 2;
+    display: flex; flex-direction: column; gap: var(--cell-gap); will-change: transform, filter;
+  }
+  .spincol .cell { flex: none; width: 100%; }
+  .reel.painted { border-color: var(--spray); box-shadow: 0 0 14px rgba(240,86,139,.35) inset; }
+  /* painted reels reveal their slice of the Full Wall mural (when mural.png exists),
+     kept as divided cubes: each cell shows its quarter of the reel's slice */
+  .reel.mural.painted > .cell { background-size: 100% 400%; background-repeat: no-repeat; }
+  .reel.mural.painted > .cell:nth-child(1) { background-position: 0 0%; }
+  .reel.mural.painted > .cell:nth-child(2) { background-position: 0 33.333%; }
+  .reel.mural.painted > .cell:nth-child(3) { background-position: 0 66.667%; }
+  .reel.mural.painted > .cell:nth-child(4) { background-position: 0 100%; }
+  .reel.mural[data-reel="0"].painted > .cell { background-image: url("assets/mural_0.png"); }
+  .reel.mural[data-reel="1"].painted > .cell { background-image: url("assets/mural_1.png"); }
+  .reel.mural[data-reel="2"].painted > .cell { background-image: url("assets/mural_2.png"); }
+  .reel.mural[data-reel="3"].painted > .cell { background-image: url("assets/mural_3.png"); }
+  .reel.mural[data-reel="4"].painted > .cell { background-image: url("assets/mural_4.png"); }
+  .reel.mural.painted > .cell.wild { border-color: transparent; color: transparent; }
+  .reel.mural.painted > .cell.wild .sub { color: transparent; }
+  .cell {
+    width: var(--cell-w); height: var(--cell-h); background: transparent; border: 2px solid transparent;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    font-family: var(--mono); font-weight: 700; font-size: 14px; position: relative;
+    transition: background .25s, border-color .25s, transform .12s;
+  }
+  .cell .sub { font-size: 9px; font-weight: 400; letter-spacing: .1em; color: var(--ink-soft); }
+  /* text tiles (wild + characters, until their art lands) must not spill past the cell —
+     the graffiti face runs much wider than the UI font it replaced */
+  .cell > div { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cell img { width: 88%; height: 88%; object-fit: contain; pointer-events: none; }
+  .cell.low   { color: var(--ink-soft); }
+  .cell.high  { color: var(--ink); }
+  .cell.char  { color: var(--teal); }
+  /* the multiplier IS the character tile now */
+  .multface {
+    font-family: var(--disp); font-size: 38px; letter-spacing: .04em; line-height: 1;
+    color: var(--teal);
+    text-shadow: 0 3px 0 rgba(0,0,0,.7), 0 0 20px rgba(63,191,178,.75);
+  }
+  .cell.char img  { filter: drop-shadow(0 0 7px rgba(63, 191, 178, .8)); }
+  .cell.char .badge {
+    position: absolute; top: -2px; right: -2px; background: var(--teal); color: #08201d;
+    font-size: 10px; padding: 0 4px; font-weight: 700; z-index: 1;
+  }
+  .cell.wild  { background: var(--spray-deep); border-color: var(--spray); color: #fff; }
+  .cell.scat  { color: var(--gold); }
+  .cell.scat img  { filter: drop-shadow(0 0 8px rgba(245, 197, 24, .85)); }
+  .cell.escat { color: var(--purple); }
+  .cell.escat img { filter: drop-shadow(0 0 8px rgba(167, 139, 250, .9)); }
+  .cell.drop  { animation: drop .3s ease-out; }
+  @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* landing impact — the reel has already stopped on its real symbols, so this is a
+     settle in place: symbols never move away from where they landed or change face.
+     Bottom-up stagger keeps the old gravity read without a second drop-in pass. */
+  /* the column absorbs the landing: each tile squashes then springs back, rippling from the
+     top tile down so it reads as the icons reacting to the hit in the order they arrive */
+  .reel.impact > .cell { animation: impact .36s cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%; }
+  @keyframes impact {
+    0%   { transform: translateY(-2px) scaleY(1.04) scaleX(.985); }
+    38%  { transform: translateY(3.5px) scaleY(.92) scaleX(1.03); }
+    68%  { transform: translateY(-1.2px) scaleY(1.02) scaleX(.995); }
+    100% { transform: none; }
+  }
+  .reel.impact > .cell:nth-child(1) { animation-delay: 0ms; }
+  .reel.impact > .cell:nth-child(2) { animation-delay: 45ms; }
+  .reel.impact > .cell:nth-child(3) { animation-delay: 90ms; }
+  .reel.impact > .cell:nth-child(4) { animation-delay: 135ms; }
+  /* the whole board takes a nudge on every landing — --thud is set per reel */
+  .board.thud { animation: boardthud .24s cubic-bezier(.2,.8,.3,1); }
+  @keyframes boardthud {
+    0%   { transform: none; }
+    35%  { transform: translateY(calc(2.4px * var(--thud, 1))) rotate(calc(.12deg * var(--thud, 1))); }
+    70%  { transform: translateY(calc(-.8px * var(--thud, 1))); }
+    100% { transform: none; }
+  }
+  .cell.winhit { transform: scale(1.04); }
+  .cell.winhit::after {
+    content: ""; position: absolute; left: -8px; top: -8px;
+    width: calc(100% + 16px); height: calc((100% + 16px) * 1.24);
+    background: url("assets/winframe.png") no-repeat top center / 100% 100%;
+    pointer-events: none; z-index: 2;
+    /* snaps out of nothing, overshoots, shakes itself out and settles.
+       origin sits on the symbol's centre, not the taller frame's, so it grows from the tile */
+    transform-origin: center 40%;
+    animation: winpop .38s cubic-bezier(.25,.85,.35,1);
+  }
+  @keyframes winpop {
+    0%   { transform: scale(0); opacity: 0; }
+    16%  { transform: scale(1.22); opacity: 1; }   /* out of nothing to oversize, very quickly */
+    30%  { transform: scale(.99) translateX(-2px) rotate(-1.8deg); }
+    44%  { transform: scale(1.04) translateX(2px) rotate(1.4deg); }
+    58%  { transform: scale(1) translateX(-1.2px) rotate(-.8deg); }
+    72%  { transform: translateX(.6px) rotate(.4deg); }
+    86%  { transform: translateX(-.25px) rotate(-.15deg); }
+    100% { transform: none; }
+  }
+  /* payline stroke — the spray dab tiled along each leg of the line, slashed on fast.
+     Two offset layers at different sizes keep it from reading as evenly-spaced dots. */
+  .payline { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+  .payseg {
+    position: absolute; transform-origin: left center;
+    /* three phases of the same dab: a tiled dab alone leaves gaps between cores, so the
+       layers are offset and sized differently to close them into one sprayed stroke */
+    background-image: url("assets/sprayline.png"), url("assets/sprayline.png"), url("assets/sprayline.png");
+    background-repeat: repeat-x, repeat-x, repeat-x;
+    background-size: 21px 104%, 17px 132%, 27px 86%;
+    background-position: 0 center, 7px center, 15px center;
+    animation: payslash .14s cubic-bezier(.2,.8,.3,1) both;
+    will-change: clip-path;
+  }
+  @keyframes payslash {
+    0%   { clip-path: inset(0 100% 0 0); opacity: .5; }
+    60%  { opacity: 1; }
+    100% { clip-path: inset(0 0 0 0); opacity: 1; }
+  }
+  /* the line's multiplier, punched over the stroke once it has been sprayed on */
+  .linemult {
+    position: absolute; z-index: 3; pointer-events: none; white-space: nowrap;
+    transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
+    transform-origin: center center;
+    font-family: var(--disp); font-size: 24px; line-height: 1; color: var(--gold);
+    padding: 5px 12px 3px;
+    background: rgba(18, 13, 22, .88);   /* plate, or the tag is unreadable over the symbols */
+    border: 2px solid var(--gold);
+    box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 20px rgba(245,197,24,.35);
+    text-shadow: 0 2px 0 rgba(0,0,0,.6);
+    animation: multpop .5s cubic-bezier(.2,.85,.3,1) both;
+  }
+  @keyframes multpop {
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(-14deg); opacity: 0; }
+    14%  { transform: translate(-50%, -50%) scale(1.45) rotate(5deg); opacity: 1; }   /* tween pop */
+    26%  { transform: translate(-50%, -50%) scale(.92) rotate(-4deg); }
+    38%  { transform: translate(-50%, -52%) scale(1.12) rotate(3.2deg); }             /* shake */
+    50%  { transform: translate(-51%, -49%) scale(.99) rotate(-2.4deg); }
+    62%  { transform: translate(-49%, -51%) scale(1.04) rotate(1.6deg); }
+    74%  { transform: translate(-50.5%, -50%) scale(1) rotate(-1deg); }
+    86%  { transform: translate(-49.6%, -50%) rotate(.5deg); }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  }
+  .cell.flood { animation: flood .5s ease-out; }
+  @keyframes flood { 0% { background: var(--panel2); } 40% { background: var(--spray); } 100% { background: var(--spray-deep); } }
+  .cell.pulse { animation: pulse .6s ease-in-out; }
+  @keyframes pulse { 0%,100% { transform: none; } 50% { transform: scale(1.12); } }
+  @media (prefers-reduced-motion: reduce) {
+    .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .payseg, .linemult, .stat .val, .spin { animation: none !important; transition: none !important; }
+  }
+
+  .ticker {
+    display: none;   /* clean board face — round info lives in the bottom debug line */
+    margin-top: 62px; min-height: 22px; font-family: var(--mono); font-size: 12.5px;
+    color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px;
+  }
+  .ticker b { color: var(--ink); }
+
+  /* banner overlay */
+  .banner {
+    position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 20px; z-index: 5;   /* no panel — the text stands on the board */
+  }
+  /* bonus payout tally — rolls 0 to the total over the board before the closing banner */
+  .tally {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    z-index: 6; pointer-events: none;
+    font-family: var(--disp); font-size: 58px; letter-spacing: .1em; color: var(--gold);
+    text-shadow: 0 5px 0 rgba(0,0,0,.75), 0 0 26px rgba(0,0,0,.9), 0 0 54px rgba(245,197,24,.5);
+  }
+  .tally.on { display: flex; }
+  .tally.pop { animation: tallypop .42s cubic-bezier(.2,.85,.3,1.2); }
+  @keyframes tallypop {
+    0%   { transform: scale(0) rotate(-8deg); opacity: 0; }
+    45%  { transform: scale(1.2) rotate(3deg); opacity: 1; }
+    70%  { transform: scale(.97) rotate(-1.5deg); }
+    100% { transform: none; opacity: 1; }
+  }
+  .banner.show { display: flex; animation: bin .25s ease-out; }
+  @keyframes bin { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* with the panel gone these sit straight on the reels, so they carry their own contrast */
+  .banner .big {
+    font-family: var(--disp); font-size: 42px; text-transform: uppercase; line-height: 1.05;
+    color: var(--spray); text-wrap: balance;
+    text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 44px rgba(0,0,0,.75);
+  }
+  .banner .sub2 {
+    font-family: var(--mono); font-size: 16px; margin-top: 12px; color: var(--ink);
+    text-shadow: 0 3px 0 rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.9);
+  }
+  .banner.gold { border-color: var(--gold); } .banner.gold .big { color: var(--gold); }
+  .banner .muralimg { display: none; max-width: 94%; max-height: 46%; object-fit: contain; margin-top: 14px; border: 2px solid var(--gold); }
+  .banner.muralshow .muralimg { display: block; }
+  .banner.purple { border-color: var(--purple); } .banner.purple .big { color: var(--purple); }
+
+  /* info cards under the board */
+  .rail { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 920px; }
+  .card { background: var(--panel); border: 2px solid var(--line); padding: 12px 14px; flex: 1 1 190px; max-width: 240px; }
+  .card h4 { margin: 0 0 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; color: var(--ink-soft); text-transform: uppercase; font-weight: 600; }
+  .wall { display: flex; gap: 4px; }
+  .wall span {
+    flex: 1; height: 26px; border: 2px solid var(--line);
+    background: var(--panel2) url("assets/brickwall.png") center / cover;
+    filter: grayscale(1) brightness(.55); transition: filter .4s, box-shadow .4s;
+  }
+  .wall span.done {
+    border-color: var(--spray); filter: none;
+    box-shadow: inset 0 0 0 100px rgba(240, 86, 139, .55);
+  }
+  .wall.muralwall span { background-size: cover; background-position: center; }
+  .wall.muralwall span.done { box-shadow: none; }
+  .kv { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12.5px; margin-top: 6px; color: var(--ink-soft); }
+  .kv b { color: var(--ink); }
+  .tags { display: flex; gap: 4px; }
+  .tags span { width: 20px; height: 20px; border: 2px solid var(--line); background: var(--panel2); transition: background .3s; }
+  .tags span.done { background: var(--gold); border-color: var(--gold); }
+  #chars { display: flex; flex-direction: column; gap: 5px; font-family: var(--mono); font-size: 13px; }
+  #chars .chip { display: flex; justify-content: space-between; border: 1px solid var(--teal); color: var(--teal); padding: 3px 8px; }
+  #chars .total { border-color: var(--spray); color: var(--spray); font-weight: 700; }
+  #chars .none { color: var(--ink-soft); font-size: 12px; }
+  /* free-spin counter under the board — bare text, no card */
+  #fsCard { display: none; }
+  #fsCard.on { display: block; }
+  .fsline {
+    font-family: var(--disp); font-size: 26px; letter-spacing: .16em; color: var(--gold);
+    text-shadow: 0 3px 0 rgba(0,0,0,.55), 0 0 18px rgba(245,197,24,.35);
+  }
+  .muted { color: var(--ink-soft); font-size: 12px; }
+
+  /* bottom bar */
+  .bottom {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+    padding: 14px 18px;   /* transparent — the wall shows straight through */
+  }
+  .betbox { display: flex; align-items: center; gap: 8px; }
+  .betbox button {
+    width: 34px; height: 34px; background: var(--panel2); color: var(--ink);
+    border: 2px solid var(--line); font-family: var(--mono); font-size: 16px; font-weight: 700;
+  }
+  /* same treatment as the header figures: the graffiti face sets numerals tight enough to
+     read as one blob, so tracking them apart is what makes the amount legible. The trailing
+     letter-space would pull centred text left, so half of it comes back as an indent. */
+  #betVal {
+    font-family: var(--mono); font-size: 16px; font-weight: 700;
+    min-width: 132px; text-align: center;
+    /* .34em here is the same ~5.5px gap the 25px header figures get from .22em — matched in
+       pixels rather than ems, or the smaller type reads tighter than the numbers above it */
+    letter-spacing: .34em; text-indent: .17em; font-variant-numeric: tabular-nums;
+  }
+  .spin {
+    font-family: var(--disp); font-size: 20px; text-transform: uppercase; letter-spacing: .04em;
+    background: var(--spray); color: #fff; border: 2px solid var(--spray);
+    padding: 12px 42px;
+  }
+  /* kicks on every press — full strength, this one is the player's own input, not ambient */
+  .spin.punch { animation: spinpunch .34s cubic-bezier(.25,.8,.35,1); }
+  @keyframes spinpunch {
+    0%   { transform: none; }
+    18%  { transform: scale(.93) rotate(-1.6deg); }
+    40%  { transform: scale(1.09) rotate(1.4deg); }
+    60%  { transform: scale(.985) rotate(-.9deg); }
+    78%  { transform: scale(1.02) rotate(.5deg); }
+    100% { transform: none; }
+  }
+  .spin:hover:not(:disabled) { background: var(--spray-deep); }
+  .buy {
+    font-family: var(--mono); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+    background: var(--panel2); color: var(--gold); border: 2px solid var(--gold); padding: 10px 14px;
+  }
+  .buy.purple { color: var(--purple); border-color: var(--purple); }
+
+  /* Bonus chooser — a card in the middle of the screen that drifts very slightly, so it
+     reads as floating over the game rather than pinned to it. The pop-in lives on the
+     wrapper and the drift on the card itself: two transforms, two elements, no conflict. */
+  .bonuspop { animation: bonuspop .42s cubic-bezier(.2,.9,.3,1.35); }
+  @keyframes bonuspop {
+    0%   { transform: scale(.6) translateY(18px); opacity: 0; }
+    58%  { transform: scale(1.05) translateY(-4px); opacity: 1; }
+    80%  { transform: scale(.985); }
+    100% { transform: scale(1); }
+  }
+  .bonuspanel {
+    width: min(560px, 92vw); background: var(--panel); border: 2px solid var(--gold);
+    padding: 20px 22px; box-shadow: 0 18px 48px rgba(0,0,0,.6);
+    animation: bonusdrift 9s ease-in-out infinite;
+  }
+  @keyframes bonusdrift {   /* a few px of wander, never enough to be hard to click */
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    25%  { transform: translate(5px, -7px) rotate(.45deg); }
+    50%  { transform: translate(-3px, 4px) rotate(-.35deg); }
+    75%  { transform: translate(-6px, -4px) rotate(.25deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .bonuspanel h3 {
+    margin: 0 0 14px; font-family: var(--disp); font-size: 22px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--gold); text-align: center;
+  }
+  .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .bonuscard {
+    display: block; width: 100%; text-align: left; background: var(--panel2);
+    border: 2px solid var(--line); padding: 12px 14px; color: var(--ink);
+    font-family: var(--legible); font-size: 11.5px; line-height: 1.5; cursor: pointer;
+    transition: border-color .18s, box-shadow .18s, transform .18s;
+  }
+  .bonuscard:hover:not(:disabled) { transform: translateY(-2px); }
+  .bonuscard .ttl { display: block; font-family: var(--disp); font-size: 16px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 2px; }
+  .bonuscard .mult { display: block; font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; }
+  .bonuscard .desc { color: var(--ink-soft); }
+  .bonuscard.gold .ttl, .bonuscard.gold .mult { color: var(--gold); }
+  .bonuscard.purple .ttl, .bonuscard.purple .mult { color: var(--purple); }
+  .bonuscard.gold.on { border-color: var(--gold); box-shadow: inset 0 0 0 2px rgba(245,197,24,.25); }
+  .bonuscard.purple.on { border-color: var(--purple); box-shadow: inset 0 0 0 2px rgba(167,139,250,.25); }
+  .bonuscard:disabled { opacity: .4; cursor: default; }
+  /* bet stepper inside the panel — same control as the bar, driving the same bet */
+  .bonusbet { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 4px; }
+  .bonusbet .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); }
+  .bonusbet button {
+    width: 32px; height: 32px; background: var(--panel2); color: var(--ink);
+    border: 2px solid var(--line); font-family: var(--mono); font-size: 16px; font-weight: 700;
+  }
+  .bonusbet .amt {
+    font-family: var(--mono); font-size: 16px; font-weight: 700; min-width: 132px; text-align: center;
+    letter-spacing: .34em; text-indent: .17em; font-variant-numeric: tabular-nums;
+  }
+  .bonustotal { text-align: center; font-family: var(--legible); font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
+  .bonustotal b { font-family: var(--mono); font-size: 20px; letter-spacing: .12em; color: var(--ink); display: block; margin-top: 3px; }
+  .bonusgo {
+    display: block; width: 100%; font-family: var(--disp); font-size: 18px; letter-spacing: .06em;
+    text-transform: uppercase; background: var(--gold); color: #16130f; border: 2px solid var(--gold); padding: 11px 0;
+  }
+  .bonusgo.purple { background: var(--purple); border-color: var(--purple); }
+  .bonusgo:disabled { opacity: .45; cursor: default; }
+  .bonusnote { text-align: center; font-family: var(--legible); font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+  @media (max-width: 560px) { .bonusgrid { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bonuspop, .bonuspanel { animation: none !important; }
+  }
+  label.turbo { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div id="bgwall"></div>
+<div id="charfx" class="charfx" aria-hidden="true">
+  <video class="charvid" muted playsinline preload="auto"></video>
+  <video class="charvid" muted playsinline preload="auto"></video>
+</div>
+<div id="charfx2" class="charfx" aria-hidden="true">
+  <video class="charvid" muted playsinline preload="auto"></video>
+  <video class="charvid" muted playsinline preload="auto"></video>
+</div>
+
+<div id="app">
+<div class="top">
+  <div class="meter">
+    <div class="lbl">Full Wall</div>
+    <div class="wall" id="wall"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="meta"><b id="wallN">0 / 5</b> · <span id="paintLvl">+1x per reel</span></div>
+  </div>
+  <div class="meter">
+    <div class="lbl">Tag Meter</div>
+    <div class="tags" id="tags"></div>
+    <div class="meta">Fills · +2 spins · paint up</div>
+  </div>
+  <div class="meter">
+    <div class="lbl">Max win</div>
+    <div class="big" id="maxWin">x5000</div>
+  </div>
+  <div class="meter" id="jurisBox" hidden>
+    <div class="lbl">Session</div>
+    <div class="meta" id="jurisVal"></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stat"><div class="lbl">Win</div><div class="val" id="roundWin">$0.00</div></div>
+  <div class="stat"><div class="lbl" id="balanceLbl">Balance</div><div class="val" id="balance">$0.00</div></div>
+</div>
+
+<div class="main">
+  <div class="stage">
+    <div class="board" id="board"><img id="paintframe" src="assets/frame.png" alt="" draggable="false"></div>
+    <div class="ticker" id="ticker">Draws come from the optimized 96.5% RTP lookup tables — the real math.</div>
+    <div class="banner" id="banner"><div class="big" id="bannerBig"></div><div class="sub2" id="bannerSub"></div><img id="bannerMural" class="muralimg" alt=""></div>
+    <div class="tally" id="tally">$0.00</div>
+  </div>
+
+  <div class="rail">
+    <div class="fsline" id="fsCard"><b id="fsNow">—</b></div>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="betbox">
+    <button id="betDown" aria-label="Lower bet">−</button>
+    <div id="betVal">$1.00</div>
+    <button id="betUp" aria-label="Raise bet">+</button>
+  </div>
+  <button class="spin" id="spinBtn">Spin</button>
+  <button class="buy" id="bonusBtn">Bonus</button>
+  <div class="popanchor">
+    <button class="info auto" id="autoBtn" aria-label="Auto play" title="Auto play">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 9.2A8.2 8.2 0 0 1 19.6 10.2"/><polygon points="16.2,10.6 23.4,10.6 19.8,14.2"/><path d="M18.8 14.8A8.2 8.2 0 0 1 4.4 13.8"/><polygon points="7.8,13.4 0.6,13.4 4.2,9.8"/></svg>
+      <span id="autoN" hidden></span>
+    </button>
+    <div class="popover" id="autoPop" hidden role="dialog" aria-label="Auto play">
+      <div class="poptitle">Auto play</div>
+      <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
+      <div class="autoopts" id="autoOpts">
+        <button type="button" data-n="10" class="on">10</button>
+        <button type="button" data-n="25">25</button>
+        <button type="button" data-n="50">50</button>
+        <button type="button" data-n="100">100</button>
+      </div>
+      <button class="infoclose" id="autoYes">Start</button>
+    </div>
+  </div>
+  <label class="turbo"><input type="checkbox" id="turbo"> TURBO</label>
+  <div class="popanchor">
+    <button class="info" id="soundBtn" aria-label="Sound settings" aria-haspopup="dialog"><svg class="spk" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9z"/><path class="wave" d="M15.5 8.2a4.6 4.6 0 0 1 0 7.6M18.2 5.6a8 8 0 0 1 0 12.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="slash" d="M15 8l6 8M21 8l-6 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+    <div class="popover right" id="soundPop" hidden role="dialog" aria-label="Sound settings">
+      <div class="poptitle">Sound</div>
+      <label class="vol"><span>Music</span><input type="range" id="volMusic" min="0" max="100" step="1"><b id="volMusicN"></b></label>
+      <label class="vol"><span>Sound effects</span><input type="range" id="volSfx" min="0" max="100" step="1"><b id="volSfxN"></b></label>
+      <label class="mute"><input type="checkbox" id="muteAll"> Mute everything</label>
+    </div>
+  </div>
+  <button class="info" id="infoBtn" aria-label="Game information">i</button>
+</div>
+</div>
+
+<div class="infowrap" id="bonusWrap" hidden>
+  <div class="bonuspop">
+    <div class="bonuspanel" role="dialog" aria-modal="true" aria-label="Bonus">
+      <h3 id="bonusTitle">Bonus</h3>
+      <div class="bonusgrid">
+        <button type="button" class="bonuscard gold on" id="bonusStd" data-mode="bonus">
+          <span class="ttl">Standard</span>
+          <span class="mult" id="bonusStdCost"></span>
+          <span class="desc" id="bonusStdDesc">8, 10 or 12 free spins. Sticky Paint Drips, +1x per painted reel, Tag Meter 4.</span>
+        </button>
+        <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
+          <span class="ttl">Extreme</span>
+          <span class="mult" id="bonusExtCost"></span>
+          <span class="desc" id="bonusExtDesc">10 free spins. Paint starts at +2x, richer characters, Tag Meter 3, best odds of the Full Wall.</span>
+        </button>
+      </div>
+      <div class="bonusbet">
+        <span class="lbl" id="bonusBetLbl">Bet amount</span>
+        <button type="button" id="bonusBetDown" aria-label="Lower bet">−</button>
+        <div class="amt" id="bonusBetVal">$1.00</div>
+        <button type="button" id="bonusBetUp" aria-label="Raise bet">+</button>
+      </div>
+      <div class="bonustotal" id="bonusTotalLbl">Total<b id="bonusTotal"></b></div>
+      <button class="bonusgo" id="bonusGo">Play</button>
+      <div class="bonusnote" id="bonusNote">Pressing Play charges the total above and starts the feature.</div>
+    </div>
+  </div>
+</div>
+
+<div class="intro" id="intro">
+  <img class="intrologo" id="introLogo" src="assets/logo.png" alt="Smukiez">
+  <p class="intromsg" id="introMsg">Malfunction voids all wins and plays. A consistent internet
+  connection is required. In the event of a disconnection, reload the game to finish any
+  uncompleted rounds. The expected return is calculated over many plays. The game display is not
+  representative of any physical device and is for illustrative purposes only. Winnings are
+  settled according to the amount received from the Remote Game Server and not from events within
+  the web browser. TM and &copy; 2026 Engine.</p>
+  <div class="introskip" id="introSkip">tap to skip</div>
+</div>
+
+<div class="infowrap" id="replayWrap" hidden>
+  <div class="infopanel" role="dialog" aria-modal="true" aria-label="Round replay">
+    <h3>Round replay</h3>
+    <p class="replaymeta" id="replayMeta"></p>
+    <p class="replayres" id="replayResult" hidden></p>
+    <p class="fine" id="replayStatus">Loading the round…</p>
+    <button class="infoclose" id="replayPlay" hidden>Play</button>
+  </div>
+</div>
+
+<div class="infowrap" id="infoWrap" hidden>
+  <div class="infopanel" role="dialog" aria-modal="true" aria-label="Game information">
+    <h3>Game Information</h3>
+    <div id="rulesBody"></div>
+    <button class="infoclose" id="infoClose">Close</button>
+  </div>
+</div>
+
+<script src="strips.js"></script>
+<script src="rgs.js"></script>
+<script src="rules.js"></script>
+<script>
+"use strict";
+
+const SYM = {
+  W:  { label: "DRIP",  sub: "WILD",       cls: "wild"  },
+  BS: { label: "CREW",  sub: "BONUS",      cls: "scat",  img: "assets/BS.png" },
+  ES: { label: "PHNTM", sub: "EXTREME",    cls: "escat", img: "assets/ES.png" },
+  C1: { label: "C1",    sub: "CHARACTER",  cls: "char"  },
+  C2: { label: "C2",    sub: "CHARACTER",  cls: "char"  },
+  C3: { label: "C3",    sub: "CHARACTER",  cls: "char"  },
+  H1: { label: "CASH",  sub: "BAG",        cls: "high", img: "assets/H1.png" },
+  H2: { label: "GLOCK", sub: "CARTOON",    cls: "high", img: "assets/H2.png" },
+  H3: { label: "CHAIN", sub: "GOLD",       cls: "high", img: "assets/H3.png" },
+  H4: { label: "KICKS", sub: "FRESH",      cls: "high", img: "assets/H4.png" },
+  H5: { label: "BOOM",  sub: "BOX",        cls: "high", img: "assets/H5.png" },
+  L1: { label: "SPRAY", sub: "CAN",        cls: "low",  img: "assets/L1.png" },
+  L2: { label: "MRKR",  sub: "MARKERS",    cls: "low",  img: "assets/L2.png" },
+  L3: { label: "BEANIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/L3.png" },
+  L4: { label: "TAG",   sub: "HANGTAG",    cls: "low",  img: "assets/L4.png" },
+  L5: { label: "DICE",  sub: "PAIR",       cls: "low",  img: "assets/L5.png" },
+  H6: { label: "SK8",   sub: "BOARD",      cls: "high", img: "assets/H6.png" },
+  H7: { label: "DROP",  sub: "LIMITED",    cls: "high", img: "assets/H7.png" },
+  L6: { label: "SHIRT", sub: "SMUKIEZ",    cls: "low",  img: "assets/L6.png" },
+  L7: { label: "HOODIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/L7.png" },
+  L8: { label: "WEED",  sub: "BAG",        cls: "low",  img: "assets/L8.png" },
+  L9: { label: "TRAIN", sub: "FREIGHT",    cls: "low",  img: "assets/L9.png" },
+  L10:{ label: "BRICK", sub: "WALL",       cls: "low",  img: "assets/L10.png" },
+};
+for (const def of Object.values(SYM)) {   // pre-warm icon cache
+  if (def.img) { const i = new Image(); i.src = def.img; }
+}
+const REELS = 5, ROWS = 4;
+// Cost multipliers mirror index.json. The RGS applies them server-side (it debits
+// amount x cost); these are only so the buy buttons can show the right price.
+const MODE_COST = { base: 1, bonus: 100, extremebonus: 400 };
+
+const state = {
+  balance: 0,            // integer, 6dp — authoritative value comes from the RGS
+  bets: [], betIdx: 0,   // bet levels come from /wallet/authenticate
+  playing: false, skip: false,
+  hasMural: false, paintedSet: new Set(),
+};
+
+const $ = id => document.getElementById(id);
+const fmt = v => RGS.money(v);
+// Social casinos (Stake.us) forbid a list of gambling terms. Every player-facing string
+// goes through T(): a no-op normally, the sweeps vocabulary when the lobby says social=true.
+const SOCIAL = RGS.social;
+const T = s => RULES.T(s, SOCIAL);
+const bet = () => state.bets[state.betIdx] || 0;
+// Event amounts are hundredths of the bet (payoutMultiplier 63340 == 633.40x), and the
+// bet is a 6dp integer, so round back to a whole integer amount.
+const cents = c => Math.round(c / 100 * bet());
+
+function delay(ms) {
+  if (state.skip) return Promise.resolve();
+  const t = $("turbo").checked ? ms / 4 : ms;
+  return new Promise(r => setTimeout(r, t));
+}
+
+/* ---------- board ---------- */
+const cellEls = [];
+const reelEls = [];
+function buildBoard() {
+  const board = $("board");
+  for (let r = 0; r < REELS; r++) {
+    const reel = document.createElement("div");
+    reel.className = "reel"; reel.dataset.reel = r;
+    reelEls.push(reel);
+    cellEls.push([]);
+    for (let y = 0; y < ROWS; y++) {
+      const c = document.createElement("div");
+      c.className = "cell low";
+      reel.appendChild(c); cellEls[r].push(c);
+    }
+    board.appendChild(reel);
+  }
+}
+function cellClass(sym) {
+  return "cell " + (SYM[sym.name] || { cls: "low" }).cls;
+}
+function fillCell(el, sym) {
+  const def = SYM[sym.name] || { label: sym.name, sub: "", cls: "low" };
+  el.innerHTML = "";
+  // character symbols show their multiplier as the tile itself — the C1/C2/C3 name and the
+  // little corner badge said less than the number the player actually cares about
+  if (def.cls === "char") {
+    const m = document.createElement("div");
+    m.className = "multface";
+    m.textContent = sym.multiplier ? "x" + sym.multiplier : def.label;
+    el.append(m);
+    return;
+  }
+  if (def.img) {
+    const im = document.createElement("img");
+    im.src = def.img; im.alt = def.label; im.draggable = false;
+    el.append(im);
+  } else {
+    const main = document.createElement("div"); main.textContent = def.label;
+    const sub = document.createElement("div"); sub.className = "sub"; sub.textContent = def.sub;
+    el.append(main, sub);
+  }
+}
+// mirrors what each cell currently displays — the next spin starts on these symbols,
+// so the reel begins moving from the board the player is already looking at
+const shownSym = [];
+function setCell(r, y, sym) {
+  const el = cellEls[r][y];
+  el.className = cellClass(sym);
+  fillCell(el, sym);
+  (shownSym[r] || (shownSym[r] = []))[y] = sym;
+}
+function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
+function clearFx() { eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop")); clearPayline(); }
+
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Read from the stylesheet rather than hardcoded: the spin overlay positions itself in whole
+// cell steps, so a cell resize has to move it too or every reel lands off by a fraction of a row.
+let CELL_STEP = 100;
+function measureCellStep() {
+  const cs = getComputedStyle(document.documentElement);
+  const h = parseFloat(cs.getPropertyValue("--cell-h")), g = parseFloat(cs.getPropertyValue("--cell-gap"));
+  if (h > 0 && g >= 0) CELL_STEP = h + g;
+}
+measureCellStep();
+let shownStop = null;   // paddingPositions of the reveal currently on the board
+// Reel strips ship with the client (strips.js) — the RGS serves no strips endpoint.
+// Extreme rounds run on their own strip set, which the old local server never served.
+function stripsFor(gameType) {
+  const extreme = state.mode === "extremebonus";
+  const key = gameType === "freegame" ? (extreme ? "FRE" : "FR0") : (extreme ? "BRE" : "BR0");
+  return (typeof STRIP_SETS !== "undefined" && STRIP_SETS[key]) || null;
+}
+
+const FALLBACK_STRIP = ["L1", "H4", "L3", "H1", "L5", "H3", "L2", "H5", "L4", "H2"];
+
+function bounceFx() {
+  // background bounce + board pop + character hop, on every reveal (base and each free spin)
+  if (REDUCED_MOTION || state.skip) return;
+  const bgw = $("bgwall"), bd = $("board");
+  const chars = [...document.querySelectorAll(".charfx")];
+  bgw.classList.remove("bounce"); bd.classList.remove("pop");
+  for (const c of chars) c.classList.remove("bounce");
+  void bgw.offsetWidth;   // flush the removals so they all restart rather than run on
+  bgw.classList.add("bounce"); bd.classList.add("pop");
+  for (const c of chars) c.classList.add("bounce");
+}
+
+// One nudge of the whole board per landed reel, a touch harder for each reel that lands
+// after the last, plus a soft thunk. Restarted per reel so five landings read as five hits.
+function boardThud(r) {
+  const bd = $("board");
+  bd.style.setProperty("--thud", String(0.7 + r * 0.12));
+  bd.classList.remove("thud"); void bd.offsetWidth; bd.classList.add("thud");
+  if (!state.skip) sfx("bet", 0.5 + r * 0.04);
+}
+
+function spinReel(r, ev, stripCol, duration, prev) {
+  return new Promise(resolve => {
+    const reel = reelEls[r];
+    const cells = cellEls[r];
+    const cleanup = () => {
+      reel.classList.remove("spinning", "antic", "impact");
+      reel.querySelectorAll(".spincol").forEach(el => el.remove());
+      for (const c of cells) c.style.visibility = "";
+      resolve();
+    };
+    // sticky painted reels stay put — only unpainted reels spin
+    if (REDUCED_MOTION || state.skip || state.paintedSet.has(r) || !("animate" in reel)) { cleanup(); return; }
+
+    // The overlay is pinned at BOTH ends, so the spin is continuous from first frame to
+    // last: its bottom ROWS children are the board that is on screen right now (the reel
+    // starts moving from what the player is looking at) and its children 1..ROWS are this
+    // round's landed board with board[0] as the padding row above (the reel decelerates
+    // onto the result). Both handoffs swap identical, identically-styled tiles, so no
+    // symbol ever changes face — not when the reel starts, not when it stops.
+    const src = stripCol && stripCol.length ? stripCol : FALLBACK_STRIP;
+    const n = src.length;
+    const at = (base, k) => src[(((base + k) % n) + n) % n];
+    // board[i] === strip[stop - 1 + i], so each block continues from its own stop and the
+    // pass-through stays a real contiguous run of the strip rather than invented symbols
+    const stop = ev.paddingPositions?.[r];
+    const newOff = Number.isInteger(stop) ? stop - 1 : Math.floor(Math.random() * n);
+    const prevOff = Number.isInteger(prev?.stop) ? prev.stop : null;
+    const prevRow = prev?.row?.length === ROWS ? prev.row : null;
+
+    const passCount = Math.max(12, Math.round(duration / 55));
+    const landBlock = ev.board[r].length;   // children [0, landBlock) are the landing block
+    const first = passCount - ROWS;         // children [first, passCount) are the start window
+    const seam = Math.round((landBlock + first) / 2);   // the two runs meet here, under full blur
+    const restY = -CELL_STEP;               // child 1 (board row 1) at the window top
+    const startY = -first * CELL_STEP;      // window opens on the board that is on screen now
+    const overlay = document.createElement("div");
+    overlay.className = "spincol";
+    for (let i = 0; i < passCount; i++) {
+      let s;
+      if (i < landBlock) s = ev.board[r][i];                             // where it lands
+      else if (i >= first && prevRow) s = prevRow[i - first];            // where it starts
+      else if (i >= seam && prevOff !== null) s = { name: at(prevOff, i - first) };  // run out of the old stop
+      else s = { name: at(newOff, i) };                                  // run into the new stop
+      const c = document.createElement("div");
+      c.className = cellClass(s);
+      fillCell(c, s);
+      overlay.appendChild(c);
+    }
+    for (const c of cells) c.style.visibility = "hidden";
+    // park the column on the start window before it is ever painted, so no frame can slip
+    // through showing it untransformed while the animation is still pending
+    overlay.style.transform = `translateY(${startY}px)`;
+    reel.appendChild(overlay);
+    reel.classList.add("spinning");
+    if ((ev.anticipation?.[r] || 0) > 0) reel.classList.add("antic");
+
+    const travel = restY - startY;
+    // Each reel rolls its own numbers so no two spins are identical: how far it winds up
+    // before dropping, how far past the stop it overshoots (the padding row above covers the
+    // gap it opens), and where the fast phase hands over to the glide.
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    const PULL = rnd(7, 13), OVERSHOOT = rnd(8, 14), GLIDE = rnd(0.58, 0.68), REBOUND = rnd(2, 4);
+    // transform and blur run as separate animations so each keeps its own timing curve
+    const spin = overlay.animate(
+      [
+        { transform: `translateY(${startY}px)`, offset: 0, easing: "cubic-bezier(.3,.6,.5,1)" },
+        { transform: `translateY(${startY - PULL}px)`, offset: 0.07, easing: "cubic-bezier(.55,0,.85,.35)" },   // wind up, then punch down
+        { transform: `translateY(${startY + travel * GLIDE}px)`, offset: 0.5, easing: "cubic-bezier(.12,.55,.28,1)" },
+        { transform: `translateY(${restY + OVERSHOOT}px)`, offset: 0.88, easing: "cubic-bezier(.3,0,.2,1)" },   // lands hard
+        { transform: `translateY(${restY - REBOUND}px)`, offset: 0.95, easing: "cubic-bezier(.3,0,.4,1)" },     // rebounds
+        { transform: `translateY(${restY}px)`, offset: 1 },
+      ],
+      { duration, fill: "forwards" }
+    );
+    // Blur follows speed, not the clock: nothing while it winds up, a curved rise as it
+    // punches into the fast phase, a curved fall through the glide, and gone before the
+    // overshoot — so the wind-up, the landing and the rebound are all sharp.
+    const haze = overlay.animate(
+      [
+        { filter: "blur(0px)", offset: 0 },
+        { filter: "blur(0px)", offset: 0.07, easing: "cubic-bezier(.6,0,.9,.6)" },
+        { filter: "blur(6px)", offset: 0.24, easing: "linear" },
+        { filter: "blur(6px)", offset: 0.5, easing: "cubic-bezier(.4,0,.75,.6)" },
+        { filter: "blur(2.2px)", offset: 0.74, easing: "cubic-bezier(.3,0,.5,1)" },
+        { filter: "blur(0px)", offset: 0.86 },
+        { filter: "blur(0px)", offset: 1 },
+      ],
+      { duration, fill: "forwards" }
+    );
+    let landed = false;
+    const land = () => {
+      if (landed) return;   // fired by onfinish, cancel, skip, or the hard timeout — first one wins
+      landed = true;
+      clearInterval(skipWatch);
+      // hand off in one synchronous block so it can never paint a half-swapped reel
+      for (const c of cells) c.style.visibility = "";
+      reel.classList.remove("spinning");
+      overlay.remove();
+      try { spin.cancel(); haze.cancel(); } catch (e) { /* already done */ }
+      if (state.skip || REDUCED_MOTION) { cleanup(); return; }
+      reel.classList.add("impact");
+      boardThud(r);
+      setTimeout(cleanup, $("turbo").checked ? 220 : 420);
+    };
+    const skipWatch = setInterval(() => { if (state.skip) land(); }, 80);
+    spin.onfinish = land;
+    spin.oncancel = land;
+    setTimeout(land, duration + 450);   // animation events need render ticks; a hidden tab must not hang
+  });
+}
+
+async function renderReveal(ev) {
+  clearFx();
+  setChars(null);
+  bounceFx();   // background bounce + board pop on every reveal, free spins included
+  // snapshot the outgoing board before it is overwritten — each reel starts its spin on it
+  const prev = reelEls.map((_, r) => ({
+    row: (shownSym[r] || []).slice(),
+    stop: shownStop ? shownStop[r] : null,
+  }));
+  for (let r = 0; r < REELS; r++)
+    for (let y = 0; y < ROWS; y++) setCell(r, y, ev.board[r][y + 1]);   // strip 1-row padding
+  shownStop = ev.paddingPositions ? ev.paddingPositions.slice() : null;
+
+  const strips = stripsFor(ev.gameType);
+  const turbo = $("turbo").checked;
+  const base = turbo ? 280 : 720, stagger = turbo ? 75 : 215, anticExtra = turbo ? 300 : 900;
+  const jitter = turbo ? 20 : 55;   // per-reel timing wobble, small next to the stagger so order holds
+  const spans = reelEls.map((_, r) => base + r * stagger + (Math.random() * 2 - 1) * jitter + (ev.anticipation?.[r] || 0) * anticExtra);
+  // sticky painted reels don't spin, so only make the noise if something actually moves
+  const spinning = reelEls.some((_, r) => !state.paintedSet.has(r));
+  const hushReels = (spinning && !state.skip && !REDUCED_MOTION)
+    ? reelSfx(Math.max(...spans)) : () => {};
+  await Promise.all(
+    reelEls.map((_, r) => spinReel(r, ev, strips ? strips[r] : null, spans[r], prev[r]))
+  );
+  hushReels();   // cut it short if the round was skipped; otherwise it has already faded
+  // near-miss resolution: linger on landed scatters when the reveal carried anticipation
+  if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
+    eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
+    await delay(320);
+  }
+}
+
+/* ---------- rail widgets ---------- */
+function setWall(painted, level) {
+  const wall = $("wall");   // the meter card is optional; painting the reels is not
+  if (wall) {
+    const spans = wall.children;
+    for (let i = 0; i < 5; i++) spans[i].classList.toggle("done", state.hasMural ? painted.includes(i) : i < painted.length);
+    $("wallN").textContent = `${painted.length} / 5`;
+    $("paintLvl").textContent = `+${level}x per reel`;
+  }
+  document.querySelectorAll(".reel").forEach((el, r) => {
+    const on = painted.includes(r);
+    el.classList.toggle("painted", on);
+    el.classList.toggle("mural", on && state.hasMural);
+  });
+}
+function enableMural() {
+  state.hasMural = true;   // drives the board's mural reveal, with or without the meter card
+  const wall = $("wall");
+  if (wall) {
+    wall.classList.add("muralwall");
+    [...wall.children].forEach((s, i) => { s.style.backgroundImage = `url(/assets/mural_${i}.png)`; });
+  }
+  for (let i = 0; i < 5; i++) { const im = new Image(); im.src = `/assets/mural_${i}.png`; }
+}
+fetch("assets/mural.png").then(r => { if (r.ok) enableMural(); }).catch(() => {});
+function setTags(n, target) {
+  const box = $("tags");
+  if (!box) return;   // tag meter card was removed from the rail
+  box.innerHTML = "";
+  for (let i = 0; i < target; i++) {
+    const s = document.createElement("span");
+    if (i < n) s.classList.add("done");
+    box.appendChild(s);
+  }
+}
+function setChars(ev) {
+  const box = $("chars");
+  if (!box) return;   // the characters card was removed from the rail
+  if (!ev) { box.innerHTML = ""; return; }
+  box.innerHTML = "";
+  for (const ch of ev.characters) {
+    const d = document.createElement("div"); d.className = "chip";
+    d.innerHTML = `<span>${ch.name}</span><span>x${ch.mult}</span>`;
+    box.appendChild(d);
+  }
+  const t = document.createElement("div"); t.className = "chip total";
+  t.innerHTML = `<span>SPIN MULT</span><span>x${ev.totalMult}</span>`;
+  box.appendChild(t);
+}
+
+/* ---------- banner / ticker ---------- */
+async function banner(big, sub, ms, cls) {
+  const b = $("banner");
+  b.className = "banner show " + (cls || "");
+  $("bannerBig").textContent = big;
+  $("bannerSub").textContent = sub || "";
+  await delay(ms);
+  b.className = "banner";
+}
+function tick(html) { $("ticker").innerHTML = html; }
+
+/* ---------- money ---------- */
+const countMs = () => ($("turbo").checked ? 260 : 650);
+const tweens = new WeakMap();   // el -> in-flight count, so a new one cancels the old
+
+// Roll the figure from one amount to the next. rAF stalls in a hidden tab, so a hard
+// timeout always lands the exact final number — the displayed figure can never be left
+// stranded part-way through a count.
+function countTo(el, from, to, ms, f = fmt) {
+  const live = tweens.get(el);
+  if (live) { cancelAnimationFrame(live.raf); clearTimeout(live.land); tweens.delete(el); }
+  // every tween carries a token: a frame that fires after its tween was landed or replaced
+  // must not write. Without this a throttled rAF lands *after* the timeout and repaints a
+  // stale figure with nothing left to correct it, stranding the display on a wrong number.
+  const token = {};
+  const finish = () => {
+    const t = tweens.get(el);
+    if (t && t.token === token) { cancelAnimationFrame(t.raf); clearTimeout(t.land); tweens.delete(el); }
+    el.textContent = f(to);
+  };
+  if (REDUCED_MOTION || state.skip || ms <= 0 || from === to) { el.textContent = f(to); return; }
+  const t0 = performance.now();
+  const step = now => {
+    const t = tweens.get(el);
+    if (!t || t.token !== token) return;   // superseded, or the hard land already ran
+    const p = Math.min(1, (now - t0) / ms);
+    if (p >= 1) { finish(); return; }
+    // ease-out, snapped to whole cents: only the landed figure may carry sub-cent digits
+    const v = from + (to - from) * (1 - Math.pow(1 - p, 3));
+    el.textContent = f(Math.round(v / 10000) * 10000);
+    t.raf = requestAnimationFrame(step);
+  };
+  tweens.set(el, { token, raf: requestAnimationFrame(step), land: setTimeout(finish, ms + 150) });
+}
+
+// shake + tint the figure; classList, not className, so it keeps its .val styling
+function cashFx(el, dir) {
+  if (REDUCED_MOTION || state.skip) return;
+  el.classList.remove("up", "down", "bump");
+  void el.offsetWidth;   // flush so a repeat change restarts the shake
+  if (dir) el.classList.add(dir);
+  el.classList.add("bump");
+  clearTimeout(el._fxT);
+  el._fxT = setTimeout(() => el.classList.remove("up", "down", "bump"), 760);
+}
+
+const fmtBal = v => RGS.money(v, null, 0);   // balance shows the usual 2 decimals, never more
+function fitFigure(el, text) {
+  el.classList.toggle("long", text.length > 12 && text.length <= 16);
+  el.classList.toggle("vlong", text.length > 16);
+}
+function setBalance(v, dir) {
+  const el = $("balance"), from = state.balance;
+  state.balance = v;
+  fitFigure(el, fmtBal(v));
+  countTo(el, from, v, countMs(), fmtBal);
+  cashFx(el, dir || (v > from ? "up" : v < from ? "down" : null));
+}
+
+let shownWin = 0;
+function setRoundWin(v) {
+  const el = $("roundWin"), from = shownWin;
+  shownWin = v;
+  if (v > from) { countTo(el, from, v, countMs()); cashFx(el, "up"); }
+  else { countTo(el, from, v, 0); }   // resetting to 0 at round start — no fanfare
+}
+
+/* ---------- sound ---------- */
+const SFX = {
+  spin: "assets/sfx_spin.wav", bet: "assets/sfx_bet.wav", reels: "assets/sfx_reels.wav",
+  jackpotA: "assets/sfx_jackpot_a.wav", jackpotB: "assets/sfx_jackpot_b.wav",
+  skip: "assets/sfx_skip.wav", line: "assets/sfx_line.wav",
+  bonusStart: "assets/sfx_bonus_start.wav", bonusEnd: "assets/sfx_bonus_end.wav",
+  coins: "assets/sfx_coins.wav", bell: "assets/sfx_bell.wav",
+  dripA: "assets/sfx_drip_a.wav", dripB: "assets/sfx_drip_b.wav", dripC: "assets/sfx_drip_c.wav",
+  dripD: "assets/sfx_drip_d.wav", dripE: "assets/sfx_drip_e.wav", dripF: "assets/sfx_drip_f.wav",
+};
+const DRIP_SFX = ["dripA", "dripB", "dripC", "dripD", "dripE", "dripF"];
+// avoids repeating the last pick, so back-to-back drips in one round never double up
+function pickSfx(list, memo) {
+  const options = list.length > 1 ? list.filter(n => n !== memo.last) : list;
+  const choice = options[Math.floor(Math.random() * options.length)];
+  memo.last = choice;
+  return choice;
+}
+const dripMemo = { last: null }, jackpotMemo = { last: null };
+const SFX_VOL = {
+  spin: .5, bet: .45, reels: .3, jackpotA: .55, jackpotB: .55, skip: .45, line: .4,
+  bonusStart: .55, bonusEnd: .55, coins: .4, bell: .55,
+  dripA: .5, dripB: .5, dripC: .5, dripD: .5, dripE: .5, dripF: .5,
+};
+// Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
+// covered at each. Differentiating it gives the reels' velocity, which drives the pitch, so
+// the sound rises and falls exactly with the symbols. Keep in step with spinReel().
+const SPIN_SHAPE = [
+  { at: 0,   d: 0,     ease: [.3, .6, .5, 1] },     // pull back
+  { at: .07, d: -.02,  ease: [.55, 0, .85, .35] },  // punch down into the fast phase
+  { at: .5,  d: .63,   ease: [.12, .55, .28, 1] },  // long decelerating glide
+  { at: .88, d: 1.025, ease: [.3, 0, .2, 1] },      // lands past the stop
+  { at: .95, d: .995,  ease: [.3, 0, .4, 1] },      // rebound
+  { at: 1,   d: 1 },
+];
+const REEL_RATE = { min: .55, max: 1.5 };
+
+let actx = null, sfxBus = null, musicBus = null;
+// Player's mix, 0-100 each, remembered per browser. There is no music track in the bundle
+// yet: the Music slider drives musicBus, which startMusic() will feed once MUSIC_URL is set.
+const MUSIC_URL = null;
+const vol = { music: 70, sfx: 80 };
+try { Object.assign(vol, JSON.parse(localStorage.getItem("smukiez.vol") || "{}")); } catch (e) { /* storage blocked */ }
+function applyVolumes() {
+  if (sfxBus) sfxBus.gain.value = muted ? 0 : vol.sfx / 100;
+  if (musicBus) musicBus.gain.value = muted ? 0 : vol.music / 100;
+}
+let musicSrc = null;
+function startMusic() {
+  if (!MUSIC_URL || musicSrc) return;
+  const ctx = audio();
+  if (!ctx) return;
+  fetch(MUSIC_URL).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => {
+    musicSrc = ctx.createBufferSource();
+    musicSrc.buffer = buf; musicSrc.loop = true;
+    musicSrc.connect(musicBus);
+    musicSrc.start();
+  }).catch(() => {});
+}
+const sfxBuf = {};
+
+function bezierY(x1, y1, x2, y2) {          // CSS cubic-bezier as a function of progress
+  const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
+  const cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+  const xAt = t => ((ax * t + bx) * t + cx) * t;
+  const yAt = t => ((ay * t + by) * t + cy) * t;
+  const dx = t => (3 * ax * t + 2 * bx) * t + cx;
+  return x => {
+    let t = x;
+    for (let i = 0; i < 8; i++) {           // Newton solve for t given x
+      const err = xAt(t) - x, slope = dx(t);
+      if (Math.abs(err) < 1e-5 || Math.abs(slope) < 1e-6) break;
+      t -= err / slope;
+    }
+    return yAt(Math.min(1, Math.max(0, t)));
+  };
+}
+
+// differentiate any 0..1 progress function and map its speed onto a playback-rate curve
+function rateCurve(pos, min, max, samples = 96) {
+  const h = 1 / samples, v = [];
+  for (let i = 0; i < samples; i++) v.push(Math.abs(pos(Math.min(1, i * h + h)) - pos(i * h)) / h);
+  const peak = Math.max(...v) || 1;
+  return Float32Array.from(v, s => min + (max - min) * (s / peak));
+}
+const spinPos = (() => {
+  const eased = SPIN_SHAPE.map(k => (k.ease ? bezierY(...k.ease) : null));
+  return p => {
+    for (let i = 0; i < SPIN_SHAPE.length - 1; i++) {
+      const a = SPIN_SHAPE[i], b = SPIN_SHAPE[i + 1];
+      if (p <= b.at || i === SPIN_SHAPE.length - 2) {
+        const local = Math.min(1, Math.max(0, (p - a.at) / (b.at - a.at)));
+        return a.d + (b.d - a.d) * (eased[i] ? eased[i](local) : local);
+      }
+    }
+    return 1;
+  };
+})();
+const REEL_CURVE = rateCurve(spinPos, REEL_RATE.min, REEL_RATE.max);
+// the payout tally accelerates then eases out; the coin rush is pitched to follow it
+const tallyPos = p => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const TALLY_CURVE = rateCurve(tallyPos, .75, 1.55, 64);
+
+function audio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!actx) {
+    actx = new Ctx();
+    // everything routes through one of two buses so the volume sliders (and mute) are a
+    // single gain each rather than a change to every source
+    sfxBus = actx.createGain(); sfxBus.connect(actx.destination);
+    musicBus = actx.createGain(); musicBus.connect(actx.destination);
+    applyVolumes();
+    for (const [name, url] of Object.entries(SFX)) {
+      fetch(url).then(r => r.arrayBuffer())
+        .then(b => actx.decodeAudioData(b))
+        .then(buf => { sfxBuf[name] = buf; })
+        .catch(() => {});   // a missing clip just means silence, never a broken round
+    }
+  }
+  if (actx.state === "suspended") actx.resume().catch(() => {});
+  return actx;
+}
+// browsers only allow audio once the player has interacted — first gesture opens the context
+addEventListener("pointerdown", () => { audio(); startMusic(); }, { once: true });
+
+// Player's mute switch. Remembered per browser; the toggle is the note button by the info one.
+let muted = false;
+try { muted = localStorage.getItem("smukiez.muted") === "1"; } catch (e) { /* storage blocked */ }
+function setMuted(on) {
+  muted = on;
+  try { localStorage.setItem("smukiez.muted", on ? "1" : "0"); } catch (e) { /* ignore */ }
+  const b = $("soundBtn");
+  if (b) b.classList.toggle("off", on);
+  const m = $("muteAll");
+  if (m) m.checked = on;
+  applyVolumes();
+}
+function sfx(name, rate = 1) {
+  if (muted) return;
+  const ctx = audio();
+  if (!ctx || !sfxBuf[name]) return;
+  const src = ctx.createBufferSource();
+  src.buffer = sfxBuf[name];
+  src.playbackRate.value = rate;           // resampled, so the pitch shifts with it
+  const g = ctx.createGain();
+  g.gain.value = SFX_VOL[name] ?? .4;
+  src.connect(g).connect(sfxBus);
+  src.start();
+}
+
+// One loop for the whole spin, its pitch following the reels' own speed curve.
+function loopSfx(name, ms, curve) {
+  if (muted) return () => {};
+  const ctx = audio();
+  if (!ctx || !sfxBuf[name]) return () => {};
+  const vol = SFX_VOL[name] ?? .4;
+  const secs = ms / 1000;
+  const src = ctx.createBufferSource();
+  src.buffer = sfxBuf[name];
+  src.loop = true;
+  const g = ctx.createGain();
+  const t = ctx.currentTime;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + .06);
+  g.gain.setValueAtTime(vol, t + Math.max(.1, secs - .2));
+  g.gain.linearRampToValueAtTime(0, t + secs);
+  try { src.playbackRate.setValueCurveAtTime(curve, t, secs); } catch (e) { /* fall back to 1x */ }
+  src.connect(g).connect(sfxBus);
+  src.start(t);
+  src.stop(t + secs + .05);
+  return () => { try { src.stop(); } catch (e) { /* already stopped */ } };
+}
+const reelSfx = ms => loopSfx("reels", ms, REEL_CURVE);
+
+// Bonus payout tally: the figure pops up and rolls 0 -> total with a coin rush pitched to the
+// count's own speed, then the bell lands on the total.
+async function tallyUp(amount) {
+  const el = $("tally");
+  if (!el) return;
+  const quiet = state.skip || REDUCED_MOTION;
+  const ms = quiet ? 0 : ($("turbo").checked ? 750 : 1600);
+  el.textContent = fmt(0);
+  el.classList.remove("pop");
+  void el.offsetWidth;                 // restart the pop on a repeat bonus
+  el.classList.add("on", "pop");
+  const hush = ms > 0 ? loopSfx("coins", ms, TALLY_CURVE) : () => {};
+  countTo(el, 0, amount, ms);          // same tween as the money readouts: always lands exact
+  await new Promise(r => setTimeout(r, ms + 80));
+  hush();
+  if (!quiet) sfx("bell");
+  await new Promise(r => setTimeout(r, quiet ? 120 : 900));
+  el.classList.remove("on", "pop");
+}
+
+/* ---------- event sequencing ---------- */
+const handlers = {
+  async reveal(ev) { await renderReveal(ev); await delay(150); },
+
+  async winInfo(ev) {
+    for (const w of ev.wins) {
+      clearFxWins();
+      void $("board").offsetWidth;   // flush the removal so every line's boxes pop in fresh,
+                                     // including cells carried over from the previous line
+      for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
+      drawPayline(w.positions, (w.meta || {}).multiplier);
+      if (!state.skip) sfx("line");   // one call per payline as it lights up
+      const m = w.meta || {};
+      const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${w.kind}</b>`, `line ${m.lineIndex ?? "—"}`];
+      if (m.paintMult > 1) parts.push(`paint x${m.paintMult}`);
+      if (m.charMult > 1) parts.push(`chars x${m.charMult}`);
+      parts.push(`<b>${fmt(cents(w.win))}</b>`);
+      tick(parts.join(" · "));
+      await delay(430);
+    }
+    await delay(180);
+    clearFxWins();
+  },
+
+  async paintDrips(ev) {
+    for (const d of ev.drips) {
+      const r = d.reel;
+      cellEls[r][Math.min(Math.max(d.row - 1, 0), ROWS - 1)].classList.add("pulse");
+      await delay(220);
+      for (let y = 0; y < ROWS; y++) cellEls[r][y].classList.add("flood");
+      if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo));   // one of six, never the same twice running
+      tick(`<b>PAINT DRIP</b> floods reel ${r + 1}`);
+      await delay(420);
+    }
+  },
+
+  async paintedWall(ev) {
+    state.paintedSet = new Set(ev.paintedReels);
+    setWall(ev.paintedReels, ev.paintLevel);
+    await delay(200);
+  },
+
+  async characterMults(ev) {
+    setChars(ev);
+    for (const ch of ev.characters)
+      for (const p of ch.positions) cellEls[p.reel][p.row - 1].classList.add("pulse");
+    tick(`Characters multiply the spin <b>x${ev.totalMult}</b>`);
+    await delay(650);
+  },
+
+  async setWin() { await delay(120); },
+  async setTotalWin(ev) { state.totalWin = cents(ev.amount); setRoundWin(state.totalWin); await delay(80); },
+
+  async freeSpinTrigger(ev) {
+    for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
+    setCharMode(true);   // character switches to his bonus clip the moment it hits
+    sfx("bonusStart");
+    await banner(`${ev.totalFs} FREE SPINS`, "Crew Leader trigger", 1300, "gold");
+    $("fsCard").classList.add("on");
+    state.fsTotal = ev.totalFs;
+  },
+
+  async extremeTrigger(ev) {
+    for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
+    setCharMode(true);   // extreme is a bonus too — 2 scatters straight in, or an upgrade
+    const why = ev.reason === "extreme_upgrade" ? "Bonus upgraded by The Phantom" : "The Phantom appears";
+    await banner("EXTREME BONUS", why, 1500, "purple");
+  },
+
+  async enterBonus(ev) {
+    setTags(0, ev.reason === "standard" ? 4 : 3);
+    state.tagTarget = ev.reason === "standard" ? 4 : 3;
+  },
+
+  async updateFreeSpin(ev) {
+    $("fsNow").textContent = `${ev.amount + 1} / ${ev.total}`;
+    state.fsTotal = ev.total;
+    await delay(160);
+  },
+
+  async tagMeter(ev) { setTags(ev.tags, ev.target); tick(`Tag Meter <b>${ev.tags} / ${ev.target}</b>`); await delay(200); },
+
+  async tagMeterFull(ev) {
+    setTags(0, state.tagTarget || 4);
+    const bits = [];
+    if (ev.extraSpins > 0) bits.push(`+${ev.extraSpins} SPINS`);
+    bits.push(`PAINT +${ev.paintLevel}x`);
+    await banner("TAG METER FULL", bits.join(" · "), 1100, "gold");
+  },
+
+  async fullWall() {
+    if (state.hasMural) {
+      $("bannerMural").src = "assets/mural.png";
+      await banner("FULL WALL", "Mural complete — MAX WIN", 2600, "gold muralshow");
+    } else {
+      await banner("FULL WALL", "Mural complete — MAX WIN", 2100);
+    }
+  },
+  async wincap(ev) { await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
+
+  async freeSpinEnd(ev) {
+    setCharMode(false);   // back to the idle rotation
+    await tallyUp(cents(ev.amount));   // count the payout up before announcing the end
+  state.tallied = true;
+    sfx("bonusEnd");
+    await banner("BONUS COMPLETE", `Free spins paid ${fmt(cents(ev.amount))}`, 1500, "gold");
+    $("fsCard").classList.remove("on");
+    $("fsNow").textContent = "—";
+  },
+
+  async finalWin() { /* credited by playRound */ },
+};
+function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearPayline(); }
+
+function clearPayline() {
+  const layer = $("board").querySelector(".payline");
+  if (layer) layer.remove();
+}
+
+// Sprays the winning line on: one tiled segment per leg, each slashed in left-to-right
+// along its own axis, staggered so the stroke reads as a single fast stroke of the can.
+function drawPayline(positions, mult) {
+  clearPayline();
+  if (!positions || positions.length < 2) return;
+  const board = $("board");
+  const br = board.getBoundingClientRect();
+  const pts = positions.map(p => {
+    const cr = cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)].getBoundingClientRect();
+    return { x: cr.left - br.left + cr.width / 2, y: cr.top - br.top + cr.height / 2 };
+  });
+  const layer = document.createElement("div");
+  layer.className = "payline";
+  const step = Math.min(55, 170 / (pts.length - 1));   // whole stroke lands in ~200-270ms
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const seg = document.createElement("div");
+    seg.className = "payseg";
+    seg.style.left = `${a.x}px`;
+    seg.style.top = `${a.y}px`;
+    seg.style.width = `${Math.hypot(dx, dy)}px`;
+    seg.style.height = `${(17 + Math.random() * 5).toFixed(1)}px`;   // hand-sprayed thickness
+    seg.style.transform = `translateY(-50%) rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+    seg.style.animationDelay = `${(i - 1) * step}ms`;
+    layer.appendChild(seg);
+  }
+  // the line's own multiplier (paint x characters), punched over the middle of the stroke
+  // once the spray has landed. 1x lines carry no multiplier, so they get no badge.
+  if (mult > 1) {
+    const mid = pts.length % 2
+      ? pts[(pts.length - 1) / 2]
+      : { x: (pts[pts.length / 2 - 1].x + pts[pts.length / 2].x) / 2,
+          y: (pts[pts.length / 2 - 1].y + pts[pts.length / 2].y) / 2 };
+    const tag = document.createElement("div");
+    tag.className = "linemult";
+    tag.textContent = `${+mult.toFixed(2)}X`;
+    tag.style.left = `${mid.x}px`;
+    tag.style.top = `${mid.y}px`;
+    tag.style.animationDelay = `${(pts.length - 1) * step}ms`;   // lands as the stroke finishes
+    layer.appendChild(tag);
+  }
+  board.appendChild(layer);
+}
+
+const RGS_MESSAGE = {
+  ERR_IPB: "Not enough balance — lower the bet.",
+  ERR_IS: "Session expired — reopen the game from the lobby.",
+  ERR_ATE: "Session expired — reopen the game from the lobby.",
+  ERR_GLE: "Gambling limits reached.",
+  ERR_LOC: "Not available in your location.",
+  ERR_VAL: "That bet was rejected — try another amount.",
+  ERR_MAINTENANCE: "The game is under maintenance, try again shortly.",
+  ERR_GEN: "Something went wrong — try again.",
+  ERR_ACT: "Slow down — give it a second.",
+};
+for (const k of Object.keys(RGS_MESSAGE)) RGS_MESSAGE[k] = T(RGS_MESSAGE[k]);
+
+/** Animate a round's event stream, then settle it. Shared by play, resume and replay —
+ *  a replay is watched, not played, so it never touches the wallet (settle: false). */
+async function presentRound(round, { settle = true } = {}) {
+  state.totalWin = 0;
+  state.tallied = false;
+  setRoundWin(0);
+  state.paintedSet = new Set();
+  setCharMode(false);
+  setWall([], 1);
+  setTags(0, 4);
+
+  // The amounts inside a round's events are hundredths of the bet, which is what cents()
+  // converts. The round TOTAL is not: the RGS reports it as `payout` in money units and
+  // `payoutMultiplier` as a plain multiple (0.7 == 0.7x). Read it straight or it lands 100x low.
+  const mult = round.payoutMultiplier || 0;
+  console.debug(`round ${round.betID ?? round.id} pays ${mult.toFixed(2)}x bet`);
+  for (const ev of round.events || []) {
+    const fn = handlers[ev.type];
+    if (fn) await fn(ev);
+  }
+
+  const win = typeof round.payout === "number" ? round.payout : Math.round(mult * bet());
+  state.skip = false;
+  setRoundWin(win);
+
+  // Settle before celebrating: end-round is what actually pays, and its response
+  // carries the authoritative balance. Showing a win we hadn't banked would be a lie.
+  if (settle) {
+    try {
+      await RGS.endRound();
+      setBalance(RGS.state.balance, win > 0 ? "up" : null);
+    } catch (err) {
+      tick(`<b>${RGS_MESSAGE[err.code] || err.message}</b>`);
+      return;
+    }
+  }
+
+  if (settle) recordRound(round.mode || state.mode, round.amount || bet(), win, mult);
+
+  if (win > 0) {
+    tick(T(`Round paid <b>${fmt(win)}</b> (${mult.toFixed(2)}x bet)`));
+    // Tiered celebrations: the moment should scale with the win, and a base-game hit that
+    // was never tallied on the board gets its count-up here (bonus rounds tally in freeSpinEnd).
+    const tier = mult >= 100 ? ["EPIC WIN", "epic", 2200] : mult >= 40 ? ["MEGA WIN", "mega", 1800] : mult >= 15 ? ["BIG WIN", "gold", 1400] : null;
+    if (tier) {
+      sfx(pickSfx(["jackpotA", "jackpotB"], jackpotMemo));   // alternate alerts at random
+      if (!state.tallied) await tallyUp(win);
+      await banner(tier[0], `${fmt(win)} \u00b7 ${mult.toFixed(0)}x`, tier[2], tier[1]);
+    }
+  } else {
+    tick("No win — run it back.");
+  }
+}
+
+// The bonus chooser. High-cost modes are never one click: opening the panel, picking a
+// mode and pressing Play are three deliberate actions, with the exact charge on screen for
+// the last two. It is also the only route into the bonus modes — nothing else calls
+// playRound() with anything but "base".
+let bonusMode = "bonus";
+function paintBonus() {
+  const wrap = $("bonusWrap");
+  if (!wrap || wrap.hidden) return;
+  const price = MODE_COST[bonusMode] * bet();
+  const over = m => MODE_COST[m] * bet() > state.balance;
+  $("bonusStdCost").textContent = "x" + MODE_COST.bonus + " \u00b7 " + fmt(MODE_COST.bonus * bet());
+  $("bonusExtCost").textContent = "x" + MODE_COST.extremebonus + " \u00b7 " + fmt(MODE_COST.extremebonus * bet());
+  $("bonusBetVal").textContent = fmt(bet());
+  $("bonusTotal").textContent = fmt(price);
+  $("bonusStd").classList.toggle("on", bonusMode === "bonus");
+  $("bonusExt").classList.toggle("on", bonusMode === "extremebonus");
+  $("bonusStd").disabled = over("bonus");
+  $("bonusExt").disabled = over("extremebonus");
+  $("bonusGo").classList.toggle("purple", bonusMode === "extremebonus");
+  $("bonusGo").disabled = over(bonusMode);
+  $("bonusGo").textContent = over(bonusMode) ? T("Not enough balance") : T("Play");
+  $("bonusBetUp").disabled = state.betIdx >= state.bets.length - 1;
+  $("bonusBetDown").disabled = state.betIdx <= 0;
+}
+function closeBonus() {
+  $("bonusWrap").hidden = true;
+  $("bonusBtn").classList.remove("open");
+}
+function openBonus() {
+  if (REPLAY || !RGS.state.authenticated || state.playing) return;
+  if (!$("bonusWrap").hidden) { closeBonus(); return; }   // the same button closes it
+  $("bonusWrap").hidden = false;
+  $("bonusBtn").classList.add("open");
+  paintBonus();
+  $("bonusGo").focus();
+}
+$("bonusBtn").addEventListener("click", () => { sfx("bet", 1); openBonus(); });
+$("bonusStd").addEventListener("click", () => { bonusMode = "bonus"; sfx("bet", 1.1); paintBonus(); });
+$("bonusExt").addEventListener("click", () => { bonusMode = "extremebonus"; sfx("bet", .9); paintBonus(); });
+$("bonusBetUp").addEventListener("click", () => { state.betIdx = Math.min(state.betIdx + 1, state.bets.length - 1); sfx("bet", 1.22); refreshBet(); });
+$("bonusBetDown").addEventListener("click", () => { state.betIdx = Math.max(state.betIdx - 1, 0); sfx("bet", 0.8); refreshBet(); });
+$("bonusGo").addEventListener("click", () => {
+  const mode = bonusMode;
+  closeBonus();
+  playRound(mode);
+});
+$("bonusWrap").addEventListener("click", e => { if (e.target === $("bonusWrap")) closeBonus(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("bonusWrap").hidden) closeBonus(); });
+
+/** One round. Resolves true when it ran to completion, false when it did not start or
+ *  failed — autoplay stops on false. */
+async function playRound(mode) {
+  if (REPLAY) return false;                              // a replay is watched, never played
+  if (state.playing) { if (!state.noSkip) state.skip = true; return false; }   // fast-forward
+  if (!RGS.state.authenticated) { tick(T("<b>Not connected</b> — reopen the game from the lobby.")); return false; }
+  const price = (MODE_COST[mode] || 1) * bet();
+  if (price > state.balance) { tick(T("<b>Not enough balance</b> — lower the bet.")); return false; }
+  if (performance.now() - (state.lastPlayAt || 0) < 250) return false;
+  state.lastPlayAt = performance.now();
+
+  state.playing = true; state.skip = false; state.mode = mode;
+  setButtons(false);
+  bounceFx();
+  tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
+  const t0 = performance.now();
+  let ok = true;
+
+  try {
+    // The RGS debits on /play and returns both the new balance and the round to animate.
+    const d = await RGS.play(bet(), mode);
+    setBalance(RGS.state.balance, "down");
+    if (!d.round) throw new RGS.RgsError("ERR_GEN", "no round returned");
+    await presentRound(d.round);
+  } catch (err) {
+    ok = false;
+    tick(`<b>${RGS_MESSAGE[err.code] || err.message || T("Round failed")}</b>`);
+    try { await RGS.balance(); setBalance(RGS.state.balance); } catch (e) { /* offline */ }
+  }
+
+  // Some jurisdictions set a floor on how fast rounds may follow each other.
+  const minMs = Number(RGS.jurisdiction().minimumRoundDuration) || 0;
+  const left = minMs - (performance.now() - t0);
+  if (left > 0) await delay(left);
+
+  state.playing = false; state.skip = false;
+  setButtons(true);
+  return ok;
+}
+
+/* ---------- autoplay ---------- */
+// Never starts on one click: the player picks a count and confirms it. The same button
+// stops it. It also stops itself when a round fails or the balance can't cover the next.
+let autoDismiss = null;   // closes an open picker; set while one is up
+function confirmAuto() {
+  return new Promise(resolve => {
+    const pop = $("autoPop"), opts = $("autoOpts");
+    let n = Number(opts.querySelector(".on").dataset.n);
+    $("autoBet").textContent = fmt(bet());
+    $("autoText").firstChild.textContent = T("Rounds at ");
+    openPop("autoPop");
+    $("autoYes").focus();
+    const pick = e => {
+      const b = e.target.closest("button[data-n]");
+      if (!b) return;
+      opts.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+      n = Number(b.dataset.n);
+    };
+    const done = v => { off(); closePops(); resolve(v); };
+    const yes = () => done(n), no = () => done(0);
+    const away = e => { if (!pop.hidden && !e.target.closest("#autoPop, #autoBtn")) no(); };
+    const key = e => { if (e.key === "Escape") no(); };
+    const off = () => {
+      opts.removeEventListener("click", pick);
+      $("autoYes").removeEventListener("click", yes);
+      autoDismiss = null;
+      document.removeEventListener("pointerdown", away, true); document.removeEventListener("keydown", key);
+    };
+    opts.addEventListener("click", pick);
+    $("autoYes").addEventListener("click", yes);
+    autoDismiss = no;
+    document.addEventListener("pointerdown", away, true); document.addEventListener("keydown", key);
+  });
+}
+function setAutoBtn() {
+  const b = $("autoBtn"), n = $("autoN"), on = state.auto > 0;
+  b.classList.toggle("on", on);
+  n.hidden = !on;
+  n.textContent = on ? String(state.auto) : "";
+  b.setAttribute("aria-label", on ? T("Stop auto play") : T("Auto play"));
+  b.title = b.getAttribute("aria-label");
+}
+async function runAuto(n) {
+  state.auto = n; setAutoBtn();
+  while (state.auto > 0) {
+    if (state.playing) { await delay(120); continue; }   // let a running round finish first
+    if (bet() > state.balance) break;
+    state.auto--; setAutoBtn();
+    if (!(await playRound("base"))) break;
+    if (state.auto > 0) await delay(450);   // a breath between rounds, so each result can be read
+  }
+  state.auto = 0; setAutoBtn();
+}
+$("autoBtn").addEventListener("click", async () => {
+  if (autoDismiss) { autoDismiss(); sfx("skip"); return; }   // same button closes the picker
+  if (state.auto > 0) { state.auto = 0; setAutoBtn(); sfx("skip"); return; }
+  if (REPLAY || !RGS.state.authenticated) return;
+  sfx("bet", 1);
+  const n = await confirmAuto();
+  if (n > 0) runAuto(n);
+});
+
+/* ---------- controls ---------- */
+function setButtons(on) {
+  $("spinBtn").textContent = on ? T("Spin") : (state.noSkip ? T("Spinning\u2026") : T("Skip >>"));
+  $("autoBtn").disabled = !(on || state.auto > 0);
+  $("bonusBtn").disabled = !on;   // the panel itself gates what is affordable
+  $("betUp").disabled = !on || state.betIdx >= state.bets.length - 1;
+  $("betDown").disabled = !on || state.betIdx <= 0;
+}
+const betKey = () => "smukiez.bet." + RGS.state.currency;
+function rememberBet() { try { localStorage.setItem(betKey(), String(bet())); } catch (e) { /* ignore */ } }
+function recallBet() { try { return Number(localStorage.getItem(betKey())) || 0; } catch (e) { return 0; } }
+// last 50 rounds, per currency — no replay link because the RGS never returns the event id
+const histKey = () => "smukiez.hist." + RGS.state.currency;
+function recordRound(mode, amount, payout, mult) {
+  try {
+    const h = JSON.parse(localStorage.getItem(histKey()) || "[]");
+    h.unshift({ t: Date.now(), mode, amount, payout, mult });
+    localStorage.setItem(histKey(), JSON.stringify(h.slice(0, 50)));
+  } catch (e) { /* storage blocked */ }
+}
+function historyHtml() {
+  let h = [];
+  try { h = JSON.parse(localStorage.getItem(histKey()) || "[]"); } catch (e) { /* ignore */ }
+  if (!h.length) return "";
+  const name = { base: T("Spin"), bonus: T("Buy Bonus"), extremebonus: T("Buy Extreme") };
+  const rows = h.slice(0, 20).map(x => {
+    const d = new Date(x.t);
+    const when = d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    const cls = x.payout > 0 ? "win" : "zero";
+    return `<tr><td>${when}</td><td>${name[x.mode] || x.mode}</td><td>${fmt(x.amount)}</td><td class="${cls}">${fmt(x.payout)}</td><td class="${cls}">${(x.mult || 0).toFixed(2)}x</td></tr>`;
+  }).join("");
+  return `<section><h4>${T("Recent rounds")}</h4><p class="fine">${T("Your last rounds on this device, in the token you are playing with. The balance shown in the game is always the amount the server reports.")}</p>
+    <div class="tbl"><table class="hist"><tr><th>${T("When")}</th><th>${T("Mode")}</th><th>${T("Bet")}</th><th>${T("Win")}</th><th>x</th></tr>${rows}</table></div></section>`;
+}
+function refreshBet() {
+  $("betVal").textContent = fmt(bet());
+  fitFigure($("betVal"), fmt(bet()));
+  if (!REPLAY) rememberBet();
+  paintBonus();   // the chooser shows prices at the live bet, so it follows the stepper
+  setButtons(!state.playing);
+}
+
+/* ---------- character ---------- */
+const CHAR_IDLE_RATE = .8;    // idle clips run at 80% speed
+const CHAR_BONUS_RATE = .8;   // bonus reels too — kept separate so they can diverge later
+const CHARACTERS = [
+  { el: "charfx",  idle: ["assets/char_a.mp4", "assets/char_b.mp4"],
+                   bonus: ["assets/char_bonus_a.mp4", "assets/char_bonus_b.mp4"] },
+  { el: "charfx2", idle: ["assets/char2_a.mp4", "assets/char2_b.mp4"],
+                   bonus: ["assets/char2_bonus_a.mp4", "assets/char2_bonus_b.mp4"] },
+];
+let setCharMode = () => {};   // replaced below; bonus handlers call it
+
+function makeCharacter({ el, idle, bonus }) {
+  const root = document.getElementById(el);
+  if (!root) return null;
+  const vids = [...root.querySelectorAll(".charvid")];
+  if (vids.length < 2) return null;
+
+  const FADE = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
+  const LEAD = 0.45;        // s before the end to bring the next clip up — covers the fade
+  let cur = 0;              // index of the element currently shown
+  let idx = 0;              // position in the idle rotation
+  let bidx = 0;             // position in the bonus rotation
+  let inBonus = false;
+  let handing = false;      // a crossfade is already in flight
+  let queued = false;       // a mode change arrived mid-crossfade and runs as soon as it lands
+
+  const hasBonus = bonus.length > 0;   // a character with no bonus reel just keeps idling
+  const onBonus = () => inBonus && hasBonus;
+  const reel = () => (onBonus() ? bonus : idle);
+  const nextClip = () => reel()[onBonus() ? bidx : idx];
+  // rate comes from the clip itself, not the current mode — the standby can be holding a
+  // clip for the other reel, and load() resets playbackRate to defaultPlaybackRate
+  const rateFor = src => (bonus.includes(src) ? CHAR_BONUS_RATE : CHAR_IDLE_RATE);
+  const applyRate = v => {
+    const r = rateFor(v.dataset.clip || "");
+    v.defaultPlaybackRate = r;
+    v.playbackRate = r;
+  };
+  const play = v => { applyRate(v); const p = v.play(); if (p) p.catch(() => {}); };
+
+  // park a clip on the standby element, decoded and sitting on frame 0
+  function arm(v, src) {
+    if (v.dataset.clip !== src) { v.dataset.clip = src; v.src = src; v.load(); }
+    else { try { v.currentTime = 0; } catch (e) { /* not seekable yet */ } }
+    applyRate(v);
+  }
+
+  // Bring the standby up *over* the outgoing clip instead of cross-dissolving the pair:
+  // both fading at once would leave the figure ~25% transparent at the midpoint. The
+  // outgoing one only drops out once it is completely hidden behind the new one, so
+  // coverage is total the whole way through and nothing ever blanks.
+  function handover() {
+    if (handing) return;
+    handing = true;
+    const from = vids[cur], to = vids[1 - cur];
+    play(to);
+    to.style.zIndex = 2; from.style.zIndex = 1;
+    to.classList.add("on");
+    cur = 1 - cur;
+    setTimeout(() => {
+      from.classList.remove("on");
+      from.pause();
+      if (queued) {
+        // the mode flipped while this fade was in flight — go straight to the new mode's
+        // opening clip rather than advancing the rotation we just left
+        queued = false;
+        arm(from, nextClip());
+        handing = false;
+        handover();
+        return;
+      }
+      if (onBonus()) bidx = (bidx + 1) % bonus.length;
+      else idx = (idx + 1) % idle.length;
+      arm(from, nextClip());   // the retired element becomes the standby for the clip after this
+      handing = false;
+    }, FADE + 40);
+  }
+
+  for (const v of vids) {
+    // start the handover before the clip actually runs out, so the motion never stops
+    v.addEventListener("timeupdate", () => {
+      if (v !== vids[cur] || !v.duration) return;
+      if (v.duration - v.currentTime <= LEAD) handover();
+    });
+    v.addEventListener("ended", () => { if (v === vids[cur]) handover(); });   // backstop
+    v.addEventListener("error", () => { if (v === vids[cur]) setTimeout(handover, 800); });
+  }
+
+  // swap immediately on a bonus trigger rather than waiting for the current clip to finish
+  const setMode = wantBonus => {
+    if (!hasBonus || inBonus === wantBonus || REDUCED_MOTION) return;
+    inBonus = wantBonus;
+    if (inBonus) bidx = 0;   // a bonus always opens on his first reaction clip, then alternates
+    if (handing) { queued = true; return; }   // mid-fade: swap the instant this one lands
+    arm(vids[1 - cur], nextClip());
+    handover();
+  };
+
+  // browsers won't run video in a hidden tab, and a page that loaded hidden never starts —
+  // pick the visible one up again whenever the tab comes back to the front
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && !REDUCED_MOTION && vids[cur].paused) play(vids[cur]);
+  });
+
+  if (REDUCED_MOTION) { arm(vids[0], idle[0]); vids[0].classList.add("on"); return { setMode }; }
+  arm(vids[0], idle[0]);
+  vids[0].classList.add("on");
+  play(vids[0]);
+  idx = 1 % idle.length;
+  arm(vids[1], nextClip());   // standby is loaded from the very first frame onward
+  return { setMode };
+}
+
+(function characters() {
+  const rigs = CHARACTERS.map(makeCharacter).filter(Boolean);
+  setCharMode = wantBonus => rigs.forEach(r => r.setMode(wantBonus));
+})();
+
+/* ---------- fit to screen ---------- */
+// The layout has a natural size (~994px tall); rather than let it scroll, scale the flow
+// content down to whatever the window is. Measured at --fit:1 each time so the factor is
+// derived from the natural size, never compounded on the previous scale.
+function fitToScreen() {
+  const app = $("app"), stage = document.querySelector(".stage");
+  if (!app || !stage) return;
+  const W = innerWidth, H = innerHeight;
+  // The board is the one thing that can't wrap, so it sets the floor on the scale: lay the
+  // page out wide enough for it, then see how tall that comes out and fit that too. The
+  // final width is never narrower than the first pass, so nothing wraps back taller.
+  app.style.transform = "none"; app.style.width = "auto"; app.style.height = "auto";
+  const needW = stage.offsetWidth + 40;                     // .main's side padding
+  const fitW = Math.min(1, W / needW);
+  app.style.width = (W / fitW) + "px";
+  const fit = Math.min(fitW, H / app.scrollHeight);        // reading it flushes layout
+  app.style.width = (W / fit) + "px";
+  app.style.height = (H / fit) + "px";
+  app.style.transform = `scale(${fit.toFixed(4)})`;
+  document.documentElement.style.setProperty("--fit", fit.toFixed(4));
+}
+addEventListener("resize", fitToScreen);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen).catch(() => {});
+addEventListener("load", fitToScreen);
+
+buildBoard();
+setTags(0, 4);
+eachCell((el, r, y) => setCell(r, y, { name: ["L1","L2","L3","L4","L5"][(r + y) % 5] }));
+fitToScreen();   // fit once the board exists; `load` and fonts.ready refine it after art settles
+
+// the button doubles as Skip mid-round — only clunk when it actually starts a spin
+$("spinBtn").addEventListener("click", e => {
+  const b = e.currentTarget;
+  b.classList.remove("punch"); void b.offsetWidth; b.classList.add("punch");   // restart on every press
+  if (state.playing && state.noSkip) return;   // jurisdiction forbids slam-stopping a round
+  sfx(state.playing ? "skip" : "spin");
+  playRound("base");
+});
+// clicking the board fast-forwards too — same cancel note, but only if a round is running
+$("board").addEventListener("click", () => { if (state.playing && !state.skip && !state.noSkip) { sfx("skip"); state.skip = true; } });
+// same toggle click either way, pitched up for more and down for less
+$("betUp").addEventListener("click", () => { state.betIdx = Math.min(state.betIdx + 1, state.bets.length - 1); sfx("bet", 1.22); refreshBet(); });
+$("betDown").addEventListener("click", () => { state.betIdx = Math.max(state.betIdx - 1, 0); sfx("bet", 0.8); refreshBet(); });
+document.addEventListener("keydown", e => {
+  if (e.code !== "Space" || e.repeat || REPLAY) return;
+  if (RGS.jurisdiction().disabledSpacebar) return;
+  if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden])")) return;   // a dialog has the keyboard
+  e.preventDefault();
+  playRound("base");
+});
+
+/* ---------- opening sequence ---------- */
+// Logo fades up on black, fades out, the required disclosure fades in, then the whole
+// screen lifts. Skippable at any point; boot() is already running underneath.
+let introDone = Promise.resolve();
+function runIntro() {
+  const wrap = $("intro"), logo = $("introLogo"), msg = $("introMsg"), skip = $("introSkip");
+  if (!wrap) return;
+  let done = false, settle;
+  introDone = new Promise(r => { settle = r; });
+  const timers = [];
+  const after = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+  const finish = () => {
+    if (done) return;
+    done = true;
+    timers.forEach(clearTimeout);
+    wrap.classList.add("gone");
+    setTimeout(() => wrap.remove(), 700);
+    settle();
+  };
+  wrap.addEventListener("click", finish);
+
+  if (REDUCED_MOTION) { after(1200, finish); return; }
+
+  after(120, () => logo.classList.add("in"));
+  after(700, () => skip.classList.add("in"));
+  after(2300, () => logo.classList.remove("in"));      // logo fades away
+  after(3100, () => msg.classList.add("in"));          // then the disclosure fades in
+  after(9200, () => { msg.classList.remove("in"); skip.classList.remove("in"); });
+  after(10000, finish);
+}
+runIntro();
+
+// One pop-up open at a time; its button reads as pressed while it is up.
+const POPS = { autoPop: "autoBtn", soundPop: "soundBtn" };
+function openPop(id) {
+  for (const [pid, bid] of Object.entries(POPS)) {
+    const on = pid === id;
+    $(pid).hidden = !on;
+    $(bid).classList.toggle("open", on);
+  }
+}
+function closePops() { openPop(null); }
+document.addEventListener("pointerdown", e => {
+  if (!$("soundPop").hidden && !e.target.closest("#soundPop, #soundBtn")) closePops();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("soundPop").hidden) closePops(); });
+
+// Sound settings: two sliders and a mute switch. Values save as they move.
+function saveVol() { try { localStorage.setItem("smukiez.vol", JSON.stringify(vol)); } catch (e) { /* ignore */ } }
+function paintVol() {
+  $("volMusic").value = vol.music; $("volMusicN").textContent = vol.music + "%";
+  $("volSfx").value = vol.sfx;     $("volSfxN").textContent = vol.sfx + "%";
+  $("muteAll").checked = muted;
+}
+$("volMusic").addEventListener("input", e => { vol.music = Number(e.target.value); paintVol(); applyVolumes(); saveVol(); });
+$("volSfx").addEventListener("input", e => { vol.sfx = Number(e.target.value); paintVol(); applyVolumes(); saveVol(); });
+$("volSfx").addEventListener("change", () => sfx("bet", 1));   // a click at the new level, once the drag ends
+$("muteAll").addEventListener("change", e => setMuted(e.target.checked));
+$("soundBtn").addEventListener("click", () => {
+  if (!$("soundPop").hidden) { closePops(); return; }
+  paintVol();
+  openPop("soundPop");
+  sfx("bet", 1);
+});
+setMuted(muted);
+paintVol();
+if (SOCIAL) {   // restricted vocabulary: the chooser's static copy goes through T() too
+  for (const id of ["bonusTitle", "bonusStdDesc", "bonusExtDesc", "bonusBetLbl", "bonusNote"]) {
+    $(id).textContent = T($(id).textContent);
+  }
+  $("bonusTotalLbl").firstChild.textContent = T($("bonusTotalLbl").firstChild.textContent);
+}
+setAutoBtn();
+
+// Phones suspend the audio context and may drop the session's balance display while the
+// tab is in the background: wake the one and re-sync the other when the player returns.
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", async () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (actx && actx.state === "suspended") actx.resume().catch(() => {});
+  if (REPLAY || !RGS.state.authenticated || state.playing) return;
+  if (Date.now() - hiddenAt > 30000) {
+    try { await RGS.balance(); setBalance(RGS.state.balance); } catch (e) { /* offline; the next play will say so */ }
+  }
+});
+
+/* ---------- game information ---------- */
+(function info() {
+  const wrap = $("infoWrap"), open = $("infoBtn"), close = $("infoClose");
+  if (!wrap || !open) return;
+  const show = on => {
+    if (on) $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
+    wrap.hidden = !on;
+  };
+  open.addEventListener("click", () => show(true));
+  close.addEventListener("click", () => show(false));
+  wrap.addEventListener("click", e => { if (e.target === wrap) show(false); });   // click-away
+  document.addEventListener("keydown", e => { if (e.key === "Escape") show(false); });
+})();
+
+/* ---------- boot ---------- */
+/* ---------- bet replay ---------- */
+// Loaded with replay=true the game is a viewer: it fetches the round without a session,
+// waits for Play, animates it exactly as the player saw it, and offers Play again. No
+// wallet call is ever made and nothing on screen can start a real round.
+let REPLAY = false;
+async function bootReplay(p) {
+  REPLAY = true;
+  document.body.classList.add("replay");
+  const intro = $("intro"); if (intro) intro.remove();
+  if (p.currency) RGS.state.currency = p.currency;
+  state.bets = [p.amount || RGS.UNIT]; state.betIdx = 0;
+  state.mode = p.mode || "base";
+  const modeName = { base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme" }[state.mode] || state.mode;
+  $("balanceLbl").textContent = T("Replay bet") + " \u00b7 " + RGS.currencyName();
+  $("balance").textContent = fmt(bet());
+  refreshBet(); setButtons(false);
+  const wrap = $("replayWrap"), meta = $("replayMeta"), status = $("replayStatus"),
+        result = $("replayResult"), play = $("replayPlay");
+  meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet ${fmt(bet())}`);
+  wrap.hidden = false;
+  let round;
+  try {
+    const d = await RGS.replay(p);
+    if (typeof d.costMultiplier === "number" && d.costMultiplier > 0) MODE_COST[state.mode] = d.costMultiplier;
+    round = { events: d.state, payoutMultiplier: d.payoutMultiplier || 0, amount: bet(), mode: state.mode };
+  } catch (err) {
+    status.textContent = T("This replay could not be loaded. Check the link and try again.");
+    return;
+  }
+  const cost = MODE_COST[state.mode] * bet();
+  const payout = Math.round(round.payoutMultiplier * bet());
+  meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet cost ${fmt(cost)} (x${MODE_COST[state.mode]} the bet of ${fmt(bet())})`);
+  status.textContent = "";
+  play.hidden = false;
+  play.textContent = T("Play");
+  play.addEventListener("click", async () => {
+    wrap.hidden = true;
+    state.playing = true; state.skip = false;
+    setButtons(false);
+    try { await presentRound(round, { settle: false }); } catch (e) { /* shown in the ticker */ }
+    state.playing = false;
+    result.innerHTML = T(`Bet cost ${fmt(cost)}<br>Payout ${fmt(payout)} \u00b7 ${round.payoutMultiplier.toFixed(2)}x the bet`);
+    result.hidden = false;
+    play.textContent = T("Play again");
+    wrap.hidden = false;
+  });
+}
+
+// Optional readouts a jurisdiction can require in the header: RTP, a session clock, and
+// the player's net position since the game opened. Hidden unless asked for.
+function startJurisReadouts() {
+  const j = RGS.jurisdiction();
+  if (!(j.displayRTP || j.displaySessionTimer || j.displayNetPosition)) return;
+  const box = $("jurisBox"), val = $("jurisVal"), t0 = Date.now(), start = RGS.state.balance;
+  box.hidden = false;
+  const tickClock = () => {
+    const parts = [];
+    if (j.displayRTP) parts.push("RTP " + RULES.RTP);
+    if (j.displaySessionTimer) {
+      const s = Math.floor((Date.now() - t0) / 1000);
+      parts.push([s / 3600, s / 60 % 60, s % 60].map(v => String(Math.floor(v)).padStart(2, "0")).join(":"));
+    }
+    if (j.displayNetPosition) {
+      const net = state.balance - start;
+      parts.push(T("Net ") + (net < 0 ? "\u2212" : "+") + fmt(Math.abs(net)));
+    }
+    val.textContent = parts.join(" \u00b7 ");
+  };
+  tickClock();
+  setInterval(tickClock, 1000);
+}
+
+async function boot() {
+  const rp = RGS.replayParams();
+  if (rp.replay) return bootReplay(rp);
+
+  setButtons(false);
+  tick("Connecting...");
+  try {
+    await RGS.authenticate();
+  } catch (err) {
+    tick(`<b>${RGS_MESSAGE[err.code] || "Could not connect"}</b>`);
+    return;   // leave the controls locked; nothing can be staked without a session
+  }
+
+  const lbl = $("balanceLbl");
+  if (lbl) lbl.textContent = "Balance · " + RGS.currencyName();
+
+  // The RGS publishes each mode's cost multiplier; prefer it over the local table so a
+  // change on their side can never mis-price a bonus buy.
+  for (const m of Object.keys(MODE_COST)) {
+    const c = RGS.costOf(m);
+    if (c) MODE_COST[m] = c;
+  }
+
+  state.bets = RGS.betLevels();
+  // The bet the player last used on this device comes first (a refresh mid-session must
+  // not reset it); the server's default is the fallback for a first visit.
+  const preferred = recallBet() || (RGS.state.config && RGS.state.config.defaultBetLevel) || 0;
+  const at = state.bets.indexOf(preferred);
+  state.betIdx = at >= 0 ? at : Math.min(Math.floor(state.bets.length / 2), state.bets.length - 1);
+  if ($("maxWin")) $("maxWin").textContent = "x" + RULES.MAX_WIN;
+  setBalance(RGS.state.balance);
+
+  // Jurisdictions can forbid the buy feature or turbo; hide the controls rather than ignore the flags.
+  if (RGS.jurisdiction().disabledBuyFeature) {
+    $("bonusBtn").style.display = "none";
+  }
+  if (RGS.jurisdiction().disabledTurbo) {
+    $("turbo").checked = false;
+    const lbl = document.querySelector("label.turbo");
+    if (lbl) lbl.style.display = "none";
+  }
+  if (RGS.jurisdiction().disabledAutoplay) $("autoBtn").style.display = "none";
+  state.noSkip = !!RGS.jurisdiction().disabledSlamstop;
+  startJurisReadouts();
+
+  refreshBet();
+  setButtons(true);
+  tick("Good luck.");
+
+  // authenticate() returns the active or last-completed round; an active one means the
+  // player dropped mid-round and it still has to be finished and settled.
+  const open = RGS.state.round;
+  if (open && open.events && open.events.length) {
+    // the round was staked at its own amount and mode: payouts scale off bet() and the
+    // strips follow state.mode, so both must be the round's, not whatever is selected now
+    const staked = state.bets.indexOf(open.amount);
+    if (staked >= 0) { state.betIdx = staked; refreshBet(); }
+    if (open.mode) state.mode = open.mode;
+    await introDone;   // never replay a round behind the opening screen
+    state.playing = true;
+    setButtons(false);
+    tick("Resuming your round...");
+    try { await presentRound(open); } catch (e) { /* surfaced by presentRound */ }
+    state.playing = false;
+    setButtons(true);
+  }
+}
+boot();
+</script>
+</body>
+</html>

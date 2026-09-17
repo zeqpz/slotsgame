@@ -28,6 +28,19 @@ CACHE_DIR = os.path.join(GAME_DIR, "library", "beta_cache")
 
 MODES = {"base": 1.0, "bonus": 100.0, "extremebonus": 400.0}
 PORT = 8722
+# only these extensions are served out of beta/assets/
+ASSET_TYPES = {
+    ".png": "image/png",
+    ".otf": "font/otf",
+    ".ttf": "font/ttf",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+}
 ID_RE = re.compile(rb'"id":\s*(\d+)')
 
 
@@ -180,9 +193,10 @@ class Handler(BaseHTTPRequestHandler):
         elif url.path.startswith("/assets/"):
             name = os.path.basename(url.path)  # basename strips any traversal
             path = os.path.join(BETA_DIR, "assets", name)
-            if name.lower().endswith(".png") and os.path.exists(path):
+            ctype = ASSET_TYPES.get(os.path.splitext(name)[1].lower())
+            if ctype and os.path.exists(path):
                 with open(path, "rb") as f:
-                    self._send(200, f.read(), "image/png", cache="public, max-age=3600")
+                    self._send(200, f.read(), ctype, cache="public, max-age=3600")
             else:
                 self._json({"error": "asset not found"}, 404)
         elif url.path == "/api/strips":
