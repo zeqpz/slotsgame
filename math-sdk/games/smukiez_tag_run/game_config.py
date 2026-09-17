@@ -117,15 +117,15 @@ class GameConfig(Config):
         # Smukiez feature constants
         self.extreme_direct_count = 2  # ES symbols needed to trigger Extreme Bonus directly
         self.extreme_direct_spins = 10
-        self.paint_bonus_base = 1  # +1x per painted reel crossed by a win (base game + standard bonus)
-        self.paint_bonus_extreme = 2  # Extreme Bonus starts at +2x per painted reel
-        self.paint_bonus_max_standard = 2  # Tag Meter can upgrade the paint bonus up to this
-        self.paint_bonus_max_extreme = 3
+        self.paint_bonus_base = 1  # +1x per painted reel crossed by a win (applied each cascade)
+        self.paint_bonus_extreme = 1  # kept modest — this multiplier stacks on every cascade
+        self.paint_bonus_max_standard = 1
+        self.paint_bonus_max_extreme = 2
         self.tag_meter_target_standard = 4  # winning spins needed to fill the Tag Meter
         self.tag_meter_target_extreme = 3
         self.tag_meter_extra_spins = 2
         self.tag_meter_max_extra_spins = 6  # bound on meter-awarded spins per bonus
-        self.char_mult_cap = 128  # combined character-multiplier ceiling per spin
+        self.char_mult_cap = 8  # combined character-multiplier ceiling (per cascade, so kept low)
 
         # Reels
         reels = {
@@ -145,28 +145,30 @@ class GameConfig(Config):
         }
 
         # Character multiplier value tables, drawn per landed symbol
+        # Character multipliers are applied to EVERY cascade's win, so in a tumble game they
+        # must be small — a 50x combined mult on a chaining board explodes the RTP.
         char_mults_base = {
-            "C1": {2: 70, 3: 30},
-            "C2": {5: 100},
-            "C3": {8: 75, 10: 25},
+            "C1": {2: 100},
+            "C2": {2: 100},
+            "C3": {3: 100},
         }
         char_mults_free = {
-            "C1": {2: 55, 3: 45},
-            "C2": {5: 100},
-            "C3": {8: 60, 10: 40},
+            "C1": {2: 90, 3: 10},
+            "C2": {2: 70, 3: 30},
+            "C3": {3: 80, 5: 20},
         }
         char_mults_rich = {
             "C1": {3: 100},
-            "C2": {5: 100},
-            "C3": {10: 100},
+            "C2": {3: 100},
+            "C3": {5: 100},
         }
 
         # Injected-drip counts per free spin. Painting is cumulative and irreversible, so
         # these rates dominate bonus volatility and the Full Wall frequency: the standard
         # bonus averages ~1 painted reel, the extreme bonus ~2-3 (plus carried drips).
         # Free-spin strips hold no W; every free-spin drip comes from these tables.
-        drips_standard = {0: 93, 1: 6, 2: 1}
-        drips_extreme = {0: 90, 1: 7, 2: 2, 3: 1}
+        drips_standard = {0: 96, 1: 4}
+        drips_extreme = {0: 95, 1: 5}
         drips_wincap = {1: 10, 2: 40, 3: 35, 4: 15}
 
         self.bet_modes = [

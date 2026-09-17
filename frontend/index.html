@@ -410,6 +410,15 @@
   .cell.escat img { filter: drop-shadow(0 0 8px rgba(167, 139, 250, .9)); }
   .cell.drop  { animation: drop .3s ease-out; }
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  /* cascade: winning symbols pop and vanish, then survivors + new symbols drop in */
+  .cell.explode { animation: cellExplode .3s ease-out forwards; }
+  @keyframes cellExplode {
+    0% { transform: scale(1); opacity: 1; }
+    45% { transform: scale(1.25) rotate(-4deg); opacity: 1; filter: brightness(1.6); }
+    100% { transform: scale(0); opacity: 0; }
+  }
+  .cell.tdrop { animation: tdrop .34s cubic-bezier(.3,.7,.4,1.2); }
+  @keyframes tdrop { 0% { transform: translateY(-120%); opacity: .2; } 70% { transform: translateY(0); } 85% { transform: translateY(-6%); } 100% { transform: translateY(0); opacity: 1; } }
   /* landing impact — the reel has already stopped on its real symbols, so this is a
      settle in place: symbols never move away from where they landed or change face.
      Bottom-up stagger keeps the old gravity read without a second drop-in pass. */
@@ -1566,6 +1575,43 @@ const handlers = {
     }
     await delay(180);
     clearFxWins();
+  },
+
+  async tumbleBoard(ev) {
+    // 1. the winning symbols pop and vanish (wilds don't — the math never sends them here)
+    const gone = ev.explodingSymbols || [];
+    for (const p of gone) {
+      const y = Math.min(Math.max(p.row - 1, 0), ROWS - 1);
+      cellEls[p.reel][y].classList.add("explode");
+    }
+    if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo), 0.7);
+    await delay(state.skip ? 0 : 300);
+    // 2. survivors fall, new symbols drop in on top
+    for (let r = 0; r < REELS; r++) {
+      const goneRows = new Set(
+        gone.filter(p => p.reel === r).map(p => Math.min(Math.max(p.row - 1, 0), ROWS - 1))
+      );
+      if (!goneRows.size) continue;
+      const surviving = [];
+      for (let y = 0; y < ROWS; y++) if (!goneRows.has(y)) surviving.push(shownSym[r][y]);
+      const news = (ev.newSymbols && ev.newSymbols[r]) ? ev.newSymbols[r].slice() : [];
+      let reel = news.concat(surviving);
+      if (reel.length > ROWS) reel = reel.slice(reel.length - ROWS);   // drop the off-screen padding
+      while (reel.length < ROWS) reel.unshift(news[0] || surviving[0] || { name: "L1" });
+      for (let y = 0; y < ROWS; y++) {
+        setCell(r, y, reel[y]);
+        cellEls[r][y].classList.remove("explode");
+        cellEls[r][y].classList.add("tdrop");
+      }
+    }
+    await delay(state.skip ? 0 : 320);
+    eachCell(el => el.classList.remove("tdrop", "explode"));
+  },
+
+  async updateTumbleWin(ev) {
+    state.totalWin = cents(ev.amount);
+    setRoundWin(state.totalWin);
+    if (!state.skip) await delay(60);
   },
 
   async paintDrips(ev) {
