@@ -1,3 +1,4 @@
+import os
 import time
 import math
 import random
@@ -36,6 +37,13 @@ def create_books(
         raise RuntimeError("Multithread profiling not supported, threads must = 1 with profiling enabled")
 
     startTime = time.time()
+    # Start from an empty temp folder. The cleanup at the end of this function only runs when
+    # every mode finished, so a run that was interrupted (Ctrl+C, OOM, a crash in one mode)
+    # leaves chunk files behind - and the next run merges whichever of them match its own
+    # thread/repeat grid, including half-written ones.
+    if os.path.isdir(gamestate.output_files.temp_path):
+        shutil.rmtree(gamestate.output_files.temp_path)
+    os.makedirs(gamestate.output_files.temp_path, exist_ok=True)
     print("\nCreating books...")
     for betmode_name in num_sim_args:
         sim_counter = 0
@@ -76,7 +84,7 @@ def create_books(
                 num_sims=nsims,
                 compress=compress,
             )
-    shutil.rmtree(gamestate.output_files.temp_path)
+    shutil.rmtree(gamestate.output_files.temp_path, ignore_errors=True)
     print("\nFinished creating books in", time.time() - startTime, "seconds.\n")
 
 

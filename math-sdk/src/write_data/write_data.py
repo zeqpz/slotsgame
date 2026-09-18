@@ -147,17 +147,34 @@ def output_lookup_and_force_files(
     if compress:
         final_out = gamestate.output_files.get_final_book_name(betmode, True)
         compressor = zstd.ZstdCompressor()
+        written_lines, tail = 0, b""
         with open(final_out, "wb") as f_out:
             with compressor.stream_writer(f_out, closefd=False) as writer:
                 for fname in file_list:
                     dctx = zstd.ZstdDecompressor()
+                    chunk_lines = 0
                     with open(fname, "rb") as f_in:
                         with dctx.stream_reader(f_in) as reader:
                             while True:
                                 chunk = reader.read(65536)
                                 if not chunk:
                                     break
+                                chunk_lines += chunk.count(b"\n")
+                                tail = chunk[-1:]
                                 writer.write(chunk)
+                    # A chunk that does not end on a newline would glue two books together
+                    # on one line; one that is only a newline contributes a blank line.
+                    if chunk_lines and tail != b"\n":
+                        raise RuntimeError(f"temp book file does not end with a newline: {fname}")
+                    written_lines += chunk_lines
+        # The merged file must hold exactly one line per simulation. A mismatch means stale
+        # temp chunks from an interrupted run were picked up, or a thread wrote nothing.
+        if written_lines != num_sims:
+            raise RuntimeError(
+                f"{os.path.basename(final_out)} has {written_lines} books but {num_sims} were "
+                f"simulated. Delete {gamestate.output_files.temp_path} and re-run this mode - "
+                f"leftover chunk files from an earlier run are being merged in."
+            )
     else:
         with open(
             gamestate.output_files.get_final_book_name(betmode, False),
@@ -297,7 +314,10 @@ def output_lookup_and_force_files(
 def write_json(gamestate, filename: str, payout_ints=None):
     """Convert the list of dictionaries to a JSON-encoded string and compress it in chunks."""
     json_objects = [json.dumps(item) for item in gamestate.library.values()]
-    combined_data = "\n".join(json_objects) + "\n"
+    # An empty chunk must write an EMPTY file, not "\n". A lone newline survives the merge
+    # as a blank line in books_<mode>.jsonl, and Stake's publisher rejects the whole file
+    # with "failed to parse book file ...:<line>:0" - column 0 being the blank line itself.
+    combined_data = ("\n".join(json_objects) + "\n") if json_objects else ""
 
     if filename.endswith(".zst"):
         compressor = zstd.ZstdCompressor()
