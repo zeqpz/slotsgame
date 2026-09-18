@@ -6,7 +6,9 @@ engine.io by hand. That browser profile holds the session cookie; the session th
 the pane can make same-origin `fetch()` calls to engine.io's private dashboard API.
 
 Game: team `smukiez`, game `smukiezs-mural`
-Dashboard: https://engine.io/teams/smukiez/games/smukiezs-mural/files
+Dashboard: https://studio.engine.io/teams/smukiez/games/smukiezs-mural/files
+(moved from engine.io to **studio.engine.io** around 2026-09-18; the old host redirects
+to marketing and its API returns the HTML shell, which reads like a broken session)
 Game UUID (bucket prefix): `01a09492-cff1-7dee-98a7-3dc642d55cc2`
 Test launcher: the **Play Game** button on that page → iframe at
 `https://smukiez.live.engine.io/smukiezs-mural/v<front>/?sessionID=…&rgs_url=rgsd.engine.io&…`
@@ -37,6 +39,37 @@ Either:
 - Or install **stakecli** (github.com/mnemoo/cli, MIT): it authenticates with the browser's
   `sid` cookie from stake-engine.com/engine.io, has an upload wizard and a CI mode
   (`stakecli` upload → publish). Community-standard; not yet used on this project.
+
+## Publishing math: the 512 KiB per-book limit
+
+**Any single book (one line of the JSONL) over 512 KiB (524,288 bytes) is rejected.** The
+publisher answers 400 with:
+
+    {"code":"ERR_INVALID_FORMAT","mode":"bonus",
+     "file":"failed to parse book file books_bonus.jsonl.zst:183074:0"}
+
+`183074` is a **byte offset into the decompressed stream**, not a line number - which is why
+it can exceed the file's line count. It lands inside the first offending book. In that case
+it was 72,421 bytes into book #10, which is 527,367 bytes long.
+
+Established by experiment against the live publisher (2026-09-18):
+
+| uploaded | result |
+| --- | --- |
+| real bonus (largest book 1,739,634 B) | rejected at offset 183074 |
+| byte-identical re-upload | same error - so it is not upload corruption |
+| bonus with every book capped at 60 KB | bonus passes, publisher moves to extremebonus |
+| extreme capped at exactly 524,288 B | extreme passes, publisher moves to base |
+| real base (largest 1,523,170 B) | rejected at offset 1361560 |
+
+So the ceiling is in [524288, 527367) - i.e. 512 KiB. Modes are checked in the order
+**bonus -> extremebonus -> base** and it stops at the first failure, so an early pass does
+not mean the later modes are clean.
+
+Run `python tools/check_books.py <file>` before uploading; it flags oversized books and
+names the line. Note the error is NOT about JSON validity - these files parse perfectly.
+The fix is in the math: emit fewer/smaller events for long tumble chains (send only changed
+cells on `tumbleBoard` rather than the whole board).
 
 ## Gotchas already hit
 - Media page only accepts lobby artwork (16:9 cover, 3:4 tile); runtime assets go in the

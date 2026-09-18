@@ -1,10 +1,16 @@
 """Validate a math-sdk books file the way Stake's publisher does, and point at the bad line.
 
-Stake reports failures as  books_<mode>.jsonl.zst:<line>:<column>  — column 0 means the
-parser choked at the very START of a line, i.e. the line is blank or begins with a byte
-that cannot open a JSON value. Python's own json module is more forgiving than the Go/Rust
-parser they use (it accepts NaN and Infinity), so a file that loads fine in Python can
-still be rejected on publish. This checks the strict rules.
+Stake reports failures as  books_<mode>.jsonl.zst:<offset>:0  where <offset> is a BYTE
+OFFSET into the decompressed stream, not a line number - which is why the numbers look
+impossible (183074 inside a 15,000-line file). The offset lands inside the first book that
+breaks a rule.
+
+The rule that actually bites: NO SINGLE BOOK MAY EXCEED 512 KiB (524,288 bytes) of JSON.
+Established by experiment against the live publisher on 2026-09-18 - a build capped at
+exactly 524,288 published, while the smallest real book that failed was 527,367 bytes.
+
+Python's json is also more forgiving than the Go/Rust parser they use (it accepts NaN and
+Infinity), so a file that loads fine in Python can still be rejected. This checks both.
 
     python tools/check_books.py <books_bonus.jsonl.zst> [--lut lookUpTable_bonus_0.csv]
     python tools/check_books.py <books_bonus.jsonl.zst> --fix    # drop blank lines, rewrite
@@ -56,8 +62,11 @@ def strict_loads(text):
     return json.loads(text, parse_constant=reject)
 
 
+MAX_BOOK = 524288   # 512 KiB - the publisher's per-book ceiling
+
+
 def check(path, lut=None, fix=False):
-    blanks, bad, non_utf8, ids = [], [], [], []
+    blanks, bad, non_utf8, ids, oversized = [], [], [], [], []
     total = 0
     last_had_newline = True
     keep = []
@@ -72,6 +81,8 @@ def check(path, lut=None, fix=False):
         except UnicodeDecodeError as e:
             non_utf8.append((n, str(e)[:70]))
             continue
+        if len(raw) > MAX_BOOK:
+            oversized.append((n, len(raw)))
         try:
             obj = strict_loads(text)
             if isinstance(obj, dict) and "id" in obj:
@@ -86,6 +97,14 @@ def check(path, lut=None, fix=False):
     print(f"  blank lines          {len(blanks)}" + (f"  -> {blanks[:8]}" if blanks else ""))
     print(f"  non-UTF-8 lines      {len(non_utf8)}" + (f"  -> {non_utf8[:3]}" if non_utf8 else ""))
     print(f"  strict-JSON failures {len(bad)}")
+    if oversized:
+        worst = max(o[1] for o in oversized)
+        print(f"  OVER 512 KiB         {len(oversized)} book(s), largest {worst:,} bytes"
+              f"  -> lines {[o[0] for o in oversized[:6]]}")
+        print(f"                       the publisher rejects any book over {MAX_BOOK:,} bytes;"
+              f" trim the event stream for those rounds")
+    else:
+        print("  over 512 KiB         0")
     for n, why, head in bad[:5]:
         print(f"    line {n}: {why}\n      starts: {head!r}")
 
@@ -106,12 +125,13 @@ def check(path, lut=None, fix=False):
         print(f"  lookup table         {len(want):,} ids referenced, {len(missing)} missing from the books"
               + (f" e.g. {sorted(missing)[:5]}" if missing else ""))
 
-    problems = len(blanks) + len(bad) + len(non_utf8)
+    problems = len(blanks) + len(bad) + len(non_utf8) + len(oversized)
     if fix and problems:
         out = path.replace(".jsonl", ".fixed.jsonl")
-        if bad or non_utf8:
+        if bad or non_utf8 or oversized:
             print("\n  NOT rewriting: --fix only removes blank lines, and this file has lines that "
-                  "are genuinely malformed. Those books have to be regenerated.")
+                  "are genuinely malformed or oversized. Those books have to be regenerated - "
+                  "trimming their events here would break the round's payout.")
         else:
             data = b"\n".join(keep) + b"\n"
             if out.endswith(".zst"):
