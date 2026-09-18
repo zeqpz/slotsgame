@@ -13,6 +13,12 @@ Phantom extreme scatter (2 direct, or 1 upgrades a standard trigger), and the Ta
 
 Full design + math spec: [DESIGN.md](DESIGN.md)
 
+## SMUKIEZ animated character
+
+The [Spine 4.2 V7 character package](character-assets/SMUKIEZ_Spine42_v7/README.md) includes editable skeleton JSON, cutout images, three atlas pages, a standalone preview, and ten animations: idle, anticipation, win, big_win, lose, cash_show, cash_count, cash_toss, enter, and exit.
+
+[Download the complete ZIP](character-assets/SMUKIEZ_Spine42_v7.zip). Open the extracted `preview.html` locally to preview the animations. These assets are ready for integration; the game has not been changed to load them automatically.
+
 ## Layout
 
 | path | what |

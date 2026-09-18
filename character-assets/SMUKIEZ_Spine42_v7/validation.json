@@ -1,0 +1,89 @@
+{
+  "runtime": "@esotericsoftware/spine-core 4.2.120",
+  "bones": 28,
+  "slots": 16,
+  "weightedMeshes": 10,
+  "ikConstraints": 2,
+  "atlasPages": 3,
+  "animations": [
+    {
+      "name": "idle",
+      "duration": 3.2,
+      "face": "face_idle",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "anticipation",
+      "duration": 1.2,
+      "face": "face_anticipation",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "win",
+      "duration": 2.4,
+      "face": "face_win",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "big_win",
+      "duration": 3.2,
+      "face": "face_big_win",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "lose",
+      "duration": 2.2,
+      "face": "face_lose",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "cash_show",
+      "duration": 2.6,
+      "face": "face_cash_show",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "cash_count",
+      "duration": 6.4,
+      "face": "face_cash_count",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "cash_toss",
+      "duration": 4.2,
+      "face": "face_cash_show",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "enter",
+      "duration": 0.8,
+      "face": "face_idle",
+      "endpointMaxDelta": 0
+    },
+    {
+      "name": "exit",
+      "duration": 0.8,
+      "face": "face_idle",
+      "endpointMaxDelta": 0
+    }
+  ],
+  "sampledFrames": 1638,
+  "animationBoundsYDown": [
+    -481.304,
+    -1670.78,
+    1021.515,
+    1057.913
+  ],
+  "transitionsToIdle": 10,
+  "eventsDelivered": 16,
+  "fadeChecks": {
+    "slots": 16,
+    "samplesPerFade": 49,
+    "matchingSlotAlpha": true,
+    "monotonic": true,
+    "exitHoldsHidden": true,
+    "enterContinuesIdle": true,
+    "interruptedFadeRestoresOpacity": true,
+    "previewSyntax": "passed"
+  }
+}

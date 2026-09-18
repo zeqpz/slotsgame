@@ -1,0 +1,45 @@
+SMUKIEZ V2 artwork — built-in image_gen tool.
+
+One separate edit call per expression, all using the V1 isolated head as the edit target.
+
+Shared face prompt:
+Use case: precise-object-edit. Edit target: attached isolated cartoon head for a Spine face swap. Make the expression: [EXPRESSION]. Change ONLY the eyebrows, eyes and mouth. Preserve EXACT head silhouette, head size and location in canvas, same three-quarter angle, peach face color #f8cbb8 and existing skin shading, nose position, left ear, black sideburn, complete gray beanie with identical curves and shading. Flat solid vector cartoon colors, thick black outlines, no gradients. Keep original neck/chin cutoff; do not add body, props or words. Must register perfectly over the original head with unchanged hat, nose and outline. Genuine transparent background. One head only, same framing as input.
+
+Expression substitutions:
+idle: relaxed friendly closed-mouth small smirk, relaxed eyebrows and alert eyes; NOT the original angry toothy grin
+anticipation: raised inner eyebrows and wide watchful eyes, small tense partly open mouth, eager suspense
+win: joyful confident broad toothy smile, happy eyes and lifted eyebrows
+big_win: exuberant laughing face, eyes squeezed into joyful upward arcs, wide open laughing mouth with white upper teeth and pink tongue
+lose: clearly disappointed sad face, eyebrows raised at inner corners, half-lidded downcast eyes, closed mouth curved down in a frown, absolutely no smiling or exposed teeth
+cash_show: cocky playful wink with the left-on-screen eye closed, the other eye looking at the viewer, asymmetrical smug smile
+cash_count: focused downward gaze looking at money below the chin, lowered pupils, relaxed focused eyebrows, small pursed closed mouth
+
+Bill prompt:
+Use case: precise-object-edit. Reconstruct ONE complete isolated green cartoon banknote from the front banknote in this reference cash stack, filling all holes where hands obscured it. Single bill only, no stack, no hands. Same lime green paper, darker forest-green funny currency portrait, white cream border and thick black outline, simple flat vector cartoon. Orient the single banknote vertically upright as a rectangular 1:1.8 portrait shape, no perspective and no tilt, so it can be independently rotated in animation. Genuinely transparent background, generous clear margin. One complete unoccluded bill, no labels or other objects.
+
+V4 chin restoration — built-in image_gen edit: Reconstruct the missing lower-right chin/jaw as a complete smooth rounded chin. Preserve existing face, eyes, smile, nose, ear, beanie, colors and framing. Remove jagged cutaway and diagonal neck stub. Transparent background; no body, money or new objects. Repaired lower-jaw artwork was composited into all seven expressions.
+
+V5 hand artwork — seven built-in image_gen edits.
+
+Shared prompt:
+Precise-object-edit. Reference is the exact [viewer-left palm and fingers / viewer-right gripping fingers] sprite from our cutout animation. Create ONE replacement hand pose: [description]. Preserve the peach flat colors, shading, thick black cartoon outlines and hand identity. Keep same camera angle, overall scale, canvas framing, and wrist/palm base position as the reference. Keep the base silhouette stable so the sprite can swap in an animation without the wrist jumping. Only fingers and thumb change pose. No money, no green fragments, no arm, no sleeve, no text. Genuine transparent background. One isolated hand only, generous empty transparent margins; do not crop fingertips. Match the reference exactly in style, not realistic or 3D.
+
+Pose substitutions:
+left_pinch: Thumb folds down toward the INDEX fingertip to pinch a thin bill edge on the right side. Index finger curves inward slightly; the other three fingers stay curled in the holding silhouette. Show a clearly changed thumb touching the index, not the original open thumb.
+
+left_flick: The INDEX finger extends visibly farther right and slightly upward, flicking a bill; thumb is raised and curved, middle/ring/little fingers remain curled under the palm. It is a small counting flick, not a pointing gesture far away.
+
+left_release: The thumb opens and index and middle fingers separate slightly on the right, releasing one bill. Ring and little finger remain curled. A relaxed open counting grip, with distinct fingertips and small clear gaps, not a fully spread palm.
+
+left_tense: A tight clenched holding grip: thumb presses firmly down over the curled index finger, fingers compressed and knuckles slightly flexed. Confident tight grip with all fingertips pointing right, no objects.
+
+left_present: A presentation grip: thumb raised, index and middle fingers extend slightly in parallel toward the right, ring and little fingers stay folded. This hand is supporting the front of a cash fan, not waving. Clear finger joints and tips.
+
+right_brace: These same four fingers curl slightly tighter around an invisible vertical bill edge, each finger bends at its middle knuckle with a stronger small hook toward the LEFT. Keep the four horizontal peach strips with white highlights and their diagonal arrangement. No palm or wrist visible; they belong behind a money stack.
+
+right_release: These same four fingers relax and uncurl a little, the top index finger lifts slightly upward away from the next finger so a small clear gap appears. Lower three fingers still curl around the invisible vertical bill edge to the LEFT. Keep the same diagonal four-finger arrangement, same white highlight stripes, no palm or wrist visible.
+
+Sprites fitted to the existing wrist anchors; left wrist edge feathered into the forearm for continuity.
+
+
+V6 sleeve edit, built-in image_gen. First prompt: Remove the dark oval interior and double-lipped 3D cuff at both sleeve ends; replace with a flat single curved black hem, keeping shirt shape, neck, SMUKIEZ lettering and transparent background. Follow-up: Delete the left sleeve gray oval underside and lower outline to transparency, keeping only its top curved stroke as the single sleeve bottom boundary. No other changes, arms or objects. Output fitted to the original 421 by 373 sprite canvas.
