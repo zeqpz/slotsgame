@@ -23,6 +23,7 @@ The [Spine 4.2 V7 character package](character-assets/SMUKIEZ_Spine42_v7/README.
 
 | path | what |
 |---|---|
+| `assets/spine/smoke-skull/` | Spine 4.2 character package: five expressions, smoke/ash effects, ten animations, offline preview, and integration notes; not yet wired into the game |
 | `math-sdk/games/smukiez_tag_run/` | the math model: config, gamestate, forcing, events, reels, optimization targets |
 | `math-sdk/games/smukiez_tag_run/library/publish_files/` | the verified build: books + optimized lookup tables + index.json (the Stake Engine upload set) |
 | `beta/` | playable beta — local RGS stand-in (`server.py`) + no-framework client drawing real outcomes from the optimized tables |

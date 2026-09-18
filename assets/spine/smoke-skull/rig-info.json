@@ -1,0 +1,30 @@
+{
+  "version": "2.1",
+  "runtime": "4.2",
+  "bones": 26,
+  "slots": 19,
+  "texturePages": 1,
+  "textureSize": 2048,
+  "alpha": "straight",
+  "expressions": [
+    "idle",
+    "anticipation",
+    "win",
+    "big_win",
+    "lose"
+  ],
+  "animations": [
+    "idle",
+    "anticipation",
+    "win",
+    "big_win",
+    "enter",
+    "exit",
+    "lose",
+    "smoke_loop",
+    "ember_loop",
+    "ash_break"
+  ],
+  "shoeScale": 0.9,
+  "notes": "Five facial variants, smoke and ash, weighted leg/shoe movement. Cash features removed."
+}

@@ -1,0 +1,4 @@
+# Preserve packaged files byte-for-byte, including the supplied checksums.
+* -text whitespace=cr-at-eol
+# Preserve the unmodified vendor bundle, including shader-string whitespace.
+preview/pixi.min.js -whitespace

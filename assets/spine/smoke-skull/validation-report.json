@@ -1,0 +1,79 @@
+{
+  "runtime": "4.2.120",
+  "pixi": "8.20.1",
+  "animations": 10,
+  "bones": 26,
+  "slots": 19,
+  "checks": [
+    "Correct expression selected for all five face states",
+    "Loop endpoints match within 0.05 world units",
+    "One-shot transitions restore idle face, body, and visibility with no leaked ash attachments",
+    "Every active region resolves in the single-page atlas"
+  ],
+  "framesRendered": 114,
+  "browserErrors": [],
+  "geometrySampling": [
+    {
+      "name": "idle",
+      "duration": 4,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "anticipation",
+      "duration": 1.600000023841858,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "win",
+      "duration": 2.4000000953674316,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "big_win",
+      "duration": 3.5999999046325684,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "enter",
+      "duration": 1.2000000476837158,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "exit",
+      "duration": 0.699999988079071,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "lose",
+      "duration": 2,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "smoke_loop",
+      "duration": 4.800000190734863,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "ember_loop",
+      "duration": 1.2000000476837158,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    },
+    {
+      "name": "ash_break",
+      "duration": 2.4000000953674316,
+      "framesChecked": 61,
+      "verticesEvaluated": 87596
+    }
+  ],
+  "editorImportTested": false,
+  "stakeProjectTested": false
+}
