@@ -79,8 +79,15 @@ class GameState(GameStateOverride):
         exploded = self._pay_and_mark_tumble()
         # only keep cascading while something actually leaves the board — an all-wild win
         # (wilds are sticky) pays once but explodes nothing, so it must not loop forever.
-        while self.win_data["totalWin"] > 0 and exploded and not self.wincap_triggered:
+        # Hard cap the chain length: on a heavily painted board the refilled cells almost
+        # always re-win, so a single spin can otherwise cascade hundreds of times up to the
+        # wincap — which bloats the book past what the RGS will ingest and buries the player
+        # in an endless tumble. The wincap stays reachable directly through the Full Wall.
+        tumbles = 0
+        while (self.win_data["totalWin"] > 0 and exploded and not self.wincap_triggered
+               and tumbles < self.config.max_tumbles_per_spin):
             self.tumble_game_board()          # remove exploded symbols, refill from the strip, emit tumbleBoard
+            tumbles += 1
             self.evaluate_smukiez_wins()
             exploded = self._pay_and_mark_tumble()
         self.set_end_tumble_event()           # final setWin / setTotalWin for the cascade sequence
@@ -98,11 +105,21 @@ class GameState(GameStateOverride):
         update_tumble_win_event(self)
         self.evaluate_wincap()
         # Wilds are sticky — they never explode, so painted reels and drips survive the cascade.
+        # Record exactly which cells we flag, in the win-position row space, so the tumbleBoard
+        # event lists precisely these (the SDK's shallow-copied board_before_tumble can't be
+        # trusted to re-derive them — its inner reels are mutated during refill).
         any_exploded = False
+        seen = set()
+        self.tumble_explode_positions = []
         for win in self.win_data["wins"]:
             for pos in win["positions"]:
                 sym = self.board[pos["reel"]][pos["row"]]
-                if not sym.check_attribute("wild"):
-                    sym.explode = True
-                    any_exploded = True
+                if sym.check_attribute("wild"):
+                    continue
+                sym.explode = True
+                any_exploded = True
+                key = (pos["reel"], pos["row"])
+                if key not in seen:
+                    seen.add(key)
+                    self.tumble_explode_positions.append({"reel": pos["reel"], "row": pos["row"]})
         return any_exploded

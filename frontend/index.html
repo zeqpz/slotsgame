@@ -357,6 +357,7 @@
   .reel { position: relative; display: flex; flex-direction: column; gap: var(--cell-gap); padding: 3px; border: 2px solid transparent; transition: border-color .3s, box-shadow .3s; }
   .reel.spinning { overflow: hidden; }
   .reel.spinning > .cell { visibility: hidden; }  /* result stays hidden until the overlay lands */
+  .reel.tumbling { overflow: hidden; }            /* clip tiles dropping in from above the top row */
   .reel.antic { border-color: var(--gold); box-shadow: 0 0 16px rgba(245,197,24,.5); }
   .spincol {
     position: absolute; top: 3px; left: 3px; width: calc(100% - 6px); z-index: 2;
@@ -410,15 +411,29 @@
   .cell.escat img { filter: drop-shadow(0 0 8px rgba(167, 139, 250, .9)); }
   .cell.drop  { animation: drop .3s ease-out; }
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
-  /* cascade: winning symbols pop and vanish, then survivors + new symbols drop in */
-  .cell.explode { animation: cellExplode .3s ease-out forwards; }
+  /* cascade: only the winning symbols pop and vanish; per column the survivors above the
+     gap fall, a new symbol drops in from the top, and each moving tile lands with a bounce. */
+  .cell.explode { animation: cellExplode .3s cubic-bezier(.5,-0.25,.7,.5) forwards; z-index: 3; }
   @keyframes cellExplode {
-    0% { transform: scale(1); opacity: 1; }
-    45% { transform: scale(1.25) rotate(-4deg); opacity: 1; filter: brightness(1.6); }
-    100% { transform: scale(0); opacity: 0; }
+    0%   { transform: scale(1); opacity: 1; filter: brightness(1); }
+    30%  { transform: scale(1.34) rotate(-6deg); opacity: 1; filter: brightness(2.1) saturate(1.5); }
+    58%  { transform: scale(1.12) rotate(5deg); opacity: .8; filter: brightness(1.8); }
+    100% { transform: scale(0) rotate(-10deg); opacity: 0; filter: brightness(2.2); }
   }
-  .cell.tdrop { animation: tdrop .34s cubic-bezier(.3,.7,.4,1.2); }
-  @keyframes tdrop { 0% { transform: translateY(-120%); opacity: .2; } 70% { transform: translateY(0); } 85% { transform: translateY(-6%); } 100% { transform: translateY(0); opacity: 1; } }
+  /* --fall (px, negative) = how far above this cell's resting slot the tile starts, so each
+     tile drops exactly the number of rows it really moved. Survivors that didn't move get no
+     .tdrop at all, so the column never "resets" as a block. */
+  .cell.tdrop { animation: tumbleDrop .5s both; transform-origin: 50% 100%; z-index: 2; }
+  @keyframes tumbleDrop {
+    0%   { transform: translateY(var(--fall, -120%)); opacity: .3; animation-timing-function: cubic-bezier(.45,.05,.55,.95); }
+    12%  { opacity: 1; }
+    55%  { transform: translateY(0) scale(1); animation-timing-function: cubic-bezier(.3,.4,.2,1); } /* impact */
+    68%  { transform: translateY(0) scale(1.12, .8); }      /* squash / land-shake */
+    80%  { transform: translateY(-13%) scale(.93, 1.09); }  /* rebound up + stretch */
+    90%  { transform: translateY(0) scale(1.06, .95); }     /* second, smaller land */
+    96%  { transform: translateY(-3%) scale(.99, 1.01); }
+    100% { transform: translateY(0) scale(1); }
+  }
   /* landing impact — the reel has already stopped on its real symbols, so this is a
      settle in place: symbols never move away from where they landed or change face.
      Bottom-up stagger keeps the old gravity read without a second drop-in pass. */
@@ -1578,34 +1593,52 @@ const handlers = {
   },
 
   async tumbleBoard(ev) {
-    // 1. the winning symbols pop and vanish (wilds don't — the math never sends them here)
+    // Physical tumble: ONLY the winning cells pop; per column the tiles above each gap fall
+    // down by exactly the gaps below them, a fresh tile drops in from the top for every gap,
+    // and tiles below the gap never move. explodingSymbols now lists only cells that truly
+    // left the board (wilds are sticky and are never included).
     const gone = ev.explodingSymbols || [];
+    const goneByReel = Array.from({ length: REELS }, () => new Set());
     for (const p of gone) {
-      const y = Math.min(Math.max(p.row - 1, 0), ROWS - 1);
-      cellEls[p.reel][y].classList.add("explode");
+      if (p.reel < 0 || p.reel >= REELS) continue;
+      goneByReel[p.reel].add(Math.min(Math.max(p.row - 1, 0), ROWS - 1));   // padded -> display row
     }
+    // 1. pop the actual winning symbols
+    let anyGone = false;
+    for (let r = 0; r < REELS; r++) for (const y of goneByReel[r]) { cellEls[r][y].classList.add("explode"); anyGone = true; }
+    if (!anyGone) return;
     if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo), 0.7);
     await delay(state.skip ? 0 : 300);
-    // 2. survivors fall, new symbols drop in on top
+    // 2. gravity, per column
     for (let r = 0; r < REELS; r++) {
-      const goneRows = new Set(
-        gone.filter(p => p.reel === r).map(p => Math.min(Math.max(p.row - 1, 0), ROWS - 1))
-      );
-      if (!goneRows.size) continue;
-      const surviving = [];
-      for (let y = 0; y < ROWS; y++) if (!goneRows.has(y)) surviving.push(shownSym[r][y]);
+      for (let y = 0; y < ROWS; y++) { cellEls[r][y].classList.remove("explode", "tdrop"); cellEls[r][y].style.removeProperty("--fall"); }
+      const goneRows = goneByReel[r];
+      if (!goneRows.size) continue;                         // untouched column: nothing moves
+      cellEls[r][0].parentElement.classList.add("tumbling"); // clip this column's incoming tiles
+      const H = goneRows.size;
+      const survRows = [], survSyms = [];
+      for (let y = 0; y < ROWS; y++) if (!goneRows.has(y)) { survRows.push(y); survSyms.push(shownSym[r][y]); }
+      // one fresh tile per gap; guard against a malformed event so the column stays valid
       const news = (ev.newSymbols && ev.newSymbols[r]) ? ev.newSymbols[r].slice() : [];
-      let reel = news.concat(surviving);
-      if (reel.length > ROWS) reel = reel.slice(reel.length - ROWS);   // drop the off-screen padding
-      while (reel.length < ROWS) reel.unshift(news[0] || surviving[0] || { name: "L1" });
-      for (let y = 0; y < ROWS; y++) {
-        setCell(r, y, reel[y]);
-        cellEls[r][y].classList.remove("explode");
-        cellEls[r][y].classList.add("tdrop");
+      while (news.length < H) news.unshift(news[0] || survSyms[0] || { name: "L1" });
+      if (news.length > H) news.splice(0, news.length - H);
+      const finalSyms = news.concat(survSyms);              // top -> bottom, length ROWS
+      for (let fy = 0; fy < ROWS; fy++) {
+        setCell(r, fy, finalSyms[fy]);
+        const cell = cellEls[r][fy];
+        // new tiles (top H rows) drop in from above by H rows; a survivor drops by the number
+        // of gaps that were below it = its new row minus its original row.
+        const fall = fy < H ? H : fy - survRows[fy - H];
+        if (fall > 0) {
+          cell.style.setProperty("--fall", (-fall * CELL_STEP) + "px");
+          void cell.offsetWidth;                            // restart the animation from the top
+          cell.classList.add("tdrop");
+        }
       }
     }
-    await delay(state.skip ? 0 : 320);
-    eachCell(el => el.classList.remove("tdrop", "explode"));
+    await delay(state.skip ? 0 : 500);
+    eachCell(el => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); });
+    for (let r = 0; r < REELS; r++) cellEls[r][0].parentElement.classList.remove("tumbling");
   },
 
   async updateTumbleWin(ev) {

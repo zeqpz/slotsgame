@@ -20,35 +20,50 @@ import os
 import sys
 import urllib.request
 
-FRONT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONT = os.path.join(ROOT, "frontend")
+PUBLISH = os.path.join(ROOT, "math-sdk", "games", "smukiez_tag_run", "library", "publish_files")
 TEAM, GAME = "smukiez", "smukiezs-mural"
 
+# target -> (local base dir, remote prefix). `front` files live in frontend/,
+# `math` files (books + LUTs + index.json) live in the game's publish_files/.
+TARGETS = {"front": (FRONT, "front"), "math": (PUBLISH, "math")}
 
-def mint(rels):
+
+def _target(args):
+    """Split an optional leading `front`/`math` word off the arg list (default front)."""
+    if args and args[0] in TARGETS:
+        return args[0], args[1:]
+    return "front", args
+
+
+def mint(rels, target="front"):
     """Print the browser-side snippet that mints one presigned PUT URL per file."""
-    want = [[f"front/{rel}", os.path.getsize(os.path.join(FRONT, rel.replace("/", os.sep)))] for rel in rels]
-    print("// paste into the DevTools console (or the app browser's javascript tool) on the engine.io Files page:")
+    base, prefix = TARGETS[target]
+    want = [[f"{prefix}/{rel}", os.path.getsize(os.path.join(base, rel.replace("/", os.sep)))] for rel in rels]
+    print(f"// paste into the DevTools console (or the app browser's javascript tool) on the engine.io Files page ({target}):")
     print(
         "const want=" + json.dumps(want) + ";"
         "const out=[];for(const [path,size] of want){"
         "const r=await fetch('/api/file/upload',{method:'POST',headers:{'Content-Type':'application/json'},"
         f"body:JSON.stringify({{team:'{TEAM}',game:'{GAME}',path,size}})}});"
-        "const j=await r.json();out.push(path.replace(/^front\\//,'')+'|'+(j.url||JSON.stringify(j)));}"
+        f"const j=await r.json();out.push(path.replace(/^{prefix}\\//,'')+'|'+(j.url||JSON.stringify(j)));}}"
         "console.log(out.join('\\n'));out.join('\\n')"
     )
 
 
-def put(urls_file):
+def put(urls_file, target="front"):
+    base, _ = TARGETS[target]
     fails = 0
     for line in open(urls_file, encoding="utf-8"):
         line = line.strip()
         if not line or "|" not in line:
             continue
         rel, url = line.split("|", 1)
-        data = open(os.path.join(FRONT, rel.replace("/", os.sep)), "rb").read()
+        data = open(os.path.join(base, rel.replace("/", os.sep)), "rb").read()
         req = urllib.request.Request(url, data=data, method="PUT")
         try:
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=600) as r:
                 print(f"  ok   {rel}  HTTP {r.status}  {len(data):,} bytes")
         except Exception as e:  # noqa: BLE001 - report and keep going
             fails += 1
@@ -58,10 +73,16 @@ def put(urls_file):
 
 
 if __name__ == "__main__":
+    # usage: mint [front|math] <files...>   |   put [front|math] urls.txt
     if len(sys.argv) >= 3 and sys.argv[1] == "mint":
-        mint(sys.argv[2:])
-    elif len(sys.argv) == 3 and sys.argv[1] == "put":
-        sys.exit(put(sys.argv[2]))
+        tgt, rels = _target(sys.argv[2:])
+        mint(rels, tgt)
+    elif len(sys.argv) >= 3 and sys.argv[1] == "put":
+        tgt, rest = _target(sys.argv[2:])
+        if len(rest) != 1:
+            print(__doc__)
+            sys.exit(2)
+        sys.exit(put(rest[0], tgt))
     else:
         print(__doc__)
         sys.exit(2)

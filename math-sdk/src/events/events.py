@@ -233,13 +233,22 @@ def tumble_board_event(gamestate):
     """States the symbol positions removed from a board during tumble, and which new symbols should take their place."""
     special_attributes = list(gamestate.config.special_symbols.keys())
 
-    exploding = []
-    for win in gamestate.win_data["wins"]:
-        for pos in win["positions"]:
-            if gamestate.config.include_padding:
-                exploding.append({"reel": pos["reel"], "row": pos["row"] + 1})
-            else:
-                exploding.append({"reel": pos["reel"], "row": pos["row"]})
+    # Prefer the positions the game flagged this cascade (recorded in the win-position row
+    # space, wilds already excluded, de-duped). Emit them with the +1 padding offset this
+    # event has always used, so the client maps them back to the right cells. Fall back to
+    # the win positions only if a game never records them.
+    recorded = getattr(gamestate, "tumble_explode_positions", None)
+    pad = 1 if gamestate.config.include_padding else 0
+    if recorded is not None:
+        exploding = [{"reel": p["reel"], "row": p["row"] + pad} for p in recorded]
+    else:
+        exploding, seen = [], set()
+        for win in gamestate.win_data["wins"]:
+            for pos in win["positions"]:
+                key = (pos["reel"], pos["row"])
+                if key not in seen:
+                    seen.add(key)
+                    exploding.append({"reel": pos["reel"], "row": pos["row"] + pad})
 
     exploding = sorted(exploding, key=lambda x: x["reel"])
 

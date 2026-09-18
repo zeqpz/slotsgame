@@ -39,6 +39,12 @@ class GameConfig(Config):
         self.num_reels = 5
         self.num_rows = [4] * self.num_reels
 
+        # Max tumbles (cascades) paid within a single spin. Sticky wilds keep refilled
+        # boards winning, so without a cap one spin can cascade into the hundreds toward the
+        # wincap — bloating books past the RGS ingest limit and dragging out play. The Full
+        # Wall still awards the wincap directly, so the top payout stays reachable.
+        self.max_tumbles_per_spin = 12
+
         # Paytable: (kind, symbol): payout in total-bet multiples, paid per line
         # Wilds substitute only — no own-pay. With sticky wilds + cascades, an all-wild line
         # would otherwise re-pay on every tumble and explode the RTP.
