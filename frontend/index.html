@@ -833,8 +833,12 @@
     100% { transform: scale(1); }
   }
   .bonuspanel {
-    width: min(560px, 92vw); background: var(--panel); border: 2px solid var(--gold);
-    padding: 20px 22px; box-shadow: 0 18px 48px rgba(0,0,0,.6);
+    /* the panel is a sprayed plate: magenta at the top, a darker band across the bottom.
+       Stretched rather than tiled, because a painted frame reads fine stretched and the
+       content inside is what sets the height. */
+    width: min(560px, 92vw); border: 0;
+    background: url("assets/bonus_panel.png") center / 100% 100% no-repeat;
+    padding: 36px 46px 60px; filter: drop-shadow(0 18px 44px rgba(0,0,0,.6));
     animation: bonusdrift 9s ease-in-out infinite;
   }
   @keyframes bonusdrift {   /* a few px of wander, never enough to be hard to click */
@@ -844,46 +848,90 @@
     75%  { transform: translate(-6px, -4px) rotate(.25deg); }
     100% { transform: translate(0, 0) rotate(0deg); }
   }
+  /* the heading is the painted BONUS lettering. The word stays in the markup at font-size 0
+     so a screen reader still announces the dialog; only the eye gets the art. */
   .bonuspanel h3 {
-    margin: 0 0 14px; font-family: var(--disp); font-size: 22px; letter-spacing: .06em;
-    text-transform: uppercase; color: var(--gold); text-align: center;
+    height: 52px; margin: 0 0 18px; font-size: 0; color: transparent;
+    background: url("assets/bonus_btn_text.png") center / contain no-repeat;
+    filter: drop-shadow(0 4px 7px rgba(0,0,0,.55));
   }
   .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  /* Each card is just its scatter: FS for the standard feature, XXFS for extreme. The
+     title, the price and the description stay in the markup, clipped out of sight, so the
+     button still reads properly to assistive tech and paintBonus still has them to fill. */
   .bonuscard {
-    display: block; width: 100%; text-align: left; background: var(--panel2);
-    border: 2px solid var(--line); padding: 12px 14px; color: var(--ink);
-    font-family: var(--legible); font-size: 11.5px; line-height: 1.5; cursor: pointer;
+    position: relative; display: grid; place-items: center; width: 100%;
+    background: rgba(12, 10, 16, .74); border: 2px solid rgba(0, 0, 0, .5); border-radius: 13px;
+    padding: 15px 12px; cursor: pointer;
     transition: border-color .18s, box-shadow .18s, transform .18s;
   }
+  .bonuscard .cardart {
+    display: block; width: 100%; height: 84px; object-fit: contain;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,.6));
+  }
+  .bonuscard .ttl, .bonuscard .mult, .bonuscard .desc {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+  }
   .bonuscard:hover:not(:disabled) { transform: translateY(-2px); }
-  .bonuscard .ttl { display: block; font-family: var(--disp); font-size: 16px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 2px; }
-  .bonuscard .mult { display: block; font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; }
-  .bonuscard .desc { color: var(--ink-soft); }
-  .bonuscard.gold .ttl, .bonuscard.gold .mult { color: var(--gold); }
-  .bonuscard.purple .ttl, .bonuscard.purple .mult { color: var(--purple); }
-  .bonuscard.gold.on { border-color: var(--gold); box-shadow: inset 0 0 0 2px rgba(245,197,24,.25); }
-  .bonuscard.purple.on { border-color: var(--purple); box-shadow: inset 0 0 0 2px rgba(167,139,250,.25); }
+  /* the chosen one lights up in its own paint */
+  .bonuscard.gold.on {
+    border-color: var(--fs-green);
+    box-shadow: 0 0 0 2px rgba(168, 240, 0, .3), 0 0 20px rgba(168, 240, 0, .4);
+  }
+  .bonuscard.purple.on {
+    border-color: var(--fs-purple);
+    box-shadow: 0 0 0 2px rgba(192, 38, 216, .3), 0 0 20px rgba(192, 38, 216, .45);
+  }
   .bonuscard:disabled { opacity: .4; cursor: default; }
   /* bet stepper inside the panel — same control as the bar, driving the same bet */
   .bonusbet { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 4px; }
-  .bonusbet .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft); }
-  .bonusbet button {
-    width: 32px; height: 32px; background: var(--panel2); color: var(--ink);
-    border: 2px solid var(--line); font-family: var(--mono); font-size: 16px; font-weight: 700;
+  .bonusbet .lbl {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55);
   }
+  .bonusbet .amt { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
+  .bonusbet button {
+    position: relative; width: 40px; height: 40px; padding: 0; border: 0; font-size: 0;
+    background: url("assets/bet_box.png") center / 100% 100% no-repeat;
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  }
+  .bonusbet button::before {
+    content: ""; position: absolute; left: 50.4%; top: 47.7%; transform: translate(-50%, -50%);
+    background: center / contain no-repeat;
+    filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
+  }
+  #bonusBetDown::before { width: 43%; height: 24%; background-image: url("assets/bet_minus.png"); }
+  #bonusBetUp::before   { width: 37%; height: 37%; background-image: url("assets/bet_plus.png"); }
+  .bonusbet button:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
+  .bonusbet button:active:not(:disabled) { transform: scale(.93); }
+  .bonusbet button:disabled { filter: grayscale(.7); }
   .bonusbet .amt {
     font-family: var(--mono); font-size: 16px; font-weight: 700; min-width: 132px; text-align: center;
     letter-spacing: .34em; text-indent: .17em; font-variant-numeric: tabular-nums;
   }
-  .bonustotal { text-align: center; font-family: var(--legible); font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; }
-  .bonustotal b { font-family: var(--mono); font-size: 20px; letter-spacing: .12em; color: var(--ink); display: block; margin-top: 3px; }
-  .bonusgo {
-    display: block; width: 100%; font-family: var(--disp); font-size: 18px; letter-spacing: .06em;
-    text-transform: uppercase; background: var(--gold); color: #16130f; border: 2px solid var(--gold); padding: 11px 0;
+  .bonustotal {
+    text-align: center; font-family: var(--legible); font-size: 12.5px; color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
   }
-  .bonusgo.purple { background: var(--purple); border-color: var(--purple); }
-  .bonusgo:disabled { opacity: .45; cursor: default; }
-  .bonusnote { text-align: center; font-family: var(--legible); font-size: 11px; color: var(--ink-soft); margin-top: 10px; }
+  .bonustotal b { font-family: var(--mono); font-size: 21px; letter-spacing: .12em; color: #fff; display: block; margin-top: 4px; }
+  /* Play is the sprayed yellow plate with the word set into it */
+  .bonusgo {
+    display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
+    background: url("assets/bonus_play.png") center / 100% 100% no-repeat;
+    border: 0; padding: 0 12%;
+    font-family: var(--disp); font-size: 27px; line-height: 1.15; letter-spacing: .1em;
+    text-transform: uppercase; color: #171203; text-shadow: 0 2px 0 rgba(255, 255, 255, .22);
+    transition: transform .14s cubic-bezier(.3,.8,.4,1), filter .14s linear;
+  }
+  .bonusgo:hover:not(:disabled) { transform: scale(1.04); filter: brightness(1.07); }
+  .bonusgo:active:not(:disabled) { transform: scale(.96); }
+  /* the only time this button says anything longer than PLAY is when it is disabled */
+  .bonusgo:disabled { filter: grayscale(.55) brightness(.85); cursor: default; font-size: 17px; }
+  .bonusnote {
+    text-align: center; font-family: var(--legible); font-size: 11px; color: #fff;
+    text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-top: 12px;
+  }
   @media (max-width: 560px) { .bonusgrid { grid-template-columns: 1fr; } }
   @media (prefers-reduced-motion: reduce) {
     .bonuspop, .bonuspanel { animation: none !important; }
@@ -1052,11 +1100,13 @@
       <h3 id="bonusTitle">Bonus</h3>
       <div class="bonusgrid">
         <button type="button" class="bonuscard gold on" id="bonusStd" data-mode="bonus">
+          <img class="cardart" src="assets/BS.png" alt="" draggable="false">
           <span class="ttl">Standard</span>
           <span class="mult" id="bonusStdCost"></span>
           <span class="desc" id="bonusStdDesc">8, 10 or 12 free spins. Sticky Paint Drips, +1x per painted reel, Tag Meter 4.</span>
         </button>
         <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
+          <img class="cardart" src="assets/ES.png" alt="" draggable="false">
           <span class="ttl">Extreme</span>
           <span class="mult" id="bonusExtCost"></span>
           <span class="desc" id="bonusExtDesc">10 free spins. Paint starts at +2x, richer characters, Tag Meter 3, best odds of the Full Wall.</span>
