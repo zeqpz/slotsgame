@@ -136,29 +136,32 @@
   button:disabled { opacity: .45; cursor: default; }
   :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
-  /* top bar */
-  .top {
-    display: flex; align-items: center; gap: 34px; flex-wrap: wrap;
-    padding: 12px 22px; border-bottom: 2px solid var(--line); background: var(--panel);
+  /* The header is gone. Balance and Win are chips on the bottom bar now, but they are still
+     .stat/.val elements because cashFx() drives .up/.down/.bump on them. */
+  .chip {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: rgba(14, 12, 18, .88); border-radius: 11px; padding: 7px 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
-  .top .spacer { flex: 1; }
-  /* Full Wall / Tag Meter ride in the header — same elements the game logic drives, the
-     segments just sized down to sit on one bar */
-  .meter { display: flex; flex-direction: column; gap: 5px; }
-  .meter .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
-  .meter .wall { width: 168px; }
-  .meter .wall span { height: 20px; }
-  .meter .tags span { width: 17px; height: 17px; }
-  .meter .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; color: var(--ink-soft); }
-  .meter .meta b { color: var(--ink); }
-  .stat { text-align: right; }
-  .stat .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
+  .chip[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
+  .chip .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
   /* the graffiti face sets numerals tight enough that they read as one blob — tracking
      them apart is what makes the figures legible at this size */
   .stat .val {
-    font-family: var(--mono); font-size: 25px; font-weight: 700;
-    letter-spacing: .22em; font-variant-numeric: tabular-nums;
+    font-family: var(--mono); font-size: 16px; font-weight: 700;
+    letter-spacing: .13em; font-variant-numeric: tabular-nums;
   }
+  /* the win only exists while there is one, and it announces itself when it arrives */
+  .chip.winchip { border: 2px solid var(--gold); animation: winchip .52s cubic-bezier(.2,.9,.3,1.45); }
+  .chip.winchip .val { color: var(--gold); }
+  @keyframes winchip {
+    0%   { transform: scale(.35); opacity: 0; }
+    58%  { transform: scale(1.14); opacity: 1; }
+    78%  { transform: scale(.97); }
+    100% { transform: scale(1); }
+  }
+  .chip.juris .val { font-size: 11px; letter-spacing: .08em; color: var(--ink-soft); font-weight: 400; }
+  @media (prefers-reduced-motion: reduce) { .chip.winchip { animation: none; } }
   .stat .val.up { color: var(--green); } .stat .val.down { color: var(--spray); }
   /* the figure shakes itself as it rolls; anchored right so the number's edge stays put */
   .stat .val.bump { animation: cashbump .5s cubic-bezier(.25,.8,.35,1); transform-origin: 100% 50%; }
@@ -247,8 +250,6 @@
   .popover .infoclose { font-size: 13px; padding: 6px 14px; background: var(--orange); border-color: var(--orange); color: #16130f; }
   .popover .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); }
   /* --- sound, music and information: sprayed boxes, each audio one opening a drag bar --- */
-  .uibar { display: flex; align-items: center; gap: 8px; }
-  .uislot { display: inline-flex; }
   .uibtn {
     position: relative; width: 38px; height: 38px; padding: 0; border: 0; font-size: 0;
     background: url("assets/ui_box.png") center / 100% 100% no-repeat;
@@ -299,9 +300,14 @@
     pointer-events: none;   /* every pointer event belongs to the bar itself */
   }
   @media (max-width: 620px) {
-    .uibar { gap: 5px; }
-    .uibtn { width: 31px; height: 31px; }
+    .bottom { gap: 10px; padding: 12px 12px; }
+    .uibtn { width: 34px; height: 34px; }
+    .sidebtn { width: 36px; height: 36px; }
     .vbar { width: 30px; height: 104px; }
+    .spinbtn { width: 152px; height: 74px; }
+    .betbox button { width: 38px; height: 38px; }
+    #betVal { min-width: 104px; font-size: 14px; }
+    .stat .val { font-size: 14px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .vpop { animation: none !important; }
@@ -680,11 +686,76 @@
 
   /* bottom bar */
   .bottom {
-    position: relative;   /* the volume bars anchor to the whole bar, not to their button */
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
-    padding: 14px 18px;   /* transparent — the wall shows straight through */
+    position: relative;   /* every pop-up anchors to the whole bar, not to its own button */
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
+    flex-wrap: wrap; padding: 14px 20px;   /* transparent — the wall shows straight through */
   }
-  .betbox { display: flex; align-items: center; gap: 8px; }
+  .bside { display: flex; flex-direction: column; gap: 9px; }
+  .bside.left { align-items: flex-start; }
+  /* taken out of the flow so it is centred on the bar itself - the clusters either side are
+     never the same width, so a flex middle would sit off-centre */
+  .bside.mid {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    align-items: center;
+  }
+  .bside.right { align-items: flex-end; }
+  .brow { display: flex; align-items: center; gap: 9px; }
+
+  /* the two square controls stack down the left of the spin plate, as in the reference */
+  .sidestack { display: flex; flex-direction: column; gap: 7px; }
+  .sidebtn {
+    position: relative; width: 42px; height: 42px; padding: 0; border: 0; font-size: 0;
+    background: url("assets/ui_box.png") center / 100% 100% no-repeat;
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  }
+  .sidebtn::before {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: center / contain no-repeat;
+    filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
+  }
+  .sidebtn.auto::before  { width: 58%; height: 58%; background-image: url("assets/icon_auto.png"); }
+  .sidebtn.rapid::before { width: 34%; height: 64%; background-image: url("assets/icon_rapid.png"); }
+  .sidebtn:hover { transform: scale(1.07); filter: brightness(1.12); }
+  .sidebtn:active { transform: scale(.93); }
+  /* armed: the box brightens and the glyph lights up in its own paint */
+  .sidebtn.on { filter: brightness(1.22) saturate(1.12); }
+  .sidebtn.on::before { filter: drop-shadow(0 0 8px rgba(168, 240, 0, .95)) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
+  .sidebtn #autoN {
+    position: absolute; right: -3px; top: -3px; font-size: 10px; line-height: 1;
+    font-family: var(--mono); font-weight: 700; color: #16130f; background: var(--gold);
+    border-radius: 7px; padding: 2px 4px; min-width: 14px; text-align: center;
+  }
+  .sidebtn #autoN[hidden] { display: none; }
+
+  /* sound, music and information live behind the three-line button */
+  .menuslot { display: inline-flex; }
+  .menupop {
+    /* left and bottom come from JS, the same way the volume bars are placed */
+    position: absolute; bottom: calc(100% + 10px); z-index: 28;
+    display: flex; gap: 8px; transform: translateX(-50%); transform-origin: 50% 100%;
+    animation: menupopin .32s cubic-bezier(.2,.9,.3,1.35);
+  }
+  .menupop[hidden] { display: none; }
+  @keyframes menupopin {
+    0%   { transform: translateX(-50%) scale(.4); opacity: 0; }
+    60%  { transform: translateX(-50%) scale(1.07); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1); }
+  }
+  /* three sprayed bars, drawn rather than painted — there is no art for this one */
+  .uibtn.menu::before {
+    width: 52%; height: 34%;
+    background:
+      linear-gradient(var(--fs-green) 0 0) top / 100% 3px no-repeat,
+      linear-gradient(var(--fs-green) 0 0) center / 100% 3px no-repeat,
+      linear-gradient(var(--fs-green) 0 0) bottom / 100% 3px no-repeat;
+  }
+  @media (prefers-reduced-motion: reduce) { .menupop { animation: none !important; } }
+  .betbox {
+    display: flex; align-items: center; gap: 8px;
+    /* the characters stand behind the bar, so the figure needs its own ground to read on */
+    background: rgba(14, 12, 18, .88); border-radius: 12px; padding: 5px 9px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  }
   /* The stepper is hand-sprayed art, not type: the cyan-on-magenta box is the button and
      the glyph is painted inside it. font-size:0 drops the - and + characters the markup
      still carries for anything that reads the DOM without the stylesheet; the buttons keep
@@ -817,21 +888,22 @@
   @media (prefers-reduced-motion: reduce) {
     .bonuspop, .bonuspanel { animation: none !important; }
   }
-  label.turbo { display: flex; gap: 6px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
   /* --- 2026-09-17 art buttons: spin plate+arrows, skip overlay, bonus plate+text --- */
   .spinwrap { position: relative; display: inline-flex; }
   .spinbtn {
-    position: relative; width: 78px; height: 78px;
+    /* the plate is a wide sprayed parallelogram, 560x273 - keep that ratio or it shears
+       on top of the shear the art already has */
+    position: relative; width: 192px; height: 94px;
     background: none !important; border: none !important; padding: 0 !important;
     overflow: visible; color: transparent; font-size: 0; cursor: pointer;
   }
   .spinbtn::before {
     content: ""; position: absolute; inset: 0;
-    background: url("assets/spin_btn_bg.png") center/contain no-repeat;
+    background: url("assets/spin_plate.png") center/contain no-repeat;
     transition: scale .18s ease;
   }
   .spinbtn::after {
-    content: ""; position: absolute; inset: 13% 15%;
+    content: ""; position: absolute; inset: 20% 35%;
     background: url("assets/spin_btn_arrows.png") center/contain no-repeat;
     filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
     animation: btnFloat 3.8s ease-in-out infinite;
@@ -844,8 +916,8 @@
   .spinbtn.arrows-away::after { scale: 0 !important; transition-delay: .4s; }
 
   .skipbtn {
-    position: absolute; inset: 21%;          /* smaller — the green square sits inside the spin circle */
-    background: url("assets/skip_btn.png") center/cover no-repeat;
+    position: absolute; inset: 16% 33%;      /* square-ish, centred on the wide plate */
+    background: url("assets/skip_btn.png") center/contain no-repeat;
     border: none; padding: 0; cursor: pointer; font-size: 0;   /* image only, no "SKIP" text */
     opacity: 0; scale: .6; pointer-events: none;
     animation: btnFloat 4.2s ease-in-out infinite;   /* gentle drift, like the spin arrows */
@@ -895,30 +967,6 @@
 <div id="charfx2" class="charfx" aria-hidden="true"></div>
 
 <div id="app">
-<div class="top">
-  <div class="meter">
-    <div class="lbl">Full Wall</div>
-    <div class="wall" id="wall"><span></span><span></span><span></span><span></span><span></span></div>
-    <div class="meta"><b id="wallN">0 / 5</b> · <span id="paintLvl">+1x per reel</span></div>
-  </div>
-  <div class="meter">
-    <div class="lbl">Tag Meter</div>
-    <div class="tags" id="tags"></div>
-    <div class="meta">Fills · +2 spins · paint up</div>
-  </div>
-  <div class="meter">
-    <div class="lbl">Max win</div>
-    <div class="big" id="maxWin">x5000</div>
-  </div>
-  <div class="meter" id="jurisBox" hidden>
-    <div class="lbl">Session</div>
-    <div class="meta" id="jurisVal"></div>
-  </div>
-  <div class="spacer"></div>
-  <div class="stat"><div class="lbl">Win</div><div class="val" id="roundWin">$0.00</div></div>
-  <div class="stat"><div class="lbl" id="balanceLbl">Balance</div><div class="val" id="balance">$0.00</div></div>
-</div>
-
 <div class="main">
   <div class="stage">
     <div class="board" id="board"><img id="paintframe" src="assets/frame.png" alt="" draggable="false"></div>
@@ -933,48 +981,68 @@
 </div>
 
 <div class="bottom">
-  <div class="betbox">
-    <button id="betDown" aria-label="Lower bet">−</button>
-    <div id="betVal">$1.00</div>
-    <button id="betUp" aria-label="Raise bet">+</button>
-  </div>
-  <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip"></button></span>
-  <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
-  <div class="popanchor">
-    <button class="info auto" id="autoBtn" aria-label="Auto play" title="Auto play">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 9.2A8.2 8.2 0 0 1 19.6 10.2"/><polygon points="16.2,10.6 23.4,10.6 19.8,14.2"/><path d="M18.8 14.8A8.2 8.2 0 0 1 4.4 13.8"/><polygon points="7.8,13.4 0.6,13.4 4.2,9.8"/></svg>
-      <span id="autoN" hidden></span>
-    </button>
-    <div class="popover" id="autoPop" hidden role="dialog" aria-label="Auto play">
-      <div class="poptitle">Auto play</div>
-      <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
-      <div class="autoopts" id="autoOpts">
-        <button type="button" data-n="10" class="on">10</button>
-        <button type="button" data-n="25">25</button>
-        <button type="button" data-n="50">50</button>
-        <button type="button" data-n="100">100</button>
+  <div class="bside left">
+    <div class="brow">
+      <div class="menuslot">
+        <button class="uibtn menu" id="menuBtn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">Settings</button>
+        <div class="menupop" id="menuPop" hidden>
+          <button class="uibtn snd" id="soundBtn" aria-label="Sound effects volume" aria-expanded="false">Sound</button>
+          <button class="uibtn mus" id="musicBtn" aria-label="Music volume" aria-expanded="false">Music</button>
+          <button class="uibtn nfo" id="infoBtn" aria-label="Game information">Info</button>
+        </div>
       </div>
-      <button class="infoclose" id="autoYes">Start</button>
+      <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
+    </div>
+    <div class="chip stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">$0.00</span></div>
+    <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
+  </div>
+
+  <div class="bside mid">
+    <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">$0.00</span></div>
+  </div>
+
+  <div class="bside right">
+    <div class="brow">
+      <div class="sidestack">
+        <div class="popanchor">
+          <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
+          <div class="popover right" id="autoPop" hidden role="dialog" aria-label="Auto play">
+            <div class="poptitle">Auto play</div>
+            <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
+            <div class="autoopts" id="autoOpts">
+              <button type="button" data-n="10" class="on">10</button>
+              <button type="button" data-n="25">25</button>
+              <button type="button" data-n="50">50</button>
+              <button type="button" data-n="100">100</button>
+            </div>
+            <button class="infoclose" id="autoYes">Start</button>
+          </div>
+        </div>
+        <button class="sidebtn rapid" id="rapidBtn" type="button" aria-pressed="false" aria-label="Rapid spins" title="Rapid spins">Rapid</button>
+      </div>
+      <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip"></button></span>
+    </div>
+    <div class="betbox">
+      <button id="betDown" aria-label="Lower bet">−</button>
+      <div id="betVal">$1.00</div>
+      <button id="betUp" aria-label="Raise bet">+</button>
     </div>
   </div>
-  <label class="turbo"><input type="checkbox" id="turbo"> TURBO</label>
-  <div class="uibar">
-    <div class="uislot">
-      <div class="vpop" id="sfxPop" hidden>
-        <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
-             aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vfill"></i></div>
-      </div>
-      <button class="uibtn snd" id="soundBtn" aria-label="Sound effects volume" aria-expanded="false">Sound</button>
-    </div>
-    <div class="uislot">
-      <div class="vpop" id="musicPop" hidden>
-        <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
-             aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vfill"></i></div>
-      </div>
-      <button class="uibtn mus" id="musicBtn" aria-label="Music volume" aria-expanded="false">Music</button>
-    </div>
-    <button class="uibtn nfo" id="infoBtn" aria-label="Game information">Info</button>
+
+  <!-- The drag bars hang off the bar itself, not off their buttons: their buttons live in a
+       pop-up that is itself positioned, and nesting one inside the other would re-anchor them. -->
+  <div class="vpop" id="sfxPop" hidden>
+    <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
+         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vfill"></i></div>
   </div>
+  <div class="vpop" id="musicPop" hidden>
+    <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
+         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vfill"></i></div>
+  </div>
+
+  <!-- Rapid is a button now, but half the timing code still reads this checkbox, so it stays
+       as the single source of truth and the button drives it. -->
+  <input type="checkbox" id="turbo" hidden>
 </div>
 </div>
 
@@ -1477,8 +1545,16 @@ function setBalance(v, dir) {
 
 let shownWin = 0;
 function setRoundWin(v) {
-  const el = $("roundWin"), from = shownWin;
+  const el = $("roundWin"), from = shownWin, chip = $("winChip");
   shownWin = v;
+  // the chip is not a permanent readout any more: it arrives with the win and leaves with it
+  if (chip) {
+    if (v > 0) {
+      if (chip.hidden) { chip.hidden = false; void chip.offsetWidth; }   // flush so it re-pops
+    } else {
+      chip.hidden = true;
+    }
+  }
   if (v > from) { countTo(el, from, v, countMs()); cashFx(el, "up"); }
   else { countTo(el, from, v, 0); }   // resetting to 0 at round start — no fanfare
 }
@@ -2486,32 +2562,45 @@ function setVol(key, v) {
 // controls it would actually land on, so on one row it still hugs the icon.
 // Every measurement is a rect divided back out by the page's fit-to-screen scale, since
 // `left` and `bottom` are layout lengths and rects are not.
-function placeBar(b) {
+function placePop(pop, btn) {
   const row = document.querySelector(".bottom");
-  if (!row) return;
-  const pop = $(b.pop), rr = row.getBoundingClientRect(), br = $(b.btn).getBoundingClientRect();
+  if (!row || !pop || !btn) return;
+  const rr = row.getBoundingClientRect(), br = btn.getBoundingClientRect();
   const k = rr.width / Math.max(1, row.offsetWidth);
-  const cx = br.left + br.width / 2;
-  const left = ((cx - rr.left) / k) + "px";
   const half = pop.getBoundingClientRect().width / 2;
+  // Centre on the button, then pull back inside the bar. The three-line button sits at the
+  // very left edge and its pop-up is three buttons wide, so centred alone puts the first one
+  // off the side of the screen.
+  const margin = 10 * k;
+  const lo = rr.left + half + margin, hi = rr.right - half - margin;
+  let cx = br.left + br.width / 2;
+  if (lo <= hi) cx = Math.max(lo, Math.min(hi, cx));
+  const left = ((cx - rr.left) / k) + "px";
+  // rise clear of the button, and of anything stacked over it that the pop would land on.
+  // A button inside an already-open pop-up sits above the whole bar, so this resolves to
+  // "10px over the button" for it and to "10px over the tallest thing in the way" otherwise.
   let top = br.top;
   for (const el of row.children) {
     const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) continue;   // a hidden child is a 0x0 box at the page origin
     if (r.right > cx - half && r.left < cx + half) top = Math.min(top, r.top);
   }
   const bottom = ((rr.bottom - top) / k + 10) + "px";
   if (pop.style.left !== left) pop.style.left = left;        // only write on a real move, so
   if (pop.style.bottom !== bottom) pop.style.bottom = bottom;  // the tracker costs reads only
 }
+const placeBar = b => placePop($(b.pop), $(b.btn));
 
 // The row reflows for reasons no resize event reports: the bet figure gets wider, the
 // autoplay counter appears, the spin button swaps for skip. Any of those slides the cluster
-// sideways under an already-open bar. Re-measure every frame while one is up - it costs a
-// few rect reads and stops on its own the moment the last bar closes.
+// sideways under an already-open pop-up. Re-measure every frame while one is up - it costs a
+// few rect reads and stops on its own the moment the last one closes.
 let barTrack = 0;
 function trackBars() {
   barTrack = 0;
   let any = false;
+  const menu = $("menuPop");
+  if (menu && !menu.hidden) { placePop(menu, $("menuBtn")); any = true; }
   for (const b of BUSES) {
     if ($(b.pop).hidden) continue;
     placeBar(b);
@@ -2589,10 +2678,50 @@ for (const b of BUSES) {
 // pressing away from the cluster puts every bar back. A pointerdown can be retargeted at a
 // node with no closest() - the document itself, a text node - and that is still "away".
 document.addEventListener("pointerdown", e => {
-  if (barsOpen() && !e.target.closest?.(".uislot")) closeBars();
+  if (barsOpen() && !e.target.closest?.(".vpop, #soundBtn, #musicBtn")) closeBars();
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
 paintVol();
+
+/* ---------- the three-line button ---------- */
+// Sound, music and information hide behind it rather than sitting on the bar. Closing it
+// takes any open volume bar with it, or a bar would be left floating over nothing.
+function showMenu(on) {
+  const pop = $("menuPop"), btn = $("menuBtn");
+  if (!pop || !btn) return;
+  pop.hidden = !on;
+  if (on) {
+    placePop(pop, btn);
+    if (!barTrack) barTrack = requestAnimationFrame(trackBars);
+  } else {
+    closeBars();
+  }
+  btn.classList.toggle("open", on);
+  btn.setAttribute("aria-expanded", on ? "true" : "false");
+}
+$("menuBtn").addEventListener("click", () => { const on = $("menuPop").hidden; showMenu(on); if (on) sfx("bet", 1); });
+document.addEventListener("pointerdown", e => {
+  if (!$("menuPop").hidden && !e.target.closest?.(".menuslot, .vpop")) showMenu(false);
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("menuPop").hidden) showMenu(false); });
+
+/* ---------- rapid ---------- */
+// The lightning bolt is the old TURBO switch. Every piece of timing code still asks the
+// checkbox, so the button sets it rather than replacing it, and the choice is remembered.
+function setRapid(on) {
+  const box = $("turbo"), btn = $("rapidBtn");
+  box.checked = on;
+  if (btn) {
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.title = btn.getAttribute("aria-label");
+  }
+  try { localStorage.setItem("smukiez.rapid", on ? "1" : "0"); } catch (e) { /* storage blocked */ }
+}
+$("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); sfx("bet", 1.12); });
+let rapidWas = false;
+try { rapidWas = localStorage.getItem("smukiez.rapid") === "1"; } catch (e) { /* storage blocked */ }
+setRapid(rapidWas);
 if (SOCIAL) {   // restricted vocabulary: the chooser's static copy goes through T() too
   for (const id of ["bonusTitle", "bonusStdDesc", "bonusExtDesc", "bonusBetLbl", "bonusNote"]) {
     $(id).textContent = T($(id).textContent);
@@ -2737,9 +2866,9 @@ async function boot() {
     $("bonusBtn").style.display = "none";
   }
   if (RGS.jurisdiction().disabledTurbo) {
-    $("turbo").checked = false;
-    const lbl = document.querySelector("label.turbo");
-    if (lbl) lbl.style.display = "none";
+    setRapid(false);
+    const btn = $("rapidBtn");
+    if (btn) btn.style.display = "none";
   }
   if (RGS.jurisdiction().disabledAutoplay) $("autoBtn").style.display = "none";
   state.noSkip = !!RGS.jurisdiction().disabledSlamstop;
