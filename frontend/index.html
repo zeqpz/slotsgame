@@ -22,17 +22,17 @@
     --mono: "Jraot Hollow", "IBM Plex Mono", ui-monospace, Consolas, monospace;
     --disp: "Jraot Hollow", "Archivo Black", "Archivo", sans-serif;
     --wall-scale: contain;   /* background wall size — `cover` fills and crops, `contain` fits it all in */
-    --char-height: 86vh;     /* base size the crop window is derived from */
+    --char-height: 49.5vh;   /* base size the crop window is derived from */
     --char-stretch: 1.30;    /* stretched vertically — scaling up instead would widen them
                                 over the reels and re-crop their arms */
-    --char-drop: 12vh;       /* how far their feet run past the bottom edge. The figures fill
+    --char-drop: 3vh;        /* how far their feet run past the bottom edge. The figures fill
                                 their frames top-to-bottom, so past full height something must
                                 go: this takes it off the shoes and keeps the heads intact. */
     --bounce: .2;            /* strength of the per-spin bounce/shake; 1 = the original full-force version */
     /* Regulatory text must be readable — the graffiti face is not. */
     --legible: "IBM Plex Mono", ui-monospace, Consolas, monospace;
     --char-fade: 280ms;      /* crossfade between the character's clips (JS reads this) */
-    --char-inset: 0vw;       /* how far in from each edge the characters stand */
+    --char-inset: -3vw;      /* how far in from each edge they stand; negative pushes them out */
     /* Board size lives here so the spin overlay's CELL_STEP can be derived from the same
        numbers — hardcoding it separately means the reels mis-align the moment a cell resizes. */
     --cell-w: 120px;
@@ -72,7 +72,7 @@
     height: calc(var(--char-height) * var(--char-stretch));
     width: calc(var(--char-height) * 0.94);
     overflow: hidden; pointer-events: none; user-select: none;
-    mix-blend-mode: screen; opacity: .72;   /* they are scenery — the reels stay the focus */
+    opacity: .78;   /* they are scenery — the reels stay the focus */
     transform-origin: 50% 100%;   /* they pop up off their feet, not out of the middle */
   }
   /* --char-shift centres each character's own column on the union of its clips' content:
@@ -94,37 +94,35 @@
      shrunk and pushed outward — they frame the reels from the edges rather than sitting
      under them. Mobile keeps its characters; it just sees less of each one. */
   @media (max-width: 1080px) {
-    :root { --char-height: 74vh; --char-inset: -13vw; }
+    :root { --char-height: 42.5vh; --char-inset: -8vw; }
     .charfx { opacity: .5; }
   }
   @media (max-width: 760px) {
-    :root { --char-height: 60vh; --char-inset: -20vw; }
+    :root { --char-height: 34.5vh; --char-inset: -12vw; }
     .charfx { opacity: .42; }
   }
   /* Portrait phone: the board is scaled to the width and sits high, which leaves the lower
      half of the screen empty — so the pair stands there, whole, one in each bottom corner
      behind the controls. Sized so two of them fit across the screen with their feet on it. */
   @media (max-width: 760px) and (orientation: portrait) {
-    :root { --char-height: 26vh; --char-inset: 0vw; --char-drop: 2vh; }
+    :root { --char-height: 15vh; --char-inset: -2vw; --char-drop: 0.5vh; }
     .charfx { opacity: .6; }
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
   @media (max-height: 500px) {
-    :root { --char-height: 82vh; --char-inset: -4vw; --char-drop: 8vh; }
+    :root { --char-height: 47vh; --char-inset: -6vw; --char-drop: 2vh; }
     .charfx { opacity: .5; }
   }
   /* two stacked players: the standby always holds the next clip decoded and ready, so the
      handover is a crossfade between two already-running videos rather than a load pause.
      They blend against each other normally; .charfx screens the result onto the wall once. */
-  .charfx .charvid {
-    /* width is pinned to the UNstretched height, so the frame gets taller without getting
-       wider — the visible slice of each clip stays exactly where it was calibrated */
-    position: absolute; bottom: 0; left: 50%; height: 100%;
-    width: calc(var(--char-height) * 1.7778);
-    transform: translateX(calc(-1 * var(--char-shift)));
+  /* The characters are Spine 4.2 rigs drawn on their own canvas. The canvas simply fills
+     .charfx, so every sizing and responsive rule above still governs them unchanged. */
+  .charfx canvas {
+    position: absolute; inset: 0; width: 100%; height: 100%; display: block;
     opacity: 0; transition: opacity var(--char-fade) linear;
   }
-  .charfx .charvid.on { opacity: 1; }
+  .charfx canvas.on { opacity: 1; }
   #bgwall.bounce { animation: bgbounce .7s cubic-bezier(.22,.9,.32,1.25); }
   @keyframes bgbounce {
     0% { transform: none; }
@@ -790,14 +788,8 @@
 </head>
 <body>
 <div id="bgwall"></div>
-<div id="charfx" class="charfx" aria-hidden="true">
-  <video class="charvid" muted playsinline preload="auto"></video>
-  <video class="charvid" muted playsinline preload="auto"></video>
-</div>
-<div id="charfx2" class="charfx" aria-hidden="true">
-  <video class="charvid" muted playsinline preload="auto"></video>
-  <video class="charvid" muted playsinline preload="auto"></video>
-</div>
+<div id="charfx" class="charfx" aria-hidden="true"></div>
+<div id="charfx2" class="charfx" aria-hidden="true"></div>
 
 <div id="app">
 <div class="top">
@@ -934,6 +926,8 @@
   </div>
 </div>
 
+<script src="assets/spine/pixi.min.js"></script>
+<script src="assets/spine/spine-pixi-v8.min.js"></script>
 <script src="strips.js"></script>
 <script src="rgs.js"></script>
 <script src="rules.js"></script>
@@ -1230,6 +1224,12 @@ async function renderReveal(ev) {
   const jitter = turbo ? 20 : 55;   // per-reel timing wobble, small next to the stagger so order holds
   const spans = reelEls.map((_, r) => base + r * stagger + (Math.random() * 2 - 1) * jitter + (ev.anticipation?.[r] || 0) * anticExtra);
   // sticky painted reels don't spin, so only make the noise if something actually moves
+  // a reel held back for a near miss means a bonus symbol is down and one or two more
+  // would pay it off: the characters lean in while the rest of the reels run out
+  if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
+    state.anticipated = true;
+    charReact("anticipation");
+  }
   const spinning = reelEls.some((_, r) => !state.paintedSet.has(r));
   const hushReels = (spinning && !state.skip && !REDUCED_MOTION)
     ? reelSfx(Math.max(...spans)) : () => {};
@@ -1573,7 +1573,17 @@ const handlers = {
   async reveal(ev) { await renderReveal(ev); await delay(150); },
 
   async winInfo(ev) {
-    for (const w of ev.wins) {
+    if (ev.wins.length) charReact("win");   // one reaction for the burst, not one per line
+    for (const raw of ev.wins) {
+      // A win arrives either as a compact tuple or in the older object form. The tuple exists
+      // because Stake rejects any book over 512 KiB and the spelled-out form blew past it on
+      // long tumble chains - see tools/shrink_books.py. Normalise once, read it the same after.
+      //   [symbol, kind, win, [[reel,row]...], lineIndex, multiplier, paintMult?, charMult?]
+      const w = Array.isArray(raw) ? {
+        symbol: raw[0], kind: raw[1], win: raw[2],
+        positions: (raw[3] || []).map(p => ({ reel: p[0], row: p[1] })),
+        meta: { lineIndex: raw[4], multiplier: raw[5], paintMult: raw[6] ?? 1, charMult: raw[7] ?? 1 },
+      } : raw;
       clearFxWins();
       void $("board").offsetWidth;   // flush the removal so every line's boxes pop in fresh,
                                      // including cells carried over from the previous line
@@ -1678,7 +1688,8 @@ const handlers = {
 
   async freeSpinTrigger(ev) {
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
-    setCharMode(true);   // character switches to his bonus clip the moment it hits
+    state.bonusHit = true;
+    charReact("big_win");   // the characters blow up the moment the bonus lands
     sfx("bonusStart");
     await banner(`${ev.totalFs} FREE SPINS`, "Crew Leader trigger", 1300, "gold");
     $("fsCard").classList.add("on");
@@ -1687,7 +1698,8 @@ const handlers = {
 
   async extremeTrigger(ev) {
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
-    setCharMode(true);   // extreme is a bonus too — 2 scatters straight in, or an upgrade
+    state.bonusHit = true;
+    charReact("big_win");   // extreme is a bonus too — 2 scatters straight in, or an upgrade
     const why = ev.reason === "extreme_upgrade" ? "Bonus upgraded by The Phantom" : "The Phantom appears";
     await banner("EXTREME BONUS", why, 1500, "purple");
   },
@@ -1714,6 +1726,7 @@ const handlers = {
   },
 
   async fullWall() {
+    charReact("big_win");
     if (state.hasMural) {
       $("bannerMural").src = "assets/mural.png";
       await banner("FULL WALL", "Mural complete — MAX WIN", 2600, "gold muralshow");
@@ -1721,10 +1734,12 @@ const handlers = {
       await banner("FULL WALL", "Mural complete — MAX WIN", 2100);
     }
   },
-  async wincap(ev) { await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
+  async wincap(ev) { charReact("big_win"); await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
 
   async freeSpinEnd(ev) {
-    setCharMode(false);   // back to the idle rotation
+    // profit is measured against what the round cost: a bought bonus that pays less than
+    // its price is a loss, and a 40x base trigger is not
+    if (cents(ev.amount) <= (MODE_COST[state.mode] || 1) * bet()) charReact("lose");
     await tallyUp(cents(ev.amount));   // count the payout up before announcing the end
   state.tallied = true;
     sfx("bonusEnd");
@@ -1807,7 +1822,8 @@ async function presentRound(round, { settle = true } = {}) {
   state.tallied = false;
   setRoundWin(0);
   state.paintedSet = new Set();
-  setCharMode(false);
+  state.anticipated = false;
+  state.bonusHit = false;
   setWall([], 1);
   setTags(0, 4);
 
@@ -1820,6 +1836,9 @@ async function presentRound(round, { settle = true } = {}) {
     const fn = handlers[ev.type];
     if (fn) await fn(ev);
   }
+
+  // teased a bonus and never got there
+  if (state.anticipated && !state.bonusHit) charReact("lose");
 
   const win = typeof round.payout === "number" ? round.payout : Math.round(mult * bet());
   state.skip = false;
@@ -1845,11 +1864,13 @@ async function presentRound(round, { settle = true } = {}) {
     // was never tallied on the board gets its count-up here (bonus rounds tally in freeSpinEnd).
     const tier = mult >= 100 ? ["EPIC WIN", "epic", 2200] : mult >= 40 ? ["MEGA WIN", "mega", 1800] : mult >= 15 ? ["BIG WIN", "gold", 1400] : null;
     if (tier) {
+      charReact("big_win");
       sfx(pickSfx(["jackpotA", "jackpotB"], jackpotMemo));   // alternate alerts at random
       if (!state.tallied) await tallyUp(win);
       await banner(tier[0], `${fmt(win)} \u00b7 ${mult.toFixed(0)}x`, tier[2], tier[1]);
     }
   } else {
+    charReact("lose");
     tick("No win — run it back.");
   }
 }
@@ -2050,119 +2071,177 @@ function refreshBet() {
 /* ---------- character ---------- */
 const CHAR_IDLE_RATE = .8;    // idle clips run at 80% speed
 const CHAR_BONUS_RATE = .8;   // bonus reels too — kept separate so they can diverge later
+// The two characters are Spine 4.2 skeletons (exported at 4.2.43) rendered on their own
+// canvas inside .charfx, so all the sizing and responsive CSS above still governs them.
+// They replaced eight looping mp4s: better quality, real alpha instead of a black
+// background keyed out with mix-blend-mode, and they react to what the round does.
+//
+// Each rig runs one body track (0) plus its ambient loops on higher tracks. The body track
+// sits on "idle" and is interrupted by two kinds of clip: FLAVOUR, an idle break on a random
+// timer, and a REACTION driven by the game. Both queue "idle" straight after, so the rig
+// always falls back to resting on its own.
 const CHARACTERS = [
-  { el: "charfx",  idle: ["assets/char_a.mp4", "assets/char_b.mp4"],
-                   bonus: ["assets/char_bonus_a.mp4", "assets/char_bonus_b.mp4"] },
-  { el: "charfx2", idle: ["assets/char2_a.mp4", "assets/char2_b.mp4"],
-                   bonus: ["assets/char2_bonus_a.mp4", "assets/char2_bonus_b.mp4"] },
+  // #charfx is the right-hand slot, #charfx2 the left
+  {
+    el: "charfx", base: "assets/spine/smoke-skull", name: "smoke-skull",
+    ambient: ["smoke_loop", "ember_loop"],
+    flavour: [["ash_break"]],
+  },
+  {
+    el: "charfx2", base: "assets/spine/smukiez", name: "smukiez",
+    ambient: [],
+    // one entry per idle break, so the three read equally often; the toss picks one of its
+    // four interchangeable takes so it never looks like the same loop twice
+    flavour: [["cash_toss", "cash_toss_alt_1", "cash_toss_alt_2", "cash_toss_alt_3"], ["cash_show"], ["cash_count"]],
+  },
 ];
-let setCharMode = () => {};   // replaced below; bonus handlers call it
+const CHAR_RATE = .8;                     // both rigs play at 80% speed, as the clips did
+const CHAR_FLAVOUR_GAP = [7000, 16000];   // how long idle runs before the next break
 
-function makeCharacter({ el, idle, bonus }) {
-  const root = document.getElementById(el);
-  if (!root) return null;
-  const vids = [...root.querySelectorAll(".charvid")];
-  if (vids.length < 2) return null;
+// How hard each moment grabs the body track. A bigger moment cuts off a smaller one; a
+// smaller one waits its turn rather than stamping on the celebration.
+const CHAR_RANK = { flavour: 0, anticipation: 1, win: 1, lose: 2, big_win: 3, enter: 4, exit: 9 };
 
-  const FADE = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
-  const LEAD = 0.45;        // s before the end to bring the next clip up — covers the fade
-  let cur = 0;              // index of the element currently shown
-  let idx = 0;              // position in the idle rotation
-  let bidx = 0;             // position in the bonus rotation
-  let inBonus = false;
-  let handing = false;      // a crossfade is already in flight
-  let queued = false;       // a mode change arrived mid-crossfade and runs as soon as it lands
+// Replaced once the rigs load. Declared up front so the handlers can call them either way -
+// a rig that fails to load must never take the game down with it.
+let charReact = () => {}, charEnter = () => {}, charExit = () => {};
 
-  const hasBonus = bonus.length > 0;   // a character with no bonus reel just keeps idling
-  const onBonus = () => inBonus && hasBonus;
-  const reel = () => (onBonus() ? bonus : idle);
-  const nextClip = () => reel()[onBonus() ? bidx : idx];
-  // rate comes from the clip itself, not the current mode — the standby can be holding a
-  // clip for the other reel, and load() resets playbackRate to defaultPlaybackRate
-  const rateFor = src => (bonus.includes(src) ? CHAR_BONUS_RATE : CHAR_IDLE_RATE);
-  const applyRate = v => {
-    const r = rateFor(v.dataset.clip || "");
-    v.defaultPlaybackRate = r;
-    v.playbackRate = r;
+async function loadSpine(base, name) {
+  const grab = async (ext, as) => {
+    const r = await fetch(`${base}/${name}.${ext}`);
+    if (!r.ok) throw new Error(`${name}.${ext} -> HTTP ${r.status}`);
+    return as === "json" ? r.json() : r.text();
   };
-  const play = v => { applyRate(v); const p = v.play(); if (p) p.catch(() => {}); };
-
-  // park a clip on the standby element, decoded and sitting on frame 0
-  function arm(v, src) {
-    if (v.dataset.clip !== src) { v.dataset.clip = src; v.src = src; v.load(); }
-    else { try { v.currentTime = 0; } catch (e) { /* not seekable yet */ } }
-    applyRate(v);
+  const [atlasText, skeletonJson] = await Promise.all([grab("atlas", "text"), grab("json", "json")]);
+  if (!skeletonJson.animations || !Object.keys(skeletonJson.animations).length) {
+    throw new Error(`${name}.json carries no animations`);
   }
-
-  // Bring the standby up *over* the outgoing clip instead of cross-dissolving the pair:
-  // both fading at once would leave the figure ~25% transparent at the midpoint. The
-  // outgoing one only drops out once it is completely hidden behind the new one, so
-  // coverage is total the whole way through and nothing ever blanks.
-  function handover() {
-    if (handing) return;
-    handing = true;
-    const from = vids[cur], to = vids[1 - cur];
-    play(to);
-    to.style.zIndex = 2; from.style.zIndex = 1;
-    to.classList.add("on");
-    cur = 1 - cur;
-    setTimeout(() => {
-      from.classList.remove("on");
-      from.pause();
-      if (queued) {
-        // the mode flipped while this fade was in flight — go straight to the new mode's
-        // opening clip rather than advancing the rotation we just left
-        queued = false;
-        arm(from, nextClip());
-        handing = false;
-        handover();
-        return;
-      }
-      if (onBonus()) bidx = (bidx + 1) % bonus.length;
-      else idx = (idx + 1) % idle.length;
-      arm(from, nextClip());   // the retired element becomes the standby for the clip after this
-      handing = false;
-    }, FADE + 40);
-  }
-
-  for (const v of vids) {
-    // start the handover before the clip actually runs out, so the motion never stops
-    v.addEventListener("timeupdate", () => {
-      if (v !== vids[cur] || !v.duration) return;
-      if (v.duration - v.currentTime <= LEAD) handover();
-    });
-    v.addEventListener("ended", () => { if (v === vids[cur]) handover(); });   // backstop
-    v.addEventListener("error", () => { if (v === vids[cur]) setTimeout(handover, 800); });
-  }
-
-  // swap immediately on a bonus trigger rather than waiting for the current clip to finish
-  const setMode = wantBonus => {
-    if (!hasBonus || inBonus === wantBonus || REDUCED_MOTION) return;
-    inBonus = wantBonus;
-    if (inBonus) bidx = 0;   // a bonus always opens on his first reaction clip, then alternates
-    if (handing) { queued = true; return; }   // mid-fade: swap the instant this one lands
-    arm(vids[1 - cur], nextClip());
-    handover();
-  };
-
-  // browsers won't run video in a hidden tab, and a page that loaded hidden never starts —
-  // pick the visible one up again whenever the tab comes back to the front
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && !REDUCED_MOTION && vids[cur].paused) play(vids[cur]);
-  });
-
-  if (REDUCED_MOTION) { arm(vids[0], idle[0]); vids[0].classList.add("on"); return { setMode }; }
-  arm(vids[0], idle[0]);
-  vids[0].classList.add("on");
-  play(vids[0]);
-  idx = 1 % idle.length;
-  arm(vids[1], nextClip());   // standby is loaded from the very first frame onward
-  return { setMode };
+  const atlas = new spine.TextureAtlas(atlasText);
+  // each atlas page is its own PNG; decode before handing it to Pixi or the first frame
+  // renders untextured
+  await Promise.all(atlas.pages.map(async page => {
+    const img = new Image();
+    img.src = `${base}/${page.name}`;
+    await img.decode();
+    page.setTexture(spine.SpineTexture.from(PIXI.Texture.from(img).source));
+  }));
+  return new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
 }
 
-(function characters() {
-  const rigs = CHARACTERS.map(makeCharacter).filter(Boolean);
-  setCharMode = wantBonus => rigs.forEach(r => r.setMode(wantBonus));
+async function makeCharacter({ el, base, name, ambient, flavour }) {
+  const root = document.getElementById(el);
+  if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
+
+  let data;
+  try { data = await loadSpine(base, name); }
+  catch (e) { console.warn("character rig failed to load:", name, e.message); return null; }
+
+  const app = new PIXI.Application();
+  await app.init({
+    backgroundAlpha: 0, antialias: true, autoDensity: true,
+    resolution: Math.min(2, window.devicePixelRatio || 1),
+    resizeTo: root,
+  });
+  root.appendChild(app.canvas);
+
+  const actor = new spine.Spine({ skeletonData: data, autoUpdate: true });
+  actor.state.data.defaultMix = .2;
+  actor.state.timeScale = CHAR_RATE;
+  app.stage.addChild(actor);
+
+  // The rig is drawn feet-on-the-floor, centred: scale so the skeleton's own height fills
+  // the box, which is what the CSS vars were calibrated against.
+  const fit = () => {
+    const w = app.renderer.width, h = app.renderer.height;
+    if (!w || !h) return;
+    actor.scale.set(h / (data.height || 1));
+    actor.position.set(w / 2, h);
+  };
+  fit();
+  app.renderer.on("resize", fit);
+  addEventListener("resize", fit);
+
+  const has = anim => data.animations.some(a => a.name === anim);
+  const lengthOf = anim => {
+    const a = data.findAnimation ? data.findAnimation(anim) : null;
+    return ((a && a.duration) || 0) * 1000 / CHAR_RATE;
+  };
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+
+  // ambient extras (smoke, embers) ride their own tracks so the body track stays free
+  ambient.forEach((anim, i) => { if (has(anim)) actor.state.setAnimation(i + 1, anim, true); });
+
+  // who owns the body track, and until when
+  let rank = -1, until = 0, away = true, timer = 0;
+
+  const oneShot = (anim, want) => {
+    if (!has(anim)) return false;
+    const now = performance.now();
+    if (want <= rank && now < until) return false;   // a bigger moment still has the floor
+    actor.state.setAnimation(0, anim, false);
+    if (has("idle")) actor.state.addAnimation(0, "idle", true, 0);   // always fall back to resting
+    rank = want; until = now + lengthOf(anim);
+    return true;
+  };
+
+  // Idle breaks. Re-armed after every clip, and skipped (not dropped) whenever the rig is
+  // busy or the tab is in the background, so a hidden tab never banks up a queue of them.
+  const armFlavour = () => {
+    clearTimeout(timer);
+    if (REDUCED_MOTION || away || !flavour.length) return;
+    timer = setTimeout(() => {
+      if (!document.hidden && performance.now() >= until) oneShot(pick(pick(flavour)), CHAR_RANK.flavour);
+      armFlavour();
+    }, CHAR_FLAVOUR_GAP[0] + Math.random() * (CHAR_FLAVOUR_GAP[1] - CHAR_FLAVOUR_GAP[0]));
+  };
+
+  const react = kind => {
+    if (REDUCED_MOTION || away) return;
+    const want = CHAR_RANK[kind];
+    if (want === undefined) return;
+    if (oneShot(kind, want)) armFlavour();   // push the next break out past the reaction
+  };
+
+  const enter = () => {
+    if (!away) return;
+    away = false;
+    rank = -1; until = 0;
+    app.canvas.classList.add("on");
+    if (REDUCED_MOTION) { actor.state.timeScale = 0; actor.skeleton.setToSetupPose(); return; }
+    if (!oneShot("enter", CHAR_RANK.enter) && has("idle")) actor.state.setAnimation(0, "idle", true);
+    armFlavour();
+  };
+
+  const exit = () => {
+    if (away) return;
+    away = true;
+    clearTimeout(timer);
+    if (REDUCED_MOTION || !has("exit")) { app.canvas.classList.remove("on"); return; }
+    // exit ends on the hidden pose and holds it, so nothing is queued behind it
+    actor.state.setAnimation(0, "exit", false);
+    rank = CHAR_RANK.exit; until = performance.now() + lengthOf("exit");
+  };
+
+  // a backgrounded tab throttles rAF; Pixi resumes on its own, but re-fit in case the
+  // pane was resized while hidden
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) fit(); });
+  return { react, enter, exit };
+}
+
+(async function characters() {
+  const rigs = (await Promise.all(CHARACTERS.map(makeCharacter))).filter(Boolean);
+  if (!rigs.length) return;
+  charReact = kind => rigs.forEach(r => r.react(kind));
+  charEnter = () => rigs.forEach(r => r.enter());
+  charExit = () => rigs.forEach(r => r.exit());
+
+  // Both characters walk on as the opening screen lifts and walk off when the game closes.
+  // Leaving the tab counts as closing it: they step off, and step back on when you return,
+  // which also spares a hidden tab from animating to nobody.
+  await introDone;
+  charEnter();
+  addEventListener("pagehide", charExit);
+  document.addEventListener("visibilitychange", () => (document.hidden ? charExit() : charEnter()));
 })();
 
 /* ---------- fit to screen ---------- */

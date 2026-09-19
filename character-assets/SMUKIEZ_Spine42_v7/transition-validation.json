@@ -1,0 +1,12 @@
+{
+  "runtime": "Spine 4.2.120 (bundled)",
+  "enterDuration": 1.2,
+  "exitDuration": 0.7,
+  "sampledFrames": 122,
+  "finiteGeometry": true,
+  "enterContinuesIdle": true,
+  "exitHoldsHidden": true,
+  "reenterRestoresOpacity": true,
+  "interruptedExitRestoresTransformAndOpacity": true,
+  "previewSyntax": "passed"
+}

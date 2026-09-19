@@ -35,3 +35,6 @@ __pycache__
 !**/library/configs/
 !**/library/configs/**
 !**/library/*.xlsx
+
+# pre-shrink backups written by tools/shrink_books.py stay local
+*.jsonl.zst.orig

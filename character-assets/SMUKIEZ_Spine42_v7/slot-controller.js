@@ -16,7 +16,11 @@ export function createSmukiezController(state, onCue = () => {}) {
     bigWin: () => once('big_win'),
     lose: () => once('lose'),
     cashShow: () => once('cash_show'),
-    cashToss: () => once('cash_toss'),
+    cashToss: () => {
+      const choices = ['cash_toss', 'cash_toss_alt_1', 'cash_toss_alt_2', 'cash_toss_alt_3']
+        .filter(name => state.data.skeletonData.findAnimation(name));
+      once(choices[Math.floor(Math.random() * choices.length)]);
+    },
     cashCount: (loop = false) => loop
       ? state.setAnimation(0, 'cash_count', true)
       : once('cash_count'),

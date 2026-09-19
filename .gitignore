@@ -11,3 +11,5 @@ upload_front.py
 frontend_manifest.json
 # duplicate of frontend/assets kept for the Media page attempt
 upload_media/
+# local pre-shrink book backups (tools/shrink_books.py keeps them next to the originals)
+*.jsonl.zst.orig

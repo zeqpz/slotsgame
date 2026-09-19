@@ -1,0 +1,160 @@
+smoke-skull.png
+size: 2048, 2048
+format: RGBA8888
+filter: Linear, Linear
+repeat: none
+pma: false
+smoke
+  rotate: false
+  xy: 4, 4
+  size: 288, 544
+  orig: 288, 544
+  offset: 0, 0
+  index: -1
+torso
+  rotate: false
+  xy: 300, 4
+  size: 608, 512
+  orig: 608, 512
+  offset: 0, 0
+  index: -1
+face_idle
+  rotate: false
+  xy: 916, 4
+  size: 447, 491
+  orig: 447, 491
+  offset: 0, 0
+  index: -1
+face_anticipation
+  rotate: false
+  xy: 1371, 4
+  size: 447, 491
+  orig: 447, 491
+  offset: 0, 0
+  index: -1
+face_win
+  rotate: false
+  xy: 4, 556
+  size: 447, 491
+  orig: 447, 491
+  offset: 0, 0
+  index: -1
+face_big_win
+  rotate: false
+  xy: 459, 556
+  size: 456, 485
+  orig: 456, 485
+  offset: 0, 0
+  index: -1
+face_lose
+  rotate: false
+  xy: 923, 556
+  size: 447, 475
+  orig: 447, 475
+  offset: 0, 0
+  index: -1
+shoe_left
+  rotate: false
+  xy: 1378, 556
+  size: 416, 416
+  orig: 416, 416
+  offset: 0, 0
+  index: -1
+arm_right
+  rotate: false
+  xy: 1802, 556
+  size: 192, 352
+  orig: 192, 352
+  offset: 0, 0
+  index: -1
+ash_0
+  rotate: false
+  xy: 4, 1055
+  size: 355, 299
+  orig: 355, 299
+  offset: 0, 0
+  index: -1
+shoe_right
+  rotate: false
+  xy: 367, 1055
+  size: 352, 288
+  orig: 352, 288
+  offset: 0, 0
+  index: -1
+ash_1
+  rotate: false
+  xy: 727, 1055
+  size: 273, 260
+  orig: 273, 260
+  offset: 0, 0
+  index: -1
+leg_left
+  rotate: false
+  xy: 1008, 1055
+  size: 192, 256
+  orig: 192, 256
+  offset: 0, 0
+  index: -1
+leg_right
+  rotate: false
+  xy: 1208, 1055
+  size: 352, 256
+  orig: 352, 256
+  offset: 0, 0
+  index: -1
+arm_left
+  rotate: false
+  xy: 1568, 1055
+  size: 160, 256
+  orig: 160, 256
+  offset: 0, 0
+  index: -1
+ash_2
+  rotate: false
+  xy: 1736, 1055
+  size: 207, 209
+  orig: 207, 209
+  offset: 0, 0
+  index: -1
+pocket
+  rotate: false
+  xy: 4, 1362
+  size: 288, 192
+  orig: 288, 192
+  offset: 0, 0
+  index: -1
+cigar_clean
+  rotate: false
+  xy: 300, 1362
+  size: 200, 182
+  orig: 200, 182
+  offset: 0, 0
+  index: -1
+smoke_wisp
+  rotate: false
+  xy: 508, 1362
+  size: 160, 170
+  orig: 160, 170
+  offset: 0, 0
+  index: -1
+ash_3
+  rotate: false
+  xy: 676, 1362
+  size: 148, 158
+  orig: 148, 158
+  offset: 0, 0
+  index: -1
+ash_4
+  rotate: false
+  xy: 832, 1362
+  size: 101, 97
+  orig: 101, 97
+  offset: 0, 0
+  index: -1
+ember_glow
+  rotate: false
+  xy: 941, 1362
+  size: 58, 65
+  orig: 58, 65
+  offset: 0, 0
+  index: -1

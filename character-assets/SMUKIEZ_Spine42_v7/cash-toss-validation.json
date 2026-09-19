@@ -1,0 +1,28 @@
+{
+  "runtime": "Spine 4.2.120",
+  "duration": 6.8,
+  "billsTossed": 6,
+  "sampledFrames": 205,
+  "rightHandGripStaysClosed": true,
+  "rightReachOverlapsLeftToss": true,
+  "jeansOccludePocketReach": true,
+  "reachDirection": "inward-left",
+  "tossHand": "left",
+  "pocketHand": "right",
+  "leftArmRestsAfterToss": true,
+  "fixedBicep": true,
+  "rigidForearm": true,
+  "constantElbowToWristLength": true,
+  "billsFallDown": true,
+  "scatterFadeSeconds": 2.6,
+  "emptyHandsBeforeRefill": true,
+  "endpointMatchesIdle": true,
+  "controllerReturnsToIdle": true,
+  "interruptionRestoresFullStackAndDrawOrder": true,
+  "events": [
+    "cash_toss",
+    "pocket_reach",
+    "cash_refill"
+  ],
+  "finiteGeometry": true
+}

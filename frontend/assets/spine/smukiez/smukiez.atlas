@@ -1,0 +1,188 @@
+smukiez.png
+size: 2048,2048
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+pma: false
+face_anticipation
+  rotate: false
+  xy: 4, 4
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+face_big_win
+  rotate: false
+  xy: 781, 4
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+face_cash_count
+  rotate: false
+  xy: 4, 837
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+face_cash_show
+  rotate: false
+  xy: 781, 837
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+
+smukiez-2.png
+size: 2048,2048
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+pma: false
+face_idle
+  rotate: false
+  xy: 4, 4
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+face_lose
+  rotate: false
+  xy: 781, 4
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+face_win
+  rotate: false
+  xy: 4, 837
+  size: 769, 825
+  orig: 769, 825
+  offset: 0, 0
+  index: -1
+torso
+  rotate: false
+  xy: 781, 837
+  size: 421, 373
+  orig: 421, 373
+  offset: 0, 0
+  index: -1
+bill
+  rotate: false
+  xy: 1210, 837
+  size: 180, 310
+  orig: 180, 310
+  offset: 0, 0
+  index: -1
+leg_right
+  rotate: false
+  xy: 1398, 837
+  size: 294, 288
+  orig: 294, 288
+  offset: 0, 0
+  index: -1
+leg_left
+  rotate: false
+  xy: 1700, 837
+  size: 337, 286
+  orig: 337, 286
+  offset: 0, 0
+  index: -1
+shoe_left
+  rotate: false
+  xy: 4, 1670
+  size: 386, 285
+  orig: 386, 285
+  offset: 0, 0
+  index: -1
+shoe_right
+  rotate: false
+  xy: 398, 1670
+  size: 524, 273
+  orig: 524, 273
+  offset: 0, 0
+  index: -1
+hand_left_flick
+  rotate: false
+  xy: 930, 1670
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
+hand_left_pinch
+  rotate: false
+  xy: 1168, 1670
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
+hand_left_present
+  rotate: false
+  xy: 1406, 1670
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
+hand_left_release
+  rotate: false
+  xy: 1644, 1670
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
+
+smukiez-3.png
+size: 2048,256
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+pma: false
+hand_left_tense
+  rotate: false
+  xy: 4, 4
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
+hand_left
+  rotate: false
+  xy: 242, 4
+  size: 179, 175
+  orig: 179, 175
+  offset: 0, 0
+  index: -1
+hand_right_brace
+  rotate: false
+  xy: 429, 4
+  size: 160, 175
+  orig: 160, 175
+  offset: 0, 0
+  index: -1
+hand_right_release
+  rotate: false
+  xy: 597, 4
+  size: 160, 175
+  orig: 160, 175
+  offset: 0, 0
+  index: -1
+hand_right
+  rotate: false
+  xy: 765, 4
+  size: 130, 153
+  orig: 130, 153
+  offset: 0, 0
+  index: -1
+arm_left
+  rotate: false
+  xy: 903, 4
+  size: 214, 150
+  orig: 214, 150
+  offset: 0, 0
+  index: -1
+arm_upper
+  rotate: false
+  xy: 1125, 4
+  size: 214, 150
+  orig: 214, 150
+  offset: 0, 0
+  index: -1

@@ -1,7 +1,7 @@
 {
   "runtime": "@esotericsoftware/spine-core 4.2.120",
-  "bones": 28,
-  "slots": 16,
+  "bones": 30,
+  "slots": 22,
   "weightedMeshes": 10,
   "ikConstraints": 2,
   "atlasPages": 3,
@@ -50,21 +50,19 @@
     },
     {
       "name": "cash_toss",
-      "duration": 4.2,
+      "duration": 6.8,
       "face": "face_cash_show",
       "endpointMaxDelta": 0
     },
     {
       "name": "enter",
-      "duration": 0.8,
-      "face": "face_idle",
-      "endpointMaxDelta": 0
+      "duration": 1.2,
+      "face": "face_idle"
     },
     {
       "name": "exit",
-      "duration": 0.8,
-      "face": "face_idle",
-      "endpointMaxDelta": 0
+      "duration": 0.7,
+      "face": "face_idle"
     }
   ],
   "sampledFrames": 1638,
@@ -76,14 +74,46 @@
   ],
   "transitionsToIdle": 10,
   "eventsDelivered": 16,
-  "fadeChecks": {
-    "slots": 16,
-    "samplesPerFade": 49,
-    "matchingSlotAlpha": true,
-    "monotonic": true,
-    "exitHoldsHidden": true,
+  "baselineNote": "Original checks apply to unchanged clips; updated transition and cash-toss checks are recorded separately.",
+  "transitionChecks": {
+    "runtime": "Spine 4.2.120 (bundled)",
+    "enterDuration": 1.2,
+    "exitDuration": 0.7,
+    "sampledFrames": 122,
+    "finiteGeometry": true,
     "enterContinuesIdle": true,
-    "interruptedFadeRestoresOpacity": true,
+    "exitHoldsHidden": true,
+    "reenterRestoresOpacity": true,
+    "interruptedExitRestoresTransformAndOpacity": true,
     "previewSyntax": "passed"
+  },
+  "cashTossChecks": {
+    "runtime": "Spine 4.2.120",
+    "duration": 6.8,
+    "billsTossed": 6,
+    "sampledFrames": 205,
+    "rightHandGripStaysClosed": true,
+    "rightReachOverlapsLeftToss": true,
+    "jeansOccludePocketReach": true,
+    "reachDirection": "inward-left",
+    "tossHand": "left",
+    "pocketHand": "right",
+    "leftArmRestsAfterToss": true,
+    "fixedBicep": true,
+    "rigidForearm": true,
+    "constantElbowToWristLength": true,
+    "billsFallDown": true,
+    "scatterFadeSeconds": 2.6,
+    "emptyHandsBeforeRefill": true,
+    "endpointMatchesIdle": true,
+    "controllerReturnsToIdle": true,
+    "interruptionRestoresFullStackAndDrawOrder": true,
+    "events": [
+      "cash_toss",
+      "pocket_reach",
+      "cash_refill"
+    ],
+    "finiteGeometry": true,
+    "scatterVariants": 4
   }
 }
