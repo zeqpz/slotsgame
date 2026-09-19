@@ -612,10 +612,30 @@
     padding: 14px 18px;   /* transparent — the wall shows straight through */
   }
   .betbox { display: flex; align-items: center; gap: 8px; }
+  /* The stepper is hand-sprayed art, not type: the cyan-on-magenta box is the button and
+     the glyph is painted inside it. font-size:0 drops the - and + characters the markup
+     still carries for anything that reads the DOM without the stylesheet; the buttons keep
+     their aria-labels, so nothing is lost. */
   .betbox button {
-    width: 34px; height: 34px; background: var(--panel2); color: var(--ink);
-    border: 2px solid var(--line); font-family: var(--mono); font-size: 16px; font-weight: 700;
+    width: 46px; height: 46px; padding: 0; border: 0; font-size: 0;
+    display: grid; place-items: center;
+    background: url("assets/bet_box.png") center / 100% 100% no-repeat;
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
+  .betbox button::before {
+    content: ""; background: center / contain no-repeat;
+    /* the glyph is neon green on the box's magenta, so it needs a hard edge under it to
+       separate the two saturated colours at button size */
+    filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
+  }
+  /* the bar and the cross are nothing like the same shape, so each gets its own box and
+     `contain` letterboxes the art inside it */
+  #betDown::before { width: 76%; height: 40%; background-image: url("assets/bet_minus.png"); }
+  #betUp::before   { width: 62%; height: 62%; background-image: url("assets/bet_plus.png"); }
+  /* the can presses into the wall and bounces back */
+  .betbox button:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
+  .betbox button:active:not(:disabled) { transform: scale(.93); }
+  .betbox button:disabled { filter: grayscale(.7); }
   /* same treatment as the header figures: the graffiti face sets numerals tight enough to
      read as one blob, so tracking them apart is what makes the amount legible. The trailing
      letter-space would pull centred text left, so half of it comes back as an indent. */
