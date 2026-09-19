@@ -916,7 +916,7 @@
   .spinbtn.arrows-away::after { scale: 0 !important; transition-delay: .4s; }
 
   .skipbtn {
-    position: absolute; inset: 16% 33%;      /* square-ish, centred on the wide plate */
+    position: absolute; inset: 26% 38%;      /* square-ish, centred on the wide plate */
     background: url("assets/skip_btn.png") center/contain no-repeat;
     border: none; padding: 0; cursor: pointer; font-size: 0;   /* image only, no "SKIP" text */
     opacity: 0; scale: .6; pointer-events: none;
@@ -1880,6 +1880,7 @@ const handlers = {
     sfx("bonusStart");
     await banner(`${ev.totalFs} FREE SPINS`, "Crew Leader trigger", 1300, "gold");
     $("fsCard").classList.add("on");
+    fitToScreen();   // the counter just grew the page; re-fit or the bottom bar falls off it
     state.fsTotal = ev.totalFs;
   },
 
@@ -1932,6 +1933,7 @@ const handlers = {
     sfx("bonusEnd");
     await banner("BONUS COMPLETE", `Free spins paid ${fmt(cents(ev.amount))}`, 1500, "gold");
     $("fsCard").classList.remove("on");
+    fitToScreen();   // and give the space back
     $("fsNow").textContent = "—";
   },
 
@@ -2062,7 +2064,9 @@ async function presentRound(round, { settle = true } = {}) {
       await banner(tier[0], `${fmt(win)} \u00b7 ${mult.toFixed(0)}x`, tier[2], tier[1]);
     }
   } else {
-    charReact("lose");
+    // no "lose" here: a spin that pays nothing is most spins. The characters only sulk when
+    // a bonus was actually on the table - a near miss above, or a bonus that failed to clear
+    // its own cost in freeSpinEnd.
     tick("No win — run it back.");
   }
 }
@@ -2440,26 +2444,51 @@ async function makeCharacter({ el, base, name, ambient, flavour }) {
 // The layout has a natural size (~994px tall); rather than let it scroll, scale the flow
 // content down to whatever the window is. Measured at --fit:1 each time so the factor is
 // derived from the natural size, never compounded on the previous scale.
+let fitBusy = false;
 function fitToScreen() {
   const app = $("app"), stage = document.querySelector(".stage");
-  if (!app || !stage) return;
-  const W = innerWidth, H = innerHeight;
-  // The board is the one thing that can't wrap, so it sets the floor on the scale: lay the
-  // page out wide enough for it, then see how tall that comes out and fit that too. The
-  // final width is never narrower than the first pass, so nothing wraps back taller.
-  app.style.transform = "none"; app.style.width = "auto"; app.style.height = "auto";
-  const needW = stage.offsetWidth + 40;                     // .main's side padding
-  const fitW = Math.min(1, W / needW);
-  app.style.width = (W / fitW) + "px";
-  const fit = Math.min(fitW, H / app.scrollHeight);        // reading it flushes layout
-  app.style.width = (W / fit) + "px";
-  app.style.height = (H / fit) + "px";
-  app.style.transform = `scale(${fit.toFixed(4)})`;
-  document.documentElement.style.setProperty("--fit", fit.toFixed(4));
+  if (!app || !stage || fitBusy) return;
+  // Every write below resizes the very boxes the observer watches, so guard against being
+  // re-entered from inside our own writes. The flag clears in a finally, not on a frame: a
+  // backgrounded tab throttles rAF, and a flag waiting on one would stay stuck and leave
+  // fit-to-screen dead for the rest of the session. The observer's own reaction lands after
+  // this returns, re-runs once, computes the same numbers and writes nothing new.
+  fitBusy = true;
+  try {
+    const W = innerWidth, H = innerHeight;
+    // The board is the one thing that can't wrap, so it sets the floor on the scale: lay the
+    // page out wide enough for it, then see how tall that comes out and fit that too. The
+    // final width is never narrower than the first pass, so nothing wraps back taller.
+    app.style.transform = "none"; app.style.width = "auto"; app.style.height = "auto";
+    const needW = stage.offsetWidth + 40;                   // .main's side padding
+    const fitW = Math.min(1, W / needW);
+    app.style.width = (W / fitW) + "px";
+    const fit = Math.min(fitW, H / app.scrollHeight);       // reading it flushes layout
+    app.style.width = (W / fit) + "px";
+    app.style.height = (H / fit) + "px";
+    app.style.transform = `scale(${fit.toFixed(4)})`;
+    document.documentElement.style.setProperty("--fit", fit.toFixed(4));
+  } finally {
+    fitBusy = false;
+  }
 }
 addEventListener("resize", fitToScreen);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen).catch(() => {});
 addEventListener("load", fitToScreen);
+// The layout grows without the window changing: a bonus puts the spin counter under the
+// board, and that pushed the whole bottom bar off the bottom of the screen with nothing to
+// trigger a re-fit.
+//
+// Watch the pieces that actually change, not .main: .main is flex:1 inside an #app whose
+// height this function sets, so its own box never moves no matter what goes inside it, and
+// an observer on it sees nothing at all. The rail is where the free-spin counter lands.
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => fitToScreen());
+  for (const sel of [".rail", ".stage", ".bottom"]) {
+    const el = document.querySelector(sel);
+    if (el) ro.observe(el);
+  }
+}
 
 buildBoard();
 setTags(0, 4);
@@ -2576,13 +2605,20 @@ function placePop(pop, btn) {
   let cx = br.left + br.width / 2;
   if (lo <= hi) cx = Math.max(lo, Math.min(hi, cx));
   const left = ((cx - rr.left) / k) + "px";
-  // rise clear of the button, and of anything stacked over it that the pop would land on.
+  // Rise clear of the button, and of anything stacked over it that the pop would land on.
   // A button inside an already-open pop-up sits above the whole bar, so this resolves to
   // "10px over the button" for it and to "10px over the tallest thing in the way" otherwise.
+  //
+  // Only things in the bar's own flow count. The pop-ups hang off the bar as children of it,
+  // so measuring them here makes each one clear the other: open one, and the next frame
+  // lifts it past the first, and the frame after that lifts it again. That is a runaway -
+  // it put both of them a hundred thousand pixels off the top of the screen.
   let top = br.top;
   for (const el of row.children) {
     const r = el.getBoundingClientRect();
     if (!r.width && !r.height) continue;   // a hidden child is a 0x0 box at the page origin
+    const pos = getComputedStyle(el).position;
+    if (pos === "absolute" || pos === "fixed") continue;   // an overlay, not part of the bar
     if (r.right > cx - half && r.left < cx + half) top = Math.min(top, r.top);
   }
   const bottom = ((rr.bottom - top) / k + 10) + "px";
