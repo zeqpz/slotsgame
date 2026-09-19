@@ -2492,18 +2492,39 @@ function placeBar(b) {
   const pop = $(b.pop), rr = row.getBoundingClientRect(), br = $(b.btn).getBoundingClientRect();
   const k = rr.width / Math.max(1, row.offsetWidth);
   const cx = br.left + br.width / 2;
-  pop.style.left = ((cx - rr.left) / k) + "px";
+  const left = ((cx - rr.left) / k) + "px";
   const half = pop.getBoundingClientRect().width / 2;
   let top = br.top;
   for (const el of row.children) {
     const r = el.getBoundingClientRect();
     if (r.right > cx - half && r.left < cx + half) top = Math.min(top, r.top);
   }
-  pop.style.bottom = ((rr.bottom - top) / k + 10) + "px";
+  const bottom = ((rr.bottom - top) / k + 10) + "px";
+  if (pop.style.left !== left) pop.style.left = left;        // only write on a real move, so
+  if (pop.style.bottom !== bottom) pop.style.bottom = bottom;  // the tracker costs reads only
+}
+
+// The row reflows for reasons no resize event reports: the bet figure gets wider, the
+// autoplay counter appears, the spin button swaps for skip. Any of those slides the cluster
+// sideways under an already-open bar. Re-measure every frame while one is up - it costs a
+// few rect reads and stops on its own the moment the last bar closes.
+let barTrack = 0;
+function trackBars() {
+  barTrack = 0;
+  let any = false;
+  for (const b of BUSES) {
+    if ($(b.pop).hidden) continue;
+    placeBar(b);
+    any = true;
+  }
+  if (any) barTrack = requestAnimationFrame(trackBars);
 }
 function showBar(b, on) {
   $(b.pop).hidden = !on;
-  if (on) placeBar(b);   // placed in the same task as the unhide, so it never paints adrift
+  if (on) {
+    placeBar(b);   // placed in the same task as the unhide, so it never paints adrift
+    if (!barTrack) barTrack = requestAnimationFrame(trackBars);
+  }
   $(b.btn).classList.toggle("open", on);
   $(b.btn).setAttribute("aria-expanded", on ? "true" : "false");
 }
@@ -2518,18 +2539,35 @@ for (const b of BUSES) {
     const r = bar.getBoundingClientRect();
     return (1 - (e.clientY - r.top) / Math.max(1, r.height)) * 100;
   };
-  let dragging = false;
+  // The drag belongs to ONE pointer. A boolean is not enough: a second finger landing on the
+  // bar would steer the same drag, and whichever finger lifted first would end it.
+  let dragId = null;
+  const stop = () => {
+    if (dragId === null) return;
+    try { bar.releasePointerCapture(dragId); } catch (err) { /* already gone */ }
+    dragId = null;
+  };
   bar.addEventListener("pointerdown", e => {
-    dragging = true;
+    // primary press only - a right-, middle- or thumb-button press would otherwise write the
+    // bus gain and localStorage, and swallow the context menu with it
+    if (dragId !== null || !e.isPrimary || e.button !== 0) return;
+    dragId = e.pointerId;
     try { bar.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
     setVol(b.key, fromY(e));
     e.preventDefault();   // no text selection, no page scroll behind the drag
   });
-  bar.addEventListener("pointermove", e => { if (dragging) setVol(b.key, fromY(e)); });
+  bar.addEventListener("pointermove", e => {
+    if (e.pointerId !== dragId) return;
+    // Escape, or a press outside the cluster, can close the bar mid-drag - and pointer
+    // capture survives display:none. The hidden bar would go on taking moves against a 0x0
+    // rect, which reads as the pointer being far below the bottom, and slam the bus to zero.
+    // Once the pop is down, the drag is over.
+    if ($(b.pop).hidden) { stop(); return; }
+    setVol(b.key, fromY(e));
+  });
   const release = e => {
-    if (!dragging) return;
-    dragging = false;
-    try { bar.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+    if (e.pointerId !== dragId) return;
+    stop();
     if (b.key === "sfx") sfx("bet", 1);   // a click at the new level, once the drag ends
   };
   bar.addEventListener("pointerup", release);
@@ -2554,8 +2592,6 @@ document.addEventListener("pointerdown", e => {
   if (barsOpen() && !e.target.closest?.(".uislot")) closeBars();
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
-// the row rewraps as the window changes, so an open bar re-measures with it
-addEventListener("resize", () => { for (const b of BUSES) if (!$(b.pop).hidden) placeBar(b); });
 paintVol();
 if (SOCIAL) {   // restricted vocabulary: the chooser's static copy goes through T() too
   for (const id of ["bonusTitle", "bonusStdDesc", "bonusExtDesc", "bonusBetLbl", "bonusNote"]) {
