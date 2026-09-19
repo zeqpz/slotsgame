@@ -617,21 +617,31 @@
      still carries for anything that reads the DOM without the stylesheet; the buttons keep
      their aria-labels, so nothing is lost. */
   .betbox button {
+    position: relative;
     width: 46px; height: 46px; padding: 0; border: 0; font-size: 0;
-    display: grid; place-items: center;
     background: url("assets/bet_box.png") center / 100% 100% no-repeat;
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
+  /* The buttons still carry their - and + characters for anything reading the DOM without
+     the stylesheet. Laying the glyph out in flow made that hidden text a second grid row,
+     which pinned the art to the top half of the box and resolved its percentage height
+     against a half-height row; positioning it against the button fixes both.
+     The sprayed box has a drip hanging off its bottom edge, so the painted panel's own
+     centre sits a touch above the middle of the image - the glyph follows the panel, not
+     the image. Measured off the magenta: centre at 47.7% down, 50.4% across. */
   .betbox button::before {
-    content: ""; background: center / contain no-repeat;
+    content: ""; position: absolute;
+    left: 50.4%; top: 47.7%; transform: translate(-50%, -50%);
+    background: center / contain no-repeat;
     /* the glyph is neon green on the box's magenta, so it needs a hard edge under it to
        separate the two saturated colours at button size */
     filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
   }
   /* the bar and the cross are nothing like the same shape, so each gets its own box and
-     `contain` letterboxes the art inside it */
-  #betDown::before { width: 76%; height: 40%; background-image: url("assets/bet_minus.png"); }
-  #betUp::before   { width: 62%; height: 62%; background-image: url("assets/bet_plus.png"); }
+     `contain` letterboxes the art inside it - the bar reads heavy at matching size, so it
+     runs smaller than the cross */
+  #betDown::before { width: 43%; height: 24%; background-image: url("assets/bet_minus.png"); }
+  #betUp::before   { width: 37%; height: 37%; background-image: url("assets/bet_plus.png"); }
   /* the can presses into the wall and bounces back */
   .betbox button:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
   .betbox button:active:not(:disabled) { transform: scale(.93); }
