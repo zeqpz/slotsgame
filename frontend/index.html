@@ -15,6 +15,9 @@
     --spray: #F0568B;
     --spray-deep: #C42A63;
     --gold: #F5C518;
+    /* the two free-spin scatters glow in their own paint, not in the UI palette */
+    --fs-green: #A8F000;
+    --fs-purple: #C026D8;
     --purple: #A78BFA;
     --teal: #3FBFB2;
     --green: #4ADE80;
@@ -243,11 +246,67 @@
   .popover .autoopts button.on { border-color: var(--orange); color: var(--orange); }
   .popover .infoclose { font-size: 13px; padding: 6px 14px; background: var(--orange); border-color: var(--orange); color: #16130f; }
   .popover .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); }
-  .vol { display: grid; grid-template-columns: 96px 1fr 38px; align-items: center; gap: 8px; font-size: 12px; color: var(--ink); margin: 7px 0; }
-  .vol input[type=range] { width: 100%; accent-color: var(--orange); cursor: pointer; margin: 0; }
-  .vol b { text-align: right; font-family: var(--mono); color: var(--orange); }
-  .mute { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-soft); margin-top: 8px; }
-  .mute input { accent-color: var(--orange); }
+  /* --- sound, music and information: sprayed boxes, each audio one opening a drag bar --- */
+  .uibar { display: flex; align-items: center; gap: 8px; }
+  .uislot { display: inline-flex; }
+  .uibtn {
+    position: relative; width: 38px; height: 38px; padding: 0; border: 0; font-size: 0;
+    background: url("assets/ui_box.png") center / 100% 100% no-repeat;
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  }
+  /* this box is sprayed without a drip, so unlike the bet stepper its painted panel really
+     is centred and the glyph can sit dead middle */
+  .uibtn::before {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    background: center / contain no-repeat;
+    filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
+  }
+  .uibtn.snd::before { width: 60%; height: 60%; background-image: url("assets/icon_sound.png"); }
+  .uibtn.mus::before { width: 56%; height: 56%; background-image: url("assets/icon_music.png"); }
+  .uibtn.nfo::before { width: 56%; height: 56%; background-image: url("assets/icon_info.png"); }
+  .uibtn:hover { transform: scale(1.07); filter: brightness(1.12); }
+  .uibtn:active { transform: scale(.93); }
+  .uibtn.open { filter: brightness(1.18) saturate(1.08); }
+  .uibtn.off::before { filter: grayscale(1) brightness(.5); }   /* that bus is at zero */
+
+  /* the drag bar rides above its own button and only exists while it is open */
+  .vpop {
+    /* left and bottom are both set from JS: the bar wraps, so how far the pop has to rise
+       to clear what is stacked over its button is only knowable at open time */
+    position: absolute; bottom: calc(100% + 10px); z-index: 30;
+    transform: translateX(-50%); transform-origin: 50% 100%;
+    animation: vpopin .34s cubic-bezier(.2,.9,.3,1.35);
+  }
+  .vpop[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
+  @keyframes vpopin {   /* display toggles restart it, so every open grows out of the button */
+    0%   { transform: translateX(-50%) scaleY(.3); opacity: 0; }
+    60%  { transform: translateX(-50%) scaleY(1.07); opacity: 1; }
+    100% { transform: translateX(-50%) scaleY(1); }
+  }
+  .vbar {
+    position: relative; width: 34px; height: 118px; border-radius: 13px;
+    background: #17161a; overflow: hidden;
+    /* the ring is an outset shadow rather than a border, so the box the fill lives in is
+       exactly the box the drag maths measures - no border to correct for */
+    box-shadow: 0 0 0 2px rgba(0,0,0,.7), 0 12px 28px rgba(0,0,0,.6), inset 0 2px 9px rgba(0,0,0,.75);
+    cursor: pointer;
+    touch-action: none;   /* a vertical drag is the control, not a page scroll */
+  }
+  .vbar:focus-visible { outline: 2px solid var(--spray); outline-offset: 4px; }
+  .vfill {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 0;
+    border-radius: 11px; background: linear-gradient(180deg, #f7e9c6, #ecd49c);
+    pointer-events: none;   /* every pointer event belongs to the bar itself */
+  }
+  @media (max-width: 620px) {
+    .uibar { gap: 5px; }
+    .uibtn { width: 31px; height: 31px; }
+    .vbar { width: 30px; height: 104px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vpop { animation: none !important; }
+    .uibtn { transition: none !important; }
+  }
   /* Required disclosure — has to be reachable from inside the game, not just the lobby. */
   .infowrap {
     position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
@@ -316,9 +375,6 @@
   }
   .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); margin-left: 10px; }
   .infopanel .cost { font-family: var(--mono); font-size: 22px; font-weight: 700; letter-spacing: .12em; color: var(--gold); margin: 0 0 16px; }
-  /* sound toggle sits with the info button; struck through while muted */
-  .info svg.spk { width: 14px; height: 14px; fill: currentColor; display: block; margin: 0 auto; }
-  .info .slash { display: none; } .info.off .slash { display: block; } .info.off .wave { display: none; }
   .info.off { opacity: .65; }
   /* a ten-figure balance (ARS, IDR...) must never push the header off the popout */
   .stat .val.long { font-size: 17px; letter-spacing: .1em; }
@@ -403,10 +459,24 @@
     font-size: 10px; padding: 0 4px; font-weight: 700; z-index: 1;
   }
   .cell.wild  { background: var(--spray-deep); border-color: var(--spray); color: #fff; }
-  .cell.scat  { color: var(--gold); }
-  .cell.scat img  { filter: drop-shadow(0 0 8px rgba(245, 197, 24, .85)); }
-  .cell.escat { color: var(--purple); }
-  .cell.escat img { filter: drop-shadow(0 0 8px rgba(167, 139, 250, .9)); }
+  /* The two scatters are hand-painted FS and XXFS. They glow in their own colour and the
+     glow breathes, so a landed scatter reads as live even before anything happens to it. */
+  .cell.scat  { color: var(--fs-green); }
+  .cell.escat { color: var(--fs-purple); }
+  .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite; }
+  .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
+  @keyframes scatglow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(168, 240, 0, .9)) drop-shadow(0 0 14px rgba(168, 240, 0, .45)); }
+    50%      { filter: drop-shadow(0 0 9px rgba(168, 240, 0, 1)) drop-shadow(0 0 28px rgba(168, 240, 0, .8)); }
+  }
+  @keyframes escatglow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(192, 38, 216, .9)) drop-shadow(0 0 14px rgba(192, 38, 216, .5)); }
+    50%      { filter: drop-shadow(0 0 9px rgba(192, 38, 216, 1)) drop-shadow(0 0 28px rgba(192, 38, 216, .85)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cell.scat img  { animation: none; filter: drop-shadow(0 0 7px rgba(168, 240, 0, .95)); }
+    .cell.escat img { animation: none; filter: drop-shadow(0 0 7px rgba(192, 38, 216, .95)); }
+  }
   .cell.drop  { animation: drop .3s ease-out; }
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
   /* cascade: only the winning symbols pop and vanish; per column the survivors above the
@@ -456,26 +526,28 @@
     70%  { transform: translateY(calc(-.8px * var(--thud, 1))); }
     100% { transform: none; }
   }
-  .cell.winhit { transform: scale(1.04); }
-  .cell.winhit::after {
-    content: ""; position: absolute; left: -8px; top: -8px;
-    width: calc(100% + 16px); height: calc((100% + 16px) * 1.24);
-    background: url("assets/winframe.png") no-repeat top center / 100% 100%;
-    pointer-events: none; z-index: 2;
-    /* snaps out of nothing, overshoots, shakes itself out and settles.
-       origin sits on the symbol's centre, not the taller frame's, so it grows from the tile */
-    transform-origin: center 40%;
-    animation: winpop .38s cubic-bezier(.25,.85,.35,1);
+  /* A winning tile POPS. There used to be a sprayed frame drawn around it as well; the
+     frame read as a box sitting on top of the art rather than as the art reacting, so the
+     symbol itself does the work now - it punches up, shakes the hit off and settles a
+     little proud of the others, lit from behind so the line reads at a glance. */
+  .cell.winhit {
+    /* above its neighbours so the pop is never clipped by the next tile, but below the
+       payline's own layer (z-index 2) so the stroke and its multiplier still read on top */
+    transform: scale(1.06); z-index: 1;
+    animation: winpop .52s cubic-bezier(.25,.85,.35,1);
   }
+  .cell.winhit img { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
   @keyframes winpop {
-    0%   { transform: scale(0); opacity: 0; }
-    16%  { transform: scale(1.22); opacity: 1; }   /* out of nothing to oversize, very quickly */
-    30%  { transform: scale(.99) translateX(-2px) rotate(-1.8deg); }
-    44%  { transform: scale(1.04) translateX(2px) rotate(1.4deg); }
-    58%  { transform: scale(1) translateX(-1.2px) rotate(-.8deg); }
-    72%  { transform: translateX(.6px) rotate(.4deg); }
-    86%  { transform: translateX(-.25px) rotate(-.15deg); }
-    100% { transform: none; }
+    0%   { transform: scale(1); }
+    18%  { transform: scale(1.3) rotate(-2.4deg); }    /* punched up, hard and fast */
+    34%  { transform: scale(.97) rotate(1.6deg); }
+    50%  { transform: scale(1.15) rotate(-1deg); }
+    68%  { transform: scale(1.02) rotate(.5deg); }
+    84%  { transform: scale(1.08) rotate(-.2deg); }
+    100% { transform: scale(1.06); }                   /* lands where the base rule leaves it */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cell.winhit { animation: none; }
   }
   /* payline stroke — the spray dab tiled along each leg of the line, slashed on fast.
      Two offset layers at different sizes keep it from reading as evenly-spaced dots. */
@@ -608,6 +680,7 @@
 
   /* bottom bar */
   .bottom {
+    position: relative;   /* the volume bars anchor to the whole bar, not to their button */
     display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
     padding: 14px 18px;   /* transparent — the wall shows straight through */
   }
@@ -885,16 +958,23 @@
     </div>
   </div>
   <label class="turbo"><input type="checkbox" id="turbo"> TURBO</label>
-  <div class="popanchor">
-    <button class="info" id="soundBtn" aria-label="Sound settings" aria-haspopup="dialog"><svg class="spk" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9z"/><path class="wave" d="M15.5 8.2a4.6 4.6 0 0 1 0 7.6M18.2 5.6a8 8 0 0 1 0 12.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path class="slash" d="M15 8l6 8M21 8l-6 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
-    <div class="popover right" id="soundPop" hidden role="dialog" aria-label="Sound settings">
-      <div class="poptitle">Sound</div>
-      <label class="vol"><span>Music</span><input type="range" id="volMusic" min="0" max="100" step="1"><b id="volMusicN"></b></label>
-      <label class="vol"><span>Sound effects</span><input type="range" id="volSfx" min="0" max="100" step="1"><b id="volSfxN"></b></label>
-      <label class="mute"><input type="checkbox" id="muteAll"> Mute everything</label>
+  <div class="uibar">
+    <div class="uislot">
+      <div class="vpop" id="sfxPop" hidden>
+        <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
+             aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vfill"></i></div>
+      </div>
+      <button class="uibtn snd" id="soundBtn" aria-label="Sound effects volume" aria-expanded="false">Sound</button>
     </div>
+    <div class="uislot">
+      <div class="vpop" id="musicPop" hidden>
+        <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
+             aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vfill"></i></div>
+      </div>
+      <button class="uibtn mus" id="musicBtn" aria-label="Music volume" aria-expanded="false">Music</button>
+    </div>
+    <button class="uibtn nfo" id="infoBtn" aria-label="Game information">Info</button>
   </div>
-  <button class="info" id="infoBtn" aria-label="Game information">i</button>
 </div>
 </div>
 
@@ -1441,14 +1521,27 @@ const SPIN_SHAPE = [
 const REEL_RATE = { min: .55, max: 1.5 };
 
 let actx = null, sfxBus = null, musicBus = null;
-// Player's mix, 0-100 each, remembered per browser. There is no music track in the bundle
-// yet: the Music slider drives musicBus, which startMusic() will feed once MUSIC_URL is set.
+// Player's mix, 0-100 each, remembered per browser.
+// NOTE: there is still no music track in the bundle. The music bar sets musicBus's gain and
+// remembers where the player left it, but nothing is routed through that bus until a file is
+// dropped in and MUSIC_URL points at it - so today the bar is silent by design, not broken.
 const MUSIC_URL = null;
 const vol = { music: 70, sfx: 80 };
 try { Object.assign(vol, JSON.parse(localStorage.getItem("smukiez.vol") || "{}")); } catch (e) { /* storage blocked */ }
+// The old build carried a separate "mute everything" switch. Dragging a bar to zero is the
+// mute now, so anyone who had that switch on comes back silenced instead of losing the
+// setting. Write the migrated mix before dropping the old key, or the next load would read
+// a mix that was never saved and come back loud.
+try {
+  if (localStorage.getItem("smukiez.muted") === "1") {
+    vol.music = 0; vol.sfx = 0;
+    localStorage.setItem("smukiez.vol", JSON.stringify(vol));
+  }
+  localStorage.removeItem("smukiez.muted");
+} catch (e) { /* storage blocked */ }
 function applyVolumes() {
-  if (sfxBus) sfxBus.gain.value = muted ? 0 : vol.sfx / 100;
-  if (musicBus) musicBus.gain.value = muted ? 0 : vol.music / 100;
+  if (sfxBus) sfxBus.gain.value = vol.sfx / 100;
+  if (musicBus) musicBus.gain.value = vol.music / 100;
 }
 let musicSrc = null;
 function startMusic() {
@@ -1529,20 +1622,8 @@ function audio() {
 // browsers only allow audio once the player has interacted — first gesture opens the context
 addEventListener("pointerdown", () => { audio(); startMusic(); }, { once: true });
 
-// Player's mute switch. Remembered per browser; the toggle is the note button by the info one.
-let muted = false;
-try { muted = localStorage.getItem("smukiez.muted") === "1"; } catch (e) { /* storage blocked */ }
-function setMuted(on) {
-  muted = on;
-  try { localStorage.setItem("smukiez.muted", on ? "1" : "0"); } catch (e) { /* ignore */ }
-  const b = $("soundBtn");
-  if (b) b.classList.toggle("off", on);
-  const m = $("muteAll");
-  if (m) m.checked = on;
-  applyVolumes();
-}
 function sfx(name, rate = 1) {
-  if (muted) return;
+  if (vol.sfx <= 0) return;   // the bar is at the bottom: don't even open the context
   const ctx = audio();
   if (!ctx || !sfxBuf[name]) return;
   const src = ctx.createBufferSource();
@@ -1556,10 +1637,10 @@ function sfx(name, rate = 1) {
 
 // One loop for the whole spin, its pitch following the reels' own speed curve.
 function loopSfx(name, ms, curve) {
-  if (muted) return () => {};
+  if (vol.sfx <= 0) return () => {};
   const ctx = audio();
   if (!ctx || !sfxBuf[name]) return () => {};
-  const vol = SFX_VOL[name] ?? .4;
+  const level = SFX_VOL[name] ?? .4;   // this clip's own level, not the player's mix
   const secs = ms / 1000;
   const src = ctx.createBufferSource();
   src.buffer = sfxBuf[name];
@@ -1567,8 +1648,8 @@ function loopSfx(name, ms, curve) {
   const g = ctx.createGain();
   const t = ctx.currentTime;
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t + .06);
-  g.gain.setValueAtTime(vol, t + Math.max(.1, secs - .2));
+  g.gain.linearRampToValueAtTime(level, t + .06);
+  g.gain.setValueAtTime(level, t + Math.max(.1, secs - .2));
   g.gain.linearRampToValueAtTime(0, t + secs);
   try { src.playbackRate.setValueCurveAtTime(curve, t, secs); } catch (e) { /* fall back to 1x */ }
   src.connect(g).connect(sfxBus);
@@ -1794,9 +1875,14 @@ function drawPayline(positions, mult) {
   if (!positions || positions.length < 2) return;
   const board = $("board");
   const br = board.getBoundingClientRect();
+  // #app is transform-scaled to fit the window, so a rect is NOT a layout length. The stroke
+  // is positioned with left/top inside the board, which the same transform scales again -
+  // so the rect deltas have to be divided back out first or every leg lands short of its
+  // icons and the whole line reads as drawn through the wrong tiles.
+  const k = br.width / Math.max(1, board.offsetWidth);
   const pts = positions.map(p => {
     const cr = cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)].getBoundingClientRect();
-    return { x: cr.left - br.left + cr.width / 2, y: cr.top - br.top + cr.height / 2 };
+    return { x: (cr.left - br.left + cr.width / 2) / k, y: (cr.top - br.top + cr.height / 2) / k };
   });
   const layer = document.createElement("div");
   layer.className = "payline";
@@ -2320,7 +2406,7 @@ $("betDown").addEventListener("click", () => { state.betIdx = Math.max(state.bet
 document.addEventListener("keydown", e => {
   if (e.code !== "Space" || e.repeat || REPLAY) return;
   if (RGS.jurisdiction().disabledSpacebar) return;
-  if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden])")) return;   // a dialog has the keyboard
+  if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden]), .vpop:not([hidden])")) return;   // a dialog has the keyboard
   e.preventDefault();
   playRound("base");
 });
@@ -2359,7 +2445,7 @@ function runIntro() {
 runIntro();
 
 // One pop-up open at a time; its button reads as pressed while it is up.
-const POPS = { autoPop: "autoBtn", soundPop: "soundBtn" };
+const POPS = { autoPop: "autoBtn" };
 function openPop(id) {
   for (const [pid, bid] of Object.entries(POPS)) {
     const on = pid === id;
@@ -2368,29 +2454,108 @@ function openPop(id) {
   }
 }
 function closePops() { openPop(null); }
-document.addEventListener("pointerdown", e => {
-  if (!$("soundPop").hidden && !e.target.closest("#soundPop, #soundBtn")) closePops();
-}, true);
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("soundPop").hidden) closePops(); });
 
-// Sound settings: two sliders and a mute switch. Values save as they move.
+/* ---------- sound and music: a drag bar over each button ---------- */
+// One bar per bus, each popping up over its own icon and filling from the bottom. Zero is
+// the mute: there is no separate switch, which is why the icon greys out at the bottom of
+// the travel. Values save as the bar moves, so a drag that is never released still sticks.
+const BUSES = [
+  { key: "sfx",   btn: "soundBtn", pop: "sfxPop",   bar: "sfxBar"   },
+  { key: "music", btn: "musicBtn", pop: "musicPop", bar: "musicBar" },
+];
 function saveVol() { try { localStorage.setItem("smukiez.vol", JSON.stringify(vol)); } catch (e) { /* ignore */ } }
 function paintVol() {
-  $("volMusic").value = vol.music; $("volMusicN").textContent = vol.music + "%";
-  $("volSfx").value = vol.sfx;     $("volSfxN").textContent = vol.sfx + "%";
-  $("muteAll").checked = muted;
+  for (const b of BUSES) {
+    const v = Math.round(vol[b.key]);
+    const bar = $(b.bar);
+    bar.querySelector(".vfill").style.height = v + "%";
+    bar.setAttribute("aria-valuenow", v);
+    bar.setAttribute("aria-valuetext", v + "%");
+    $(b.btn).classList.toggle("off", v === 0);
+  }
 }
-$("volMusic").addEventListener("input", e => { vol.music = Number(e.target.value); paintVol(); applyVolumes(); saveVol(); });
-$("volSfx").addEventListener("input", e => { vol.sfx = Number(e.target.value); paintVol(); applyVolumes(); saveVol(); });
-$("volSfx").addEventListener("change", () => sfx("bet", 1));   // a click at the new level, once the drag ends
-$("muteAll").addEventListener("change", e => setMuted(e.target.checked));
-$("soundBtn").addEventListener("click", () => {
-  if (!$("soundPop").hidden) { closePops(); return; }
+function setVol(key, v) {
+  vol[key] = Math.max(0, Math.min(100, Math.round(v)));
   paintVol();
-  openPop("soundPop");
-  sfx("bet", 1);
-});
-setMuted(muted);
+  applyVolumes();
+  saveVol();
+}
+// The pop hangs off .bottom rather than off its own button, because the bar wraps on a
+// phone and a pop anchored to a wrapped button opens straight through the row above it.
+// It sits 10px clear of its button, or of whatever is stacked over the button - only the
+// controls it would actually land on, so on one row it still hugs the icon.
+// Every measurement is a rect divided back out by the page's fit-to-screen scale, since
+// `left` and `bottom` are layout lengths and rects are not.
+function placeBar(b) {
+  const row = document.querySelector(".bottom");
+  if (!row) return;
+  const pop = $(b.pop), rr = row.getBoundingClientRect(), br = $(b.btn).getBoundingClientRect();
+  const k = rr.width / Math.max(1, row.offsetWidth);
+  const cx = br.left + br.width / 2;
+  pop.style.left = ((cx - rr.left) / k) + "px";
+  const half = pop.getBoundingClientRect().width / 2;
+  let top = br.top;
+  for (const el of row.children) {
+    const r = el.getBoundingClientRect();
+    if (r.right > cx - half && r.left < cx + half) top = Math.min(top, r.top);
+  }
+  pop.style.bottom = ((rr.bottom - top) / k + 10) + "px";
+}
+function showBar(b, on) {
+  $(b.pop).hidden = !on;
+  if (on) placeBar(b);   // placed in the same task as the unhide, so it never paints adrift
+  $(b.btn).classList.toggle("open", on);
+  $(b.btn).setAttribute("aria-expanded", on ? "true" : "false");
+}
+function closeBars() { for (const b of BUSES) showBar(b, false); }
+function barsOpen() { return BUSES.some(b => !$(b.pop).hidden); }
+
+for (const b of BUSES) {
+  const bar = $(b.bar);
+  // the fill spans the bar exactly, so the pointer maps straight onto the rect - and reading
+  // both ends off the same rect keeps it right under the page's fit-to-screen scale
+  const fromY = e => {
+    const r = bar.getBoundingClientRect();
+    return (1 - (e.clientY - r.top) / Math.max(1, r.height)) * 100;
+  };
+  let dragging = false;
+  bar.addEventListener("pointerdown", e => {
+    dragging = true;
+    try { bar.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
+    setVol(b.key, fromY(e));
+    e.preventDefault();   // no text selection, no page scroll behind the drag
+  });
+  bar.addEventListener("pointermove", e => { if (dragging) setVol(b.key, fromY(e)); });
+  const release = e => {
+    if (!dragging) return;
+    dragging = false;
+    try { bar.releasePointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+    if (b.key === "sfx") sfx("bet", 1);   // a click at the new level, once the drag ends
+  };
+  bar.addEventListener("pointerup", release);
+  bar.addEventListener("pointercancel", release);
+  bar.addEventListener("keydown", e => {
+    const step = { ArrowUp: 5, ArrowRight: 5, ArrowDown: -5, ArrowLeft: -5, PageUp: 20, PageDown: -20 }[e.key];
+    if (step !== undefined) setVol(b.key, vol[b.key] + step);
+    else if (e.key === "Home") setVol(b.key, 0);
+    else if (e.key === "End") setVol(b.key, 100);
+    else return;
+    e.preventDefault();
+  });
+  $(b.btn).addEventListener("click", () => {
+    const on = $(b.pop).hidden;
+    showBar(b, on);
+    if (on) { $(b.bar).focus({ preventScroll: true }); sfx("bet", 1); }
+  });
+}
+// pressing away from the cluster puts every bar back. A pointerdown can be retargeted at a
+// node with no closest() - the document itself, a text node - and that is still "away".
+document.addEventListener("pointerdown", e => {
+  if (barsOpen() && !e.target.closest?.(".uislot")) closeBars();
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
+// the row rewraps as the window changes, so an open bar re-measures with it
+addEventListener("resize", () => { for (const b of BUSES) if (!$(b.pop).hidden) placeBar(b); });
 paintVol();
 if (SOCIAL) {   // restricted vocabulary: the chooser's static copy goes through T() too
   for (const id of ["bonusTitle", "bonusStdDesc", "bonusExtDesc", "bonusBetLbl", "bonusNote"]) {
