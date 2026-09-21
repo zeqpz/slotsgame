@@ -443,8 +443,11 @@
     width: var(--cell-w); height: var(--cell-h); background: transparent; border: 2px solid transparent;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     font-family: var(--mono); font-weight: 700; font-size: 14px; position: relative;
-    transition: background .25s, border-color .25s, transform .12s;
+    transition: background .25s, border-color .25s, transform .12s, opacity .22s linear;
   }
+  /* while a line is lit, everything that is not on it fades back, so the winning run is
+     the only thing on the board at full strength */
+  .board.spotlight .cell:not(.winhit) { opacity: .42; }
   .cell .sub { font-size: 9px; font-weight: 400; letter-spacing: .1em; color: var(--ink-soft); }
   /* text tiles (wild + characters, until their art lands) must not spill past the cell —
      the graffiti face runs much wider than the UI font it replaced */
@@ -1272,7 +1275,14 @@ function setCell(r, y, sym) {
   (shownSym[r] || (shownSym[r] = []))[y] = sym;
 }
 function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
-function clearFx() { eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop")); clearPayline(); }
+function clearFx() {
+  eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop"));
+  $("board").classList.remove("spotlight");
+  clearPayline();
+}
+// delay() collapses to nothing once the player skips, which is right for reels and tumbles
+// and wrong for paylines: a skipped round still has to show which lines paid. This one holds.
+const hold = ms => new Promise(r => setTimeout(r, ms));
 
 const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Read from the stylesheet rather than hardcoded: the spin overlay positions itself in whole
@@ -1810,7 +1820,9 @@ const handlers = {
   async reveal(ev) { await renderReveal(ev); await delay(150); },
 
   async winInfo(ev) {
-    if (ev.wins.length) charReact("win");   // one reaction for the burst, not one per line
+    if (!ev.wins.length) return;
+    charReact("win");   // one reaction for the burst, not one per line
+    $("board").classList.add("spotlight");
     for (const raw of ev.wins) {
       // A win arrives either as a compact tuple or in the older object form. The tuple exists
       // because Stake rejects any book over 512 KiB and the spelled-out form blew past it on
@@ -1826,17 +1838,18 @@ const handlers = {
                                      // including cells carried over from the previous line
       for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
       drawPayline(w.positions, (w.meta || {}).multiplier);
-      if (!state.skip) sfx("line");   // one call per payline as it lights up
+      sfx("line");   // one call per payline as it lights up - skipping does not skip lines
       const m = w.meta || {};
       const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${w.kind}</b>`, `line ${m.lineIndex ?? "—"}`];
       if (m.paintMult > 1) parts.push(`paint x${m.paintMult}`);
       if (m.charMult > 1) parts.push(`chars x${m.charMult}`);
       parts.push(`<b>${fmt(cents(w.win))}</b>`);
       tick(parts.join(" · "));
-      await delay(430);
+      await hold(430);   // every line gets its moment, skip or no skip
     }
-    await delay(180);
+    await hold(180);
     clearFxWins();
+    $("board").classList.remove("spotlight");
   },
 
   async tumbleBoard(ev) {
