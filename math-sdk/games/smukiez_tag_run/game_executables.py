@@ -1,27 +1,25 @@
-"""Executables for Smukiez Tag Run: drip expansion/painting, bonus triggers,
-extreme-board forcing, the Tag Meter, and the Full Wall award."""
+"""Executables for Smukiez Tag Run: the Multi booster, bonus triggers, extreme-board
+forcing, and the Tag Meter."""
 
 import random
 from game_calculations import GameCalculations
 from game_events import (
-    paint_drips_event,
-    painted_wall_event,
+    booster_event,
     tag_meter_event,
     tag_meter_full_event,
-    full_wall_event,
     extreme_trigger_event,
 )
+from src.calculations.cluster import Cluster
 from src.calculations.statistics import get_random_outcome
 from src.events.events import (
     reveal_event,
     fs_trigger_event,
     enter_bonus_event,
-    set_total_event,
 )
 
 
 class GameExecutables(GameCalculations):
-    """Executable functions for paint, trigger, and bonus mechanics."""
+    """Executable functions for the booster, trigger, and bonus mechanics."""
 
     # ------------------------------------------------------------------ board / forcing
     def draw_board(self, emit_event: bool = True, trigger_symbol: str = "scatter") -> None:
@@ -69,55 +67,59 @@ class GameExecutables(GameCalculations):
                 return
         raise RuntimeError(f"could not force extreme board ({n_bs} BS, {n_es} ES) on {reelstrip_id}")
 
-    # ------------------------------------------------------------------ paint drips
-    def find_natural_drips(self) -> list:
-        """Unpainted reels where a Paint Drip landed from the reelstrip (one origin per reel)."""
-        drips = []
-        for reel, _ in enumerate(self.board):
-            if reel in self.painted_reels:
-                continue
-            for row, sym in enumerate(self.board[reel]):
-                if sym.name == "W":
-                    drips.append({"reel": reel, "row": row})
-                    break
-        return drips
+    # ------------------------------------------------------------------ the Multi
+    def find_boosters(self) -> list:
+        """Every Multi on the visible board, as (reel, row)."""
+        return [
+            (reel, row)
+            for reel, column in enumerate(self.board)
+            for row, sym in enumerate(column)
+            if sym.check_attribute("booster")
+        ]
 
-    def inject_freespin_drips(self) -> list:
-        """Distribution-driven extra drips landing on unpainted reels during free spins."""
-        conds = self.get_current_distribution_conditions()
-        num_drips = get_random_outcome(conds["landing_drips"])
-        new_drips = []
-        unpainted = [r for r in range(self.config.num_reels) if r not in self.painted_reels]
-        random.shuffle(unpainted)
-        for reel in unpainted[:num_drips]:
-            open_rows = [
-                row
-                for row in range(self.config.num_rows[reel])
-                if not self.board[reel][row].check_attribute("character", "scatter", "scatter_extreme")
-            ]
-            if not open_rows:
-                continue
-            row = random.choice(open_rows)
-            self.board[reel][row] = self.create_symbol("W")
-            new_drips.append({"reel": reel, "row": row})
-        return new_drips
+    def resolve_boosters(self) -> bool:
+        """Blow out every Multi on the board and leave its multiplier behind.
 
-    def expand_painted_reels(self) -> None:
-        """Fill every painted reel with wilds, painting around scatters and characters."""
-        for reel in self.painted_reels:
-            for row, sym in enumerate(self.board[reel]):
-                if not sym.check_attribute("character", "scatter", "scatter_extreme"):
-                    self.board[reel][row] = self.create_symbol("W")
-        self.get_special_symbols_on_board()
+        Each Multi takes itself and the four cells sharing an edge with it. Those cells get
+        the Multi's value ADDED to whatever they already carry and are cleared, so new
+        symbols drop in on top of the multipliers. Scatters are immune: a bonus that has
+        just landed must not be blown off the board by the thing that landed next to it.
 
-    def apply_base_drips(self) -> list:
-        """Expand drips that landed on the base-game reveal; reels stay painted for this spin."""
-        new_drips = self.find_natural_drips()
-        for drip in new_drips:
-            self.painted_reels.append(drip["reel"])
-        if new_drips:
-            self.expand_painted_reels()
-        return new_drips
+        The board is tumbled here, so the caller sees one tumbleBoard event per pass.
+        Returns True if the board changed - the refill may drop another Multi, so callers
+        loop until this returns False.
+        """
+        boosters = self.find_boosters()
+        if not boosters:
+            return False
+
+        self.booster_details = []
+        cleared = set()
+        for reel, row in boosters:
+            value = self.board[reel][row].get_attribute("multiplier")
+            cells = [(reel, row)] + Cluster.get_neighbours(self.board, reel, row, [])
+            hit = []
+            for r, c in cells:
+                target = self.board[r][c]
+                if (r, c) != (reel, row) and target.check_attribute("scatter", "scatter_extreme"):
+                    continue
+                self.grid_mults[r][c] = round(self.grid_mults[r][c] + value, 2)
+                target.explode = True
+                cleared.add((r, c))
+                hit.append({"reel": r, "row": c})
+            self.booster_details.append({"reel": reel, "row": row, "mult": value, "cells": hit})
+
+        booster_event(self)
+        self.tumble_explode_positions = [{"reel": r, "row": c} for r, c in sorted(cleared)]
+        self.tumble_game_board()
+        return True
+
+    def settle_boosters(self, tumbles: int, cap: int = None) -> int:
+        """Resolve Multis until none are left on the board, within the spin's tumble budget."""
+        cap = self.config.max_tumbles_per_spin if cap is None else cap
+        while tumbles < cap and self.resolve_boosters():
+            tumbles += 1
+        return tumbles
 
     # ------------------------------------------------------------------ bonus triggers
     def check_smukiez_triggers(self):
@@ -130,7 +132,7 @@ class GameExecutables(GameCalculations):
         n_es = self.count_special_symbols("scatter_extreme")
         trig_map = self.config.freespin_triggers[self.gametype]
         min_bs = min(trig_map.keys())
-        # cascades can accumulate more scatters than the table defines — cap at the top tier
+        # cascades can accumulate more scatters than the table defines - cap at the top tier
         bs_key = min(n_bs, max(trig_map.keys()))
         conds = self.get_current_distribution_conditions()
 
@@ -170,22 +172,14 @@ class GameExecutables(GameCalculations):
         if trigger == "extreme":
             extreme_trigger_event(self)
         enter_bonus_event(self)
-
-        if trigger == "extreme":
-            # painted reels from the triggering spin carry into the Extreme Bonus
-            self.paint_level = self.config.paint_bonus_extreme
-            self.paint_max = self.config.paint_bonus_max_extreme
-            self.tag_target = self.config.tag_meter_target_extreme
-        else:
-            self.painted_reels = []
-            self.paint_level = self.config.paint_bonus_base
-            self.paint_max = self.config.paint_bonus_max_standard
-            self.tag_target = self.config.tag_meter_target_standard
+        self.tag_target = (
+            self.config.tag_meter_target_extreme if trigger == "extreme" else self.config.tag_meter_target_standard
+        )
         self.run_freespin()
 
-    # ------------------------------------------------------------------ tag meter / full wall
+    # ------------------------------------------------------------------ tag meter
     def update_tag_meter(self) -> None:
-        """A winning free spin adds a tag; a full meter adds spins and upgrades the paint bonus."""
+        """A winning free spin adds a tag; a full meter adds spins."""
         if self.win_manager.spin_win <= 0:
             return
         self.tag_meter += 1
@@ -197,16 +191,4 @@ class GameExecutables(GameCalculations):
                 extra_spins = self.config.tag_meter_extra_spins
                 self.tot_fs += extra_spins
                 self.extra_spins_awarded += extra_spins
-            if self.paint_level < self.paint_max:
-                self.paint_level += 1
             tag_meter_full_event(self, extra_spins)
-
-    def award_full_wall(self) -> None:
-        """All 5 reels painted: complete the mural and pay up to the max win."""
-        self.full_wall_awarded = True
-        remaining = max(round(self.config.wincap - self.win_manager.running_bet_win, 2), 0)
-        self.win_manager.update_spinwin(remaining)
-        self.win_manager.update_gametype_wins(self.gametype)
-        full_wall_event(self)
-        self.evaluate_wincap()
-        set_total_event(self)

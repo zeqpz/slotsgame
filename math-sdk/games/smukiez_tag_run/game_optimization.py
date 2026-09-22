@@ -1,9 +1,13 @@
 """Optimization parameters for Smukiez Tag Run bet modes.
 
 RTP allocation (total 0.965 per mode):
-    base:         wincap 0.001 | freegame 0.270 (hr 170) | extremegame 0.070 (hr 2000) | basegame 0.624
+    base:         wincap 0.002 | freegame 0.300 (hr 200) | extremegame 0.060 (hr 8000) | basegame 0.603
     bonus:        wincap 0.004 | freegame 0.961
     extremebonus: wincap 0.010 | extremegame 0.955
+
+The av_win each criteria is asked for (rtp x hr) sits near the simulated pool's own mean, so the
+optimiser weights the pool rather than fighting it: the free game averages ~55x in the pool and
+is asked for 60x; the extreme averages ~500x and is asked for 480x.
 """
 
 from optimization_program.optimization_config import (
@@ -33,12 +37,12 @@ class OptimizationSetup:
                     ).return_dict(),
                     "0": ConstructConditions(rtp=0, av_win=0, search_conditions=0).return_dict(),
                     "freegame": ConstructConditions(
-                        rtp=0.35, hr=250, search_conditions={"symbol": "scatter"}
+                        rtp=0.30, hr=200, search_conditions={"symbol": "scatter"}
                     ).return_dict(),
                     "extremegame": ConstructConditions(
-                        rtp=0.05, hr=1000, search_conditions={"symbol": "scatter_extreme"}
+                        rtp=0.06, hr=8000, search_conditions={"symbol": "scatter_extreme"}
                     ).return_dict(),
-                    "basegame": ConstructConditions(hr=2.5, rtp=0.563).return_dict(),
+                    "basegame": ConstructConditions(hr=2.5, rtp=0.603).return_dict(),
                 },
                 "scaling": ConstructScaling([]).return_dict(),
                 "parameters": ConstructParameters(

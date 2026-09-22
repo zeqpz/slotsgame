@@ -9,28 +9,26 @@ class GameStateOverride(GameExecutables):
 
     def reset_book(self):
         super().reset_book()
-        self.painted_reels = []
-        self.paint_level = self.config.paint_bonus_base
-        self.paint_max = self.config.paint_bonus_max_standard
         self.tag_meter = 0
         self.tag_target = self.config.tag_meter_target_standard
         self.extra_spins_awarded = 0
         self.bonus_type = ""
         self.triggered_extreme = False
-        self.full_wall_awarded = False
-        self.active_char_mult = 1
-        self.char_mult_details = []
+        self.booster_details = []
+        self.reset_grid_mults()
+
+    def reset_grid_mults(self) -> None:
+        """The multipliers a Multi leaves behind live on the CELL, not on the symbol that
+        happens to be sitting there, so they survive every refill. A base spin starts
+        clean; a bonus starts clean and then keeps them for all of its spins."""
+        self.grid_mults = [[0.0] * self.config.num_rows[r] for r in range(self.config.num_reels)]
 
     def assign_special_sym_function(self):
-        self.special_symbol_functions = {
-            "C1": [self.assign_char_mult],
-            "C2": [self.assign_char_mult],
-            "C3": [self.assign_char_mult],
-        }
+        self.special_symbol_functions = {"M": [self.assign_booster_mult]}
 
-    def assign_char_mult(self, symbol):
-        """Draw a character's multiplier value from the current distribution conditions."""
-        values = self.get_current_distribution_conditions()["char_mult_values"][self.gametype][symbol.name]
+    def assign_booster_mult(self, symbol):
+        """Roll a Multi's value from the current distribution's table the moment it lands."""
+        values = self.get_current_distribution_conditions()["booster_mult_values"][self.gametype]
         symbol.assign_attribute({"multiplier": get_random_outcome(values)})
 
     def check_repeat(self):

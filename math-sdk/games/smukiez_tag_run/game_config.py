@@ -1,16 +1,21 @@
 """Smukiez Tag Run - game configuration: symbols, paytable, paylines, bet modes.
 
 Symbol legend (art layer maps these ids to final art):
-    W   Paint Drip        expanding wild, paints its reel (+color multiplier)
+    M   Multi             the booster (1.25x .. 1000x). It lands, blows out itself and the four cells that
+                          share an edge with it, leaves its multiplier on each of those
+                          five cells, and new symbols drop in. A line paying through
+                          multiplied cells is multiplied by the SUM of the values on its
+                          cells. Two Multis reaching the same cell add. Pays nothing itself.
     BS  Crew Leader       bonus scatter: 3/4/5 -> 8/10/12 free spins
     ES  The Phantom       extreme scatter: 2 = direct Extreme Bonus, 1 + standard trigger = upgrade
-    C1  Character 1       common Smukiez character, 2x-3x spin multiplier
-    C2  Character 2       uncommon Smukiez character, 5x spin multiplier
-    C3  Character 3       rare Smukiez character, 8x-10x spin multiplier
     H1  Bag of Cash   H2  Cartoon Glock   H3  Gold Chain   H4  Fresh Kicks   H5  Boombox
     H6  Skateboard    H7  Limited Drop Box
     L1  Spray Can     L2  Graffiti Markers L3 Smukiez Beanie L4 Custom Hangtag L5 Dice
     L6  Smukiez Shirt L7  Hoodie           L8 Bag of Weed    L9 Freight Train  L10 Brick Wall Chunk
+
+Gone since v2: the Paint Drip wild and the painted-reel colour bonus, the Full Wall mural
+award, and the C1/C2/C3 characters with their spin multipliers. The Tag Meter stays for its
+extra spins only.
 """
 
 import os
@@ -39,41 +44,37 @@ class GameConfig(Config):
         self.num_reels = 5
         self.num_rows = [4] * self.num_reels
 
-        # Max tumbles (cascades) paid within a single spin. Sticky wilds keep refilled
-        # boards winning, so without a cap one spin can cascade into the hundreds toward the
-        # wincap — bloating books past the RGS ingest limit and dragging out play. The Full
-        # Wall still awards the wincap directly, so the top payout stays reachable.
+        # Max board changes (cascades) within a single spin. A Multi blowing out counts as one,
+        # a winning tumble counts as one. Without a cap a spin can chain for a very long time
+        # toward the wincap, which bloats the book past what the RGS will ingest and buries
+        # the player in an endless tumble.
         self.max_tumbles_per_spin = 12
 
-        # Paytable: (kind, symbol): payout in total-bet multiples, paid per line
-        # Wilds substitute only — no own-pay. With sticky wilds + cascades, an all-wild line
-        # would otherwise re-pay on every tumble and explode the RTP.
-        # Cascade paytable — cut ~10x from the single-hit values: with sticky wilds and
-        # tumbling, wins arrive in chains, so per-line pays are small and the frequency carries.
+        # Paytable: (kind, symbol): payout in total-bet multiples, paid per line.
+        # There is no wild any more, so lines hit less often and cascades run shorter than
+        # they did with sticky paint; the pays are four times the v2 cascade table to carry
+        # that. The Multi is what makes them big.
         self.paytable = {
-            (5, "C3"): 2.5, (4, "C3"): 1, (3, "C3"): 0.4,
-            (5, "C2"): 2, (4, "C2"): 0.8, (3, "C2"): 0.3,
-            (5, "C1"): 1.5, (4, "C1"): 0.6, (3, "C1"): 0.3,
-            (5, "H1"): 1.2, (4, "H1"): 0.5, (3, "H1"): 0.2,
-            (5, "H2"): 1, (4, "H2"): 0.4, (3, "H2"): 0.2,
-            (5, "H3"): 0.8, (4, "H3"): 0.3, (3, "H3"): 0.1,
-            (5, "H4"): 0.6, (4, "H4"): 0.3, (3, "H4"): 0.1,
-            (5, "H5"): 0.5, (4, "H5"): 0.2, (3, "H5"): 0.1,
-            (5, "H6"): 0.5, (4, "H6"): 0.2, (3, "H6"): 0.1,
-            (5, "H7"): 0.4, (4, "H7"): 0.2, (3, "H7"): 0.1,
-            (5, "L1"): 0.3, (4, "L1"): 0.2, (3, "L1"): 0.1,
-            (5, "L2"): 0.3, (4, "L2"): 0.1, (3, "L2"): 0.1,
-            (5, "L3"): 0.2, (4, "L3"): 0.1, (3, "L3"): 0.1,
-            (5, "L4"): 0.2, (4, "L4"): 0.1, (3, "L4"): 0.1,
-            (5, "L5"): 0.2, (4, "L5"): 0.1, (3, "L5"): 0.1,
-            (5, "L6"): 0.2, (4, "L6"): 0.1, (3, "L6"): 0.1,
-            (5, "L7"): 0.1, (4, "L7"): 0.1, (3, "L7"): 0.1,
-            (5, "L8"): 0.1, (4, "L8"): 0.1, (3, "L8"): 0.1,
-            (5, "L9"): 0.1, (4, "L9"): 0.1, (3, "L9"): 0.1,
-            (5, "L10"): 0.1, (4, "L10"): 0.1, (3, "L10"): 0.1,
+            (5, "H1"): 4.8, (4, "H1"): 2, (3, "H1"): 0.8,
+            (5, "H2"): 4, (4, "H2"): 1.6, (3, "H2"): 0.8,
+            (5, "H3"): 3.2, (4, "H3"): 1.2, (3, "H3"): 0.4,
+            (5, "H4"): 2.4, (4, "H4"): 1.2, (3, "H4"): 0.4,
+            (5, "H5"): 2, (4, "H5"): 0.8, (3, "H5"): 0.4,
+            (5, "H6"): 2, (4, "H6"): 0.8, (3, "H6"): 0.4,
+            (5, "H7"): 1.6, (4, "H7"): 0.8, (3, "H7"): 0.4,
+            (5, "L1"): 1.2, (4, "L1"): 0.8, (3, "L1"): 0.4,
+            (5, "L2"): 1.2, (4, "L2"): 0.4, (3, "L2"): 0.4,
+            (5, "L3"): 0.8, (4, "L3"): 0.4, (3, "L3"): 0.4,
+            (5, "L4"): 0.8, (4, "L4"): 0.4, (3, "L4"): 0.4,
+            (5, "L5"): 0.8, (4, "L5"): 0.4, (3, "L5"): 0.4,
+            (5, "L6"): 0.8, (4, "L6"): 0.4, (3, "L6"): 0.4,
+            (5, "L7"): 0.4, (4, "L7"): 0.4, (3, "L7"): 0.4,
+            (5, "L8"): 0.4, (4, "L8"): 0.4, (3, "L8"): 0.4,
+            (5, "L9"): 0.4, (4, "L9"): 0.4, (3, "L9"): 0.4,
+            (5, "L10"): 0.4, (4, "L10"): 0.4, (3, "L10"): 0.4,
         }
 
-        # 20 fixed paylines on the 5x4 board (row index per reel, 0 = top)
+        # 30 fixed paylines on the 5x4 board (row index per reel, 0 = top)
         self.paylines = {
             1: [0, 0, 0, 0, 0],
             2: [1, 1, 1, 1, 1],
@@ -107,31 +108,29 @@ class GameConfig(Config):
             30: [2, 0, 2, 0, 2],
         }
         self.include_padding = True
+        # "multiplier" gives the Multi its value slot (rolled when it lands) and puts that
+        # value into every reveal/tumble event, so the client can show it on the tile.
+        # "booster" is what the game logic looks for. There is no wild in this game.
         self.special_symbols = {
-            "wild": ["W"],
+            "wild": [],
             "scatter": ["BS"],
             "scatter_extreme": ["ES"],
-            "character": ["C1", "C2", "C3"],
-            "multiplier": ["C1", "C2", "C3"],
+            "booster": ["M"],
+            "multiplier": ["M"],
         }
 
-        self.freespin_triggers = {self.basegame_type: {3: 8, 4: 10, 5: 12}}
+        self.freespin_triggers = {self.basegame_type: {3: 10, 4: 12, 5: 15}}
         self.anticipation_triggers = {
             self.basegame_type: min(self.freespin_triggers[self.basegame_type].keys()) - 1,
         }
 
         # Smukiez feature constants
         self.extreme_direct_count = 2  # ES symbols needed to trigger Extreme Bonus directly
-        self.extreme_direct_spins = 10
-        self.paint_bonus_base = 1  # +1x per painted reel crossed by a win (applied each cascade)
-        self.paint_bonus_extreme = 1  # kept modest — this multiplier stacks on every cascade
-        self.paint_bonus_max_standard = 1
-        self.paint_bonus_max_extreme = 2
+        self.extreme_direct_spins = 17
         self.tag_meter_target_standard = 4  # winning spins needed to fill the Tag Meter
         self.tag_meter_target_extreme = 3
-        self.tag_meter_extra_spins = 2
-        self.tag_meter_max_extra_spins = 6  # bound on meter-awarded spins per bonus
-        self.char_mult_cap = 8  # combined character-multiplier ceiling (per cascade, so kept low)
+        self.tag_meter_extra_spins = 3
+        self.tag_meter_max_extra_spins = 9  # bound on meter-awarded spins per bonus
 
         # Reels
         reels = {
@@ -139,7 +138,7 @@ class GameConfig(Config):
             "BRE": "BRE.csv",  # base game with Phantom (extreme) scatters present
             "FR0": "FR0.csv",  # standard bonus free spins
             "FRE": "FRE.csv",  # extreme bonus free spins
-            "FRWCAP": "FRWCAP.csv",  # drip/character-rich strip for wincap simulations
+            "FRWCAP": "FRWCAP.csv",  # Multi-rich free-spin strip for wincap simulations
         }
         self.reels = {}
         for r, f in reels.items():
@@ -150,32 +149,31 @@ class GameConfig(Config):
             "freegame": self.reels["FR0"],
         }
 
-        # Character multiplier value tables, drawn per landed symbol
-        # Character multipliers are applied to EVERY cascade's win, so in a tumble game they
-        # must be small — a 50x combined mult on a chaining board explodes the RTP.
-        char_mults_base = {
-            "C1": {2: 100},
-            "C2": {2: 100},
-            "C3": {3: 100},
+        # The Multi's value, rolled the moment it lands. Heavy at the bottom with a long,
+        # thin tail up to 1000x: most Multis are a nudge, and once in a long while one is the
+        # whole game. The optimiser decides how often Multi outcomes appear at all; these
+        # tables only shape what a Multi is worth when it does.
+        # Every value is a multiple of 0.25 and every paytable entry a multiple of 0.4, so a
+        # line times any SUM of values lands exactly on a tenth of the bet - the only
+        # granularity the RGS accepts - with nothing rounded and nothing shown that is not
+        # exactly what was paid. That is why the floor is 1.25x and not 1.2x.
+        booster_mults_base = {
+            1.25: 300, 1.5: 240, 2: 200, 3: 130, 5: 70, 10: 35, 20: 14,
+            50: 6, 100: 2.5, 250: 0.9, 500: 0.35, 1000: 0.15,
         }
-        char_mults_free = {
-            "C1": {2: 90, 3: 10},
-            "C2": {2: 70, 3: 30},
-            "C3": {3: 80, 5: 20},
+        # in a bonus the values persist and stack across spins, so the tables lean richer:
+        # the standard bonus averages ~8x a Multi, the extreme ~14x
+        booster_mults_free = {
+            1.25: 120, 1.5: 140, 2: 180, 3: 180, 5: 140, 10: 90, 20: 45,
+            50: 20, 100: 8, 250: 3, 500: 1.2, 1000: 0.6,
         }
-        char_mults_rich = {
-            "C1": {3: 100},
-            "C2": {3: 100},
-            "C3": {5: 100},
+        booster_mults_extreme = {
+            2: 130, 3: 170, 5: 190, 10: 150, 20: 85, 50: 38,
+            100: 15, 250: 6, 500: 2.5, 1000: 1.2,
         }
-
-        # Injected-drip counts per free spin. Painting is cumulative and irreversible, so
-        # these rates dominate bonus volatility and the Full Wall frequency: the standard
-        # bonus averages ~1 painted reel, the extreme bonus ~2-3 (plus carried drips).
-        # Free-spin strips hold no W; every free-spin drip comes from these tables.
-        drips_standard = {0: 96, 1: 4}
-        drips_extreme = {0: 95, 1: 5}
-        drips_wincap = {1: 10, 2: 40, 3: 35, 4: 15}
+        # wincap simulations only: the strip is dense with Multis and every one is huge, so
+        # the 5000x is reached in a handful of cascades instead of a thousand resimulations
+        booster_mults_rich = {1000: 100}
 
         self.bet_modes = [
             BetMode(
@@ -189,18 +187,17 @@ class GameConfig(Config):
                 distributions=[
                     Distribution(
                         criteria="wincap",
-                        quota=0.001,
+                        quota=0.0002,
                         win_criteria=self.wincap,
                         conditions={
                             "reel_weights": {
                                 self.basegame_type: {"BRE": 1},
                                 self.freegame_type: {"FRWCAP": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_rich,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_rich,
                             },
-                            "landing_drips": drips_wincap,
                             "scatter_triggers": {3: 1, 4: 2},
                             "extreme_trigger_style": {"direct": 50, "upgrade": 50},
                             "force_wincap": True,
@@ -216,11 +213,10 @@ class GameConfig(Config):
                                 self.basegame_type: {"BRE": 1},
                                 self.freegame_type: {"FRE": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_free,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_extreme,
                             },
-                            "landing_drips": drips_extreme,
                             "scatter_triggers": {3: 75, 4: 25},
                             "extreme_trigger_style": {"direct": 60, "upgrade": 40},
                             "force_wincap": False,
@@ -236,11 +232,10 @@ class GameConfig(Config):
                                 self.basegame_type: {"BR0": 1},
                                 self.freegame_type: {"FR0": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_free,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_free,
                             },
-                            "landing_drips": drips_standard,
                             "scatter_triggers": {3: 80, 4: 15, 5: 5},
                             "force_wincap": False,
                             "force_freegame": True,
@@ -252,17 +247,17 @@ class GameConfig(Config):
                         win_criteria=0.0,
                         conditions={
                             "reel_weights": {self.basegame_type: {"BR0": 1}},
-                            "char_mult_values": {self.basegame_type: char_mults_base},
+                            "booster_mult_values": {self.basegame_type: booster_mults_base},
                             "force_wincap": False,
                             "force_freegame": False,
                         },
                     ),
                     Distribution(
                         criteria="basegame",
-                        quota=0.559,
+                        quota=0.5598,
                         conditions={
                             "reel_weights": {self.basegame_type: {"BR0": 1}},
-                            "char_mult_values": {self.basegame_type: char_mults_base},
+                            "booster_mult_values": {self.basegame_type: booster_mults_base},
                             "force_wincap": False,
                             "force_freegame": False,
                         },
@@ -280,18 +275,17 @@ class GameConfig(Config):
                 distributions=[
                     Distribution(
                         criteria="wincap",
-                        quota=0.002,
+                        quota=0.0005,
                         win_criteria=self.wincap,
                         conditions={
                             "reel_weights": {
                                 self.basegame_type: {"BR0": 1},
                                 self.freegame_type: {"FRWCAP": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_rich,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_rich,
                             },
-                            "landing_drips": drips_wincap,
                             "scatter_triggers": {3: 1, 4: 2, 5: 1},
                             "force_wincap": True,
                             "force_freegame": True,
@@ -305,11 +299,10 @@ class GameConfig(Config):
                                 self.basegame_type: {"BR0": 1},
                                 self.freegame_type: {"FR0": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_free,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_free,
                             },
-                            "landing_drips": drips_standard,
                             "scatter_triggers": {3: 70, 4: 20, 5: 10},
                             "force_wincap": False,
                             "force_freegame": True,
@@ -328,18 +321,17 @@ class GameConfig(Config):
                 distributions=[
                     Distribution(
                         criteria="wincap",
-                        quota=0.005,
+                        quota=0.001,
                         win_criteria=self.wincap,
                         conditions={
                             "reel_weights": {
                                 self.basegame_type: {"BRE": 1},
                                 self.freegame_type: {"FRWCAP": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_rich,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_rich,
                             },
-                            "landing_drips": drips_wincap,
                             "scatter_triggers": {3: 1, 4: 2},
                             "extreme_trigger_style": {"direct": 50, "upgrade": 50},
                             "force_wincap": True,
@@ -355,11 +347,10 @@ class GameConfig(Config):
                                 self.basegame_type: {"BRE": 1},
                                 self.freegame_type: {"FRE": 1},
                             },
-                            "char_mult_values": {
-                                self.basegame_type: char_mults_base,
-                                self.freegame_type: char_mults_free,
+                            "booster_mult_values": {
+                                self.basegame_type: booster_mults_base,
+                                self.freegame_type: booster_mults_extreme,
                             },
-                            "landing_drips": drips_extreme,
                             "scatter_triggers": {3: 75, 4: 25},
                             "extreme_trigger_style": {"direct": 60, "upgrade": 40},
                             "force_wincap": False,

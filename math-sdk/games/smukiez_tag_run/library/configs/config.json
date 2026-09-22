@@ -2,7 +2,7 @@
     "workingName": "Smukiez Tag Run",
     "frontendConfig": {
         "file": "fe_config.json",
-        "sha256": "882b9bc2a27a69b20a81450c35a981078a181b2aafa4451b69a7f1a39be6a749"
+        "sha256": "51ca53865af33e47fc277522001789f928adad4490b30181076bf8def3e49722"
     },
     "gameID": "smukiez_tag_run",
     "rtp": 96.5,
@@ -11,7 +11,7 @@
     "providerNumber": 0,
     "standardForceFile": {
         "file": "force.json",
-        "sha256": "341467f66826139c0301d4ccb0c17424a1969cbade43d14251fde4a8935c39c1"
+        "sha256": "94bd43c6b57214dcb33a909d0f0a6884c85956679e32abebd6b9a7bb95bad914"
     },
     "bookShelfConfig": [
         {
@@ -19,24 +19,24 @@
             "tables": [
                 {
                     "file": "lookUpTable_base_0.csv",
-                    "sha256": "cec9ff82c2d1162fc8e05cca053e6cbeb71df6258e9ded90727920e61411414e"
+                    "sha256": "32d4340e4fc5fb38a82dc9ba4c84a7bdf9627817192f880bc338c394e2125319"
                 }
             ],
             "cost": 1.0,
             "rtp": 0.965,
-            "std": 17.14,
-            "bookLength": 99996,
+            "std": 10.72,
+            "bookLength": 100000,
             "feature": true,
             "autoEndRoundDisabled": false,
             "buyBonus": false,
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_base.jsonl.zst",
-                "sha256": "354ba03a88279f0e5a22beb3a5f889f3eaffa917d00ec6348ed8a6616cf7e5b4"
+                "sha256": "3e02dfdc39093eeb016a7fef3340c92958945dc7a83da690df3a13c2572a96e8"
             },
             "forceFile": {
                 "file": "force_record_base.json",
-                "sha256": "051e7b5c326dfe3262f3e37c8a6c772bdb13016838f54bf43a6e932e446e8bbd"
+                "sha256": "ae0e8072ff7b9f702816e43a8b11f7448a80afa669856c6451c678cc1b7425ac"
             }
         },
         {
@@ -44,24 +44,24 @@
             "tables": [
                 {
                     "file": "lookUpTable_bonus_0.csv",
-                    "sha256": "4221e218a1a77e65d53102ff7cc8e602bc4e56752178ba8052953837761fab66"
+                    "sha256": "037db045b0b257345eb7aa42d9f9dab432fc802ca1393ee65334fbb384df4c7b"
                 }
             ],
             "cost": 100.0,
             "rtp": 0.965,
-            "std": 2.58,
-            "bookLength": 15000,
+            "std": 1.21,
+            "bookLength": 20000,
             "feature": false,
             "autoEndRoundDisabled": false,
             "buyBonus": true,
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_bonus.jsonl.zst",
-                "sha256": "a45853b27560e758ed662d42569e0a22b62e821f081990ca526ec359c8012d1c"
+                "sha256": "df4f81cdf6592a5c0c1bcabe51acb101f4c15bbd831852021c6d3e6142e75c11"
             },
             "forceFile": {
                 "file": "force_record_bonus.json",
-                "sha256": "2caa6eeb4d4a3f09d6fd85e5db9ca5f357b450bea19166806452a0bbccfa452a"
+                "sha256": "59026b280327d646a43f94ffbe382baa20f25f3cdf0d52addb2d59cf1c048346"
             }
         },
         {
@@ -69,24 +69,24 @@
             "tables": [
                 {
                     "file": "lookUpTable_extremebonus_0.csv",
-                    "sha256": "dc260e49242e23621b23f930d456664102a7c4a403c447e040e4bbf77582ae1e"
+                    "sha256": "7ae754107c347d5c078e41c9566d4fe6eaa26c22838cc2592b9e8adc37dec19c"
                 }
             ],
             "cost": 400.0,
             "rtp": 0.965,
-            "std": 2.53,
-            "bookLength": 7500,
+            "std": 1.22,
+            "bookLength": 20000,
             "feature": false,
             "autoEndRoundDisabled": false,
             "buyBonus": true,
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_extremebonus.jsonl.zst",
-                "sha256": "b7fa463e6b59611d7eb5d5dddc076a2ec417801aa571cb6e15ec3ab3dd137d15"
+                "sha256": "b4c874a641a62a8b30aaa5b89f58bdb544feb82d20be635f128e10866d40852c"
             },
             "forceFile": {
                 "file": "force_record_extremebonus.json",
-                "sha256": "46d34fb3573d7bbaad46db2e56e45b1f4da1dc6b52a1b03630dd9ef2a735f491"
+                "sha256": "721164e3e97fe565b9570025ff42e607be26d0215f7e583e2ead520fcbb47cf1"
             }
         }
     ]

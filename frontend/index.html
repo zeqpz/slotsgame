@@ -425,20 +425,6 @@
   }
   .spincol .cell { flex: none; width: 100%; }
   .reel.painted { border-color: var(--spray); box-shadow: 0 0 14px rgba(240,86,139,.35) inset; }
-  /* painted reels reveal their slice of the Full Wall mural (when mural.png exists),
-     kept as divided cubes: each cell shows its quarter of the reel's slice */
-  .reel.mural.painted > .cell { background-size: 100% 400%; background-repeat: no-repeat; }
-  .reel.mural.painted > .cell:nth-child(1) { background-position: 0 0%; }
-  .reel.mural.painted > .cell:nth-child(2) { background-position: 0 33.333%; }
-  .reel.mural.painted > .cell:nth-child(3) { background-position: 0 66.667%; }
-  .reel.mural.painted > .cell:nth-child(4) { background-position: 0 100%; }
-  .reel.mural[data-reel="0"].painted > .cell { background-image: url("assets/mural_0.png"); }
-  .reel.mural[data-reel="1"].painted > .cell { background-image: url("assets/mural_1.png"); }
-  .reel.mural[data-reel="2"].painted > .cell { background-image: url("assets/mural_2.png"); }
-  .reel.mural[data-reel="3"].painted > .cell { background-image: url("assets/mural_3.png"); }
-  .reel.mural[data-reel="4"].painted > .cell { background-image: url("assets/mural_4.png"); }
-  .reel.mural.painted > .cell.wild { border-color: transparent; color: transparent; }
-  .reel.mural.painted > .cell.wild .sub { color: transparent; }
   .cell {
     width: var(--cell-w); height: var(--cell-h); background: transparent; border: 2px solid transparent;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
@@ -474,6 +460,34 @@
   .cell.escat { color: var(--fs-purple); }
   .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite; }
   .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
+  /* The Multi. Until its art lands it is the sprayed box with its value set into it; the
+     value is the whole point of the symbol, so it is the tile. */
+  .cell.booster { background: url("assets/ui_box.png") center / 100% 100% no-repeat; border-color: transparent; }
+  .cell.booster .multface {
+    position: relative; z-index: 1; font-family: var(--disp); font-size: 22px; line-height: 1;
+    color: var(--fs-green); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px rgba(168,240,0,.8);
+  }
+  /* it blows out: the Multi itself, then the four cells it hits */
+  .cell.boom { animation: multiboom .55s cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
+  .cell.hit  { animation: multihit .5s cubic-bezier(.25,.85,.35,1); }
+  @keyframes multiboom {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.4) rotate(-4deg); filter: brightness(1.7); }
+    100% { transform: scale(1); }
+  }
+  @keyframes multihit {
+    0%   { transform: none; }
+    35%  { transform: scale(1.14); filter: brightness(1.6); }
+    100% { transform: none; }
+  }
+  /* the value a Multi left on a cell: behind the symbol, faint, until the multipliers reset */
+  .cell .gmult {
+    position: absolute; inset: 0; z-index: 0; display: grid; place-items: center;
+    pointer-events: none; font-family: var(--disp); font-size: 30px; line-height: 1;
+    color: var(--fs-green); opacity: .42; text-shadow: 0 0 12px rgba(168,240,0,.9);
+  }
+  .cell > img { position: relative; z-index: 1; }
+  @media (prefers-reduced-motion: reduce) { .cell.boom, .cell.hit { animation: none; } }
   @keyframes scatglow {
     0%, 100% { filter: drop-shadow(0 0 5px rgba(168, 240, 0, .9)) drop-shadow(0 0 14px rgba(168, 240, 0, .45)); }
     50%      { filter: drop-shadow(0 0 9px rgba(168, 240, 0, 1)) drop-shadow(0 0 28px rgba(168, 240, 0, .8)); }
@@ -1165,13 +1179,12 @@
 <script>
 "use strict";
 
+// a multiplier as the player should read it: 1.25, 5, 1000 - never 5.00
+const fmtMult = v => String(+(+v).toFixed(2));
 const SYM = {
-  W:  { label: "DRIP",  sub: "WILD",       cls: "wild"  },
+  M:  { label: "MULTI", sub: "",           cls: "booster" },
   BS: { label: "CREW",  sub: "BONUS",      cls: "scat",  img: "assets/BS.png" },
   ES: { label: "PHNTM", sub: "EXTREME",    cls: "escat", img: "assets/ES.png" },
-  C1: { label: "C1",    sub: "CHARACTER",  cls: "char"  },
-  C2: { label: "C2",    sub: "CHARACTER",  cls: "char"  },
-  C3: { label: "C3",    sub: "CHARACTER",  cls: "char"  },
   H1: { label: "CASH",  sub: "BAG",        cls: "high", img: "assets/H1.png" },
   H2: { label: "GLOCK", sub: "CARTOON",    cls: "high", img: "assets/H2.png" },
   H3: { label: "CHAIN", sub: "GOLD",       cls: "high", img: "assets/H3.png" },
@@ -1202,7 +1215,8 @@ const state = {
   balance: 0,            // integer, 6dp — authoritative value comes from the RGS
   bets: [], betIdx: 0,   // bet levels come from /wallet/authenticate
   playing: false, skip: false,
-  hasMural: false, paintedSet: new Set(),
+  grid: [],   // the multipliers Multis have left on the cells this spin (or this bonus)
+  pad: [],    // the hidden symbol above each reel - it is the next one to drop in on a tumble
 };
 
 const $ = id => document.getElementById(id);
@@ -1246,12 +1260,11 @@ function cellClass(sym) {
 function fillCell(el, sym) {
   const def = SYM[sym.name] || { label: sym.name, sub: "", cls: "low" };
   el.innerHTML = "";
-  // character symbols show their multiplier as the tile itself — the C1/C2/C3 name and the
-  // little corner badge said less than the number the player actually cares about
-  if (def.cls === "char") {
+  // the Multi shows its value as the tile itself - that number is what the player cares about
+  if (def.cls === "booster") {
     const m = document.createElement("div");
     m.className = "multface";
-    m.textContent = sym.multiplier ? "x" + sym.multiplier : def.label;
+    m.textContent = sym.multiplier ? "x" + fmtMult(sym.multiplier) : def.label;
     el.append(m);
     return;
   }
@@ -1273,7 +1286,23 @@ function setCell(r, y, sym) {
   el.className = cellClass(sym);
   fillCell(el, sym);
   (shownSym[r] || (shownSym[r] = []))[y] = sym;
+  paintCell(r, y);   // fillCell just wiped the cell; put the multiplier back behind the new symbol
 }
+// The multipliers a Multi leaves behind belong to the CELL, not the symbol on it, so they are
+// drawn as a layer behind whatever symbol happens to be there and re-applied on every write.
+const emptyGrid = () => Array.from({ length: REELS }, () => Array(ROWS).fill(0));
+function paintCell(r, y) {
+  const el = cellEls[r][y], v = (state.grid[r] || [])[y] || 0;
+  let g = el.querySelector(".gmult");
+  if (v > 0) {
+    if (!g) { g = document.createElement("div"); g.className = "gmult"; el.prepend(g); }
+    g.textContent = "x" + fmtMult(v);
+  } else if (g) {
+    g.remove();
+  }
+}
+function paintGrid() { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
+function resetGrid() { state.grid = emptyGrid(); paintGrid(); }
 function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
 function clearFx() {
   eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop"));
@@ -1336,8 +1365,7 @@ function spinReel(r, ev, stripCol, duration, prev) {
       for (const c of cells) c.style.visibility = "";
       resolve();
     };
-    // sticky painted reels stay put — only unpainted reels spin
-    if (REDUCED_MOTION || state.skip || state.paintedSet.has(r) || !("animate" in reel)) { cleanup(); return; }
+    if (REDUCED_MOTION || state.skip || !("animate" in reel)) { cleanup(); return; }
 
     // The overlay is pinned at BOTH ends, so the spin is continuous from first frame to
     // last: its bottom ROWS children are the board that is on screen right now (the reel
@@ -1439,7 +1467,6 @@ function spinReel(r, ev, stripCol, duration, prev) {
 
 async function renderReveal(ev) {
   clearFx();
-  setChars(null);
   bounceFx();   // background bounce + board pop on every reveal, free spins included
   // show the skip only while the reels are actually spinning — it disappears the moment
   // they land (a beat before the win tally finishes), and re-appears for each free spin.
@@ -1452,8 +1479,10 @@ async function renderReveal(ev) {
     row: (shownSym[r] || []).slice(),
     stop: shownStop ? shownStop[r] : null,
   }));
-  for (let r = 0; r < REELS; r++)
+  for (let r = 0; r < REELS; r++) {
     for (let y = 0; y < ROWS; y++) setCell(r, y, ev.board[r][y + 1]);   // strip 1-row padding
+    state.pad[r] = ev.board[r][0];   // the row above the board: first to fall in on a tumble
+  }
   shownStop = ev.paddingPositions ? ev.paddingPositions.slice() : null;
 
   const strips = stripsFor(ev.gameType);
@@ -1468,7 +1497,7 @@ async function renderReveal(ev) {
     state.anticipated = true;
     charReact("anticipation");
   }
-  const spinning = reelEls.some((_, r) => !state.paintedSet.has(r));
+  const spinning = true;
   const hushReels = (spinning && !state.skip && !REDUCED_MOTION)
     ? reelSfx(Math.max(...spans)) : () => {};
   await Promise.all(
@@ -1485,30 +1514,6 @@ async function renderReveal(ev) {
 }
 
 /* ---------- rail widgets ---------- */
-function setWall(painted, level) {
-  const wall = $("wall");   // the meter card is optional; painting the reels is not
-  if (wall) {
-    const spans = wall.children;
-    for (let i = 0; i < 5; i++) spans[i].classList.toggle("done", state.hasMural ? painted.includes(i) : i < painted.length);
-    $("wallN").textContent = `${painted.length} / 5`;
-    $("paintLvl").textContent = `+${level}x per reel`;
-  }
-  document.querySelectorAll(".reel").forEach((el, r) => {
-    const on = painted.includes(r);
-    el.classList.toggle("painted", on);
-    el.classList.toggle("mural", on && state.hasMural);
-  });
-}
-function enableMural() {
-  state.hasMural = true;   // drives the board's mural reveal, with or without the meter card
-  const wall = $("wall");
-  if (wall) {
-    wall.classList.add("muralwall");
-    [...wall.children].forEach((s, i) => { s.style.backgroundImage = `url(/assets/mural_${i}.png)`; });
-  }
-  for (let i = 0; i < 5; i++) { const im = new Image(); im.src = `/assets/mural_${i}.png`; }
-}
-fetch("assets/mural.png").then(r => { if (r.ok) enableMural(); }).catch(() => {});
 function setTags(n, target) {
   const box = $("tags");
   if (!box) return;   // tag meter card was removed from the rail
@@ -1518,20 +1523,6 @@ function setTags(n, target) {
     if (i < n) s.classList.add("done");
     box.appendChild(s);
   }
-}
-function setChars(ev) {
-  const box = $("chars");
-  if (!box) return;   // the characters card was removed from the rail
-  if (!ev) { box.innerHTML = ""; return; }
-  box.innerHTML = "";
-  for (const ch of ev.characters) {
-    const d = document.createElement("div"); d.className = "chip";
-    d.innerHTML = `<span>${ch.name}</span><span>x${ch.mult}</span>`;
-    box.appendChild(d);
-  }
-  const t = document.createElement("div"); t.className = "chip total";
-  t.innerHTML = `<span>SPIN MULT</span><span>x${ev.totalMult}</span>`;
-  box.appendChild(t);
 }
 
 /* ---------- banner / ticker ---------- */
@@ -1817,7 +1808,13 @@ async function tallyUp(amount) {
 
 /* ---------- event sequencing ---------- */
 const handlers = {
-  async reveal(ev) { await renderReveal(ev); await delay(150); },
+  async reveal(ev) {
+    // the base game starts every spin clean; a bonus keeps its multipliers across spins
+    if (ev.gameType === "basegame") resetGrid();
+    await renderReveal(ev);
+    paintGrid();
+    await delay(150);
+  },
 
   async winInfo(ev) {
     if (!ev.wins.length) return;
@@ -1827,11 +1824,11 @@ const handlers = {
       // A win arrives either as a compact tuple or in the older object form. The tuple exists
       // because Stake rejects any book over 512 KiB and the spelled-out form blew past it on
       // long tumble chains - see tools/shrink_books.py. Normalise once, read it the same after.
-      //   [symbol, kind, win, [[reel,row]...], lineIndex, multiplier, paintMult?, charMult?]
+      //   [symbol, kind, win, [[reel,row]...], lineIndex, multiplier]
       const w = Array.isArray(raw) ? {
         symbol: raw[0], kind: raw[1], win: raw[2],
         positions: (raw[3] || []).map(p => ({ reel: p[0], row: p[1] })),
-        meta: { lineIndex: raw[4], multiplier: raw[5], paintMult: raw[6] ?? 1, charMult: raw[7] ?? 1 },
+        meta: { lineIndex: raw[4], multiplier: raw[5] ?? 1 },
       } : raw;
       clearFxWins();
       void $("board").offsetWidth;   // flush the removal so every line's boxes pop in fresh,
@@ -1841,8 +1838,7 @@ const handlers = {
       sfx("line");   // one call per payline as it lights up - skipping does not skip lines
       const m = w.meta || {};
       const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${w.kind}</b>`, `line ${m.lineIndex ?? "—"}`];
-      if (m.paintMult > 1) parts.push(`paint x${m.paintMult}`);
-      if (m.charMult > 1) parts.push(`chars x${m.charMult}`);
+      if (m.multiplier > 1) parts.push(`<b>x${fmtMult(m.multiplier)}</b>`);
       parts.push(`<b>${fmt(cents(w.win))}</b>`);
       tick(parts.join(" · "));
       await hold(430);   // every line gets its moment, skip or no skip
@@ -1878,8 +1874,16 @@ const handlers = {
       const H = goneRows.size;
       const survRows = [], survSyms = [];
       for (let y = 0; y < ROWS; y++) if (!goneRows.has(y)) { survRows.push(y); survSyms.push(shownSym[r][y]); }
-      // one fresh tile per gap; guard against a malformed event so the column stays valid
-      const news = (ev.newSymbols && ev.newSymbols[r]) ? ev.newSymbols[r].slice() : [];
+      // The SDK refills a reel from the top: the symbol that was sitting hidden ABOVE the
+      // board drops into the lowest new row, the strip supplies the rows above it, and a new
+      // hidden symbol is drawn on top. newSymbols[r] lists that new hidden symbol FIRST and
+      // then the strip symbols - it never lists the one that dropped in, because the client
+      // already had it from the reveal. Reading newSymbols as the visible tiles put every
+      // refilled reel one symbol off the book; 31% of post-tumble winning cells showed the
+      // wrong icon.
+      const listed = (ev.newSymbols && ev.newSymbols[r]) ? ev.newSymbols[r].slice() : [];
+      const news = listed.slice(1).concat([state.pad[r] || listed[0] || survSyms[0] || { name: "L1" }]);
+      if (listed.length) state.pad[r] = listed[0];
       while (news.length < H) news.unshift(news[0] || survSyms[0] || { name: "L1" });
       if (news.length > H) news.splice(0, news.length - H);
       const finalSyms = news.concat(survSyms);              // top -> bottom, length ROWS
@@ -1907,30 +1911,22 @@ const handlers = {
     if (!state.skip) await delay(60);
   },
 
-  async paintDrips(ev) {
-    for (const d of ev.drips) {
-      const r = d.reel;
-      cellEls[r][Math.min(Math.max(d.row - 1, 0), ROWS - 1)].classList.add("pulse");
-      await delay(220);
-      for (let y = 0; y < ROWS; y++) cellEls[r][y].classList.add("flood");
-      if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo));   // one of six, never the same twice running
-      tick(`<b>PAINT DRIP</b> floods reel ${r + 1}`);
-      await delay(420);
+  async booster(ev) {
+    // A Multi blows out: it lights up, then the four cells sharing an edge with it, its value
+    // lands on all five, and the tumbleBoard that follows clears them and drops new symbols
+    // in on top of the numbers. Skipping shortens this; it never hides it.
+    for (const b of ev.boosters || []) {
+      const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
+      at(b).classList.add("boom");
+      sfx("bell");
+      tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
+      await hold(state.skip ? 90 : 260);
+      for (const c of b.cells || []) at(c).classList.add("hit");
+      await hold(state.skip ? 90 : 320);
     }
-  },
-
-  async paintedWall(ev) {
-    state.paintedSet = new Set(ev.paintedReels);
-    setWall(ev.paintedReels, ev.paintLevel);
-    await delay(200);
-  },
-
-  async characterMults(ev) {
-    setChars(ev);
-    for (const ch of ev.characters)
-      for (const p of ch.positions) cellEls[p.reel][p.row - 1].classList.add("pulse");
-    tick(`Characters multiply the spin <b>x${ev.totalMult}</b>`);
-    await delay(650);
+    state.grid = (ev.gridMults || []).map(col => col.slice());
+    paintGrid();
+    eachCell(el => el.classList.remove("boom", "hit"));
   },
 
   async setWin() { await delay(120); },
@@ -1956,6 +1952,7 @@ const handlers = {
   },
 
   async enterBonus(ev) {
+    resetGrid();   // the bonus starts clean and then keeps every multiplier it lays down
     setTags(0, ev.reason === "standard" ? 4 : 3);
     state.tagTarget = ev.reason === "standard" ? 4 : 3;
   },
@@ -1972,19 +1969,9 @@ const handlers = {
     setTags(0, state.tagTarget || 4);
     const bits = [];
     if (ev.extraSpins > 0) bits.push(`+${ev.extraSpins} SPINS`);
-    bits.push(`PAINT +${ev.paintLevel}x`);
-    await banner("TAG METER FULL", bits.join(" · "), 1100, "gold");
+    await banner("TAG METER FULL", bits.join(" \u00b7 ") || "METER RESET", 1100, "gold");
   },
 
-  async fullWall() {
-    charReact("big_win");
-    if (state.hasMural) {
-      $("bannerMural").src = "assets/mural.png";
-      await banner("FULL WALL", "Mural complete — MAX WIN", 2600, "gold muralshow");
-    } else {
-      await banner("FULL WALL", "Mural complete — MAX WIN", 2100);
-    }
-  },
   async wincap(ev) { charReact("big_win"); await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
 
   async freeSpinEnd(ev) {
@@ -2078,10 +2065,9 @@ async function presentRound(round, { settle = true } = {}) {
   state.totalWin = 0;
   state.tallied = false;
   setRoundWin(0);
-  state.paintedSet = new Set();
+  state.grid = emptyGrid();
   state.anticipated = false;
   state.bonusHit = false;
-  setWall([], 1);
   setTags(0, 4);
 
   // The amounts inside a round's events are hundredths of the bet, which is what cents()

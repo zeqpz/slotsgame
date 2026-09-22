@@ -48,8 +48,8 @@
                 },
                 {
                     "name": "freegame",
-                    "hr": "250",
-                    "rtp": "0.35",
+                    "hr": "200",
+                    "rtp": "0.3",
                     "identity_condition": {
                         "search": [
                             {
@@ -64,8 +64,8 @@
                 },
                 {
                     "name": "extremegame",
-                    "hr": "1000",
-                    "rtp": "0.05",
+                    "hr": "8000",
+                    "rtp": "0.06",
                     "identity_condition": {
                         "search": [
                             {
@@ -81,7 +81,7 @@
                 {
                     "name": "basegame",
                     "hr": "2.5",
-                    "rtp": "0.563",
+                    "rtp": "0.603",
                     "identity_condition": {
                         "search": [],
                         "win_range_start": -1,

@@ -1,23 +1,23 @@
 """Re-encode books so no single book exceeds Stake's 512 KiB publish limit.
 
 Stake rejects any book (one line of books_<mode>.jsonl.zst) over 524,288 bytes. In this game
-winInfo events are ~93% of a large book: a long tumble chain produces thousands of line-win
+winInfo events are most of a large book: a long tumble chain produces thousands of line-win
 entries, each spelled out in full:
 
     {"symbol": "L10", "kind": 3, "win": 60,
      "positions": [{"reel": 0, "row": 1}, {"reel": 1, "row": 2}, {"reel": 2, "row": 1}],
-     "meta": {"lineIndex": 5, "multiplier": 6, "winWithoutMult": 10, "globalMult": 1,
-              "lineMultiplier": 1, "paintMult": 2, "charMult": 3}}          ~250 bytes
+     "meta": {"lineIndex": 5, "multiplier": 6.2, "winWithoutMult": 10, "globalMult": 1,
+              "lineMultiplier": 1, "cellMults": [1.2, 5, 0]}}               ~230 bytes
 
-Only eight of those numbers are ever read by the client, so a win becomes a flat tuple:
+Only six of those values are ever read by the client, so a win becomes a flat tuple:
 
-    ["L10", 3, 60, [[0,1],[1,2],[2,1]], 5, 6, 2, 3]                          ~45 bytes
-     symbol kind win positions          line mult paint char
+    ["L10", 3, 60, [[0,1],[1,2],[2,1]], 5, 6.2]                              ~40 bytes
+     symbol kind win positions          line mult
 
 Nothing is dropped that the game uses: winWithoutMult, globalMult and lineMultiplier are
-derivable (win / multiplier, and the factors of multiplier) and no consumer reads them. The
-client accepts both shapes - an array is the compact form, an object the legacy one - so old
-and new books both play.
+derivable and no consumer reads them, and cellMults is already on the client from the
+booster event's grid. The client accepts both shapes - an array is the compact form, an
+object the legacy one - so old and new books both play.
 
 This changes ENCODING ONLY. Book ids, their order, payoutMultiplier, the event list and every
 win value are preserved exactly, so the lookup tables and the optimised RTP stay valid.
@@ -59,21 +59,14 @@ def compact_win(w):
     if isinstance(w, list):
         return w
     m = w.get("meta") or {}
-    t = [
+    return [
         w.get("symbol"),
         w.get("kind"),
         w.get("win"),
         [[p["reel"], p["row"]] for p in w.get("positions", [])],
         m.get("lineIndex"),
         m.get("multiplier"),
-        m.get("paintMult"),
-        m.get("charMult"),
     ]
-    # paintMult and charMult are 1 on most wins; drop them from the tail when they are, and
-    # the client reads a missing element as 1. Worth ~6 bytes on every plain win.
-    while len(t) > 6 and t[-1] in (1, None):
-        t.pop()
-    return t
 
 
 def compact_book(book):

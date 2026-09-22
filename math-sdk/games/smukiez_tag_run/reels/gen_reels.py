@@ -5,7 +5,7 @@ Strips (100 positions x 5 reels):
     BRE     base game with Phantom (ES) scatters, used for forced Extreme entries
     FR0     standard bonus free spins (no scatters)
     FRE     extreme bonus free spins (no scatters)
-    FRWCAP  drip/character-rich free-spin strip for wincap simulations
+    FRWCAP  Multi-rich free-spin strip for wincap simulations
 
 Symbol counts below are per reel (a single int applies to all 5 reels, a 5-list sets
 each reel). Scatter-class symbols (BS/ES) keep a circular gap of >= 6 so at most one can
@@ -27,35 +27,37 @@ LOW_WEIGHTS = {
 
 # per-strip symbol counts: {symbol: int | [r0, r1, r2, r3, r4]}
 STRIPS = {
+    # M is the Multi. Every C1/C2/C3 and W slot they replaced went to the premiums, so the
+    # premium density is a little higher than v2 rather than a little lower.
     "BR0": {
         "seed": 101,
         "scatters": {"BS": 2},
-        "specials": {"W": [0, 1, 1, 1, 0], "C1": 2, "C2": [0, 1, 1, 1, 1], "C3": [0, 0, 1, 1, 1]},
-        "highs": {"H1": 4, "H2": 4, "H3": 4, "H4": 4, "H5": 4, "H6": 4, "H7": 4},
+        "specials": {"M": 1},
+        "highs": {"H1": 5, "H2": 5, "H3": 5, "H4": 5, "H5": 5, "H6": 5, "H7": 5},
     },
     "BRE": {
         "seed": 202,
         "scatters": {"BS": 2, "ES": [0, 2, 0, 2, 0]},
-        "specials": {"W": [0, 1, 1, 1, 0], "C1": 2, "C2": [0, 1, 1, 1, 1], "C3": [0, 0, 1, 1, 1]},
-        "highs": {"H1": 4, "H2": 4, "H3": 4, "H4": 4, "H5": 4, "H6": 4, "H7": 4},
+        "specials": {"M": 1},
+        "highs": {"H1": 5, "H2": 5, "H3": 5, "H4": 5, "H5": 5, "H6": 5, "H7": 5},
     },
     "FR0": {
         "seed": 303,
         "scatters": {},
-        "specials": {"C1": 1, "C2": [0, 0, 1, 1, 0], "C3": [0, 0, 0, 1, 1]},
-        "highs": {"H1": 6, "H2": 6, "H3": 6, "H4": 6, "H5": 6, "H6": 6, "H7": 6},
+        "specials": {"M": 7},
+        "highs": {"H1": 7, "H2": 7, "H3": 7, "H4": 7, "H5": 7, "H6": 7, "H7": 7},
     },
     "FRE": {
         "seed": 404,
         "scatters": {},
-        "specials": {"C1": 2, "C2": [1, 0, 1, 0, 1], "C3": [0, 1, 0, 1, 1]},
-        "highs": {"H1": 6, "H2": 6, "H3": 6, "H4": 6, "H5": 6, "H6": 6, "H7": 6},
+        "specials": {"M": 11},
+        "highs": {"H1": 7, "H2": 7, "H3": 7, "H4": 7, "H5": 7, "H6": 7, "H7": 7},
     },
     "FRWCAP": {
         "seed": 505,
         "scatters": {},
-        "specials": {"W": 5, "C1": 3, "C2": 3, "C3": 3},
-        "highs": {"H1": 6, "H2": 6, "H3": 6, "H4": 6, "H5": 6, "H6": 6, "H7": 6},
+        "specials": {"M": 22},
+        "highs": {"H1": 8, "H2": 8, "H3": 8, "H4": 8, "H5": 8, "H6": 8, "H7": 8},
     },
 }
 
