@@ -24,8 +24,19 @@
     --orange: #FF8A2A;       /* the bottom-bar icon buttons and their pop-ups */
     --mono: "Jraot Hollow", "IBM Plex Mono", ui-monospace, Consolas, monospace;
     --disp: "Jraot Hollow", "Archivo Black", "Archivo", sans-serif;
+    /* Timegoing carries the money and the multipliers (balance, bet, the values on the
+       board) and every line of body copy in the rules and menus; BROMO is capitals only -
+       no digits, no punctuation - so it takes the BALANCE label and the currency code, and
+       anything else in that run falls through to the next face glyph by glyph. */
+    --num: "Timegoing", "Jraot Hollow", "IBM Plex Mono", monospace;
+    --label: "BROMO", "Jraot Hollow", "IBM Plex Mono", monospace;
     --wall-scale: contain;   /* background wall size — `cover` fills and crops, `contain` fits it all in */
     --char-height: 49.5vh;   /* base size the crop window is derived from */
+    --char-headroom: 1.2;    /* canvas above the rig's standing height, so smoke, hats and
+                                raised arms have room: the figure is scaled to the box WITHOUT
+                                this, the box just extends up (charfx JS reads this). The rigs
+                                reach ~3.5% above their standing height at the top of a
+                                reaction; 20% is five times that. */
     --char-stretch: 1.30;    /* stretched vertically — scaling up instead would widen them
                                 over the reels and re-crop their arms */
     --char-drop: 3vh;        /* how far their feet run past the bottom edge. The figures fill
@@ -33,20 +44,31 @@
                                 go: this takes it off the shoes and keeps the heads intact. */
     --bounce: .2;            /* strength of the per-spin bounce/shake; 1 = the original full-force version */
     /* Regulatory text must be readable — the graffiti face is not. */
-    --legible: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    --legible: "Timegoing", "IBM Plex Mono", ui-monospace, Consolas, monospace;
+    --plain: "IBM Plex Mono", ui-monospace, Consolas, monospace;   /* the regulatory disclosure stays in a plain face */
     --char-fade: 280ms;      /* crossfade between the character's clips (JS reads this) */
     --char-inset: -3vw;      /* how far in from each edge they stand; negative pushes them out */
     /* Board size lives here so the spin overlay's CELL_STEP can be derived from the same
        numbers — hardcoding it separately means the reels mis-align the moment a cell resizes.
        Sized for the 7x7 cluster board: seven of these, gaps included, take about the room
        the old 5x4 board did. */
-    --cell-w: 86px;
-    --cell-h: 74px;
-    --cell-gap: 5px;
+    --cell-w: 96px;
+    --cell-h: 82px;
+    --cell-gap: 6px;
   }
   @font-face {
     font-family: "Jraot Hollow";
     src: url("assets/jraot-hollow.ttf") format("truetype");
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Timegoing";
+    src: url("assets/timegoing.ttf") format("truetype");
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "BROMO";
+    src: url("assets/bromo.otf") format("opentype");
     font-display: swap;
   }
   * { box-sizing: border-box; }
@@ -74,7 +96,7 @@
     position: fixed; z-index: -1; bottom: calc(-1 * var(--char-drop));
     /* 0.94 is wide enough to clear the widest frame in any clip — a narrower window sliced
        the cartoon's arms off. No bottom mask either: it was fading out their feet. */
-    height: calc(var(--char-height) * var(--char-stretch));
+    height: calc(var(--char-height) * var(--char-stretch) * var(--char-headroom));
     width: calc(var(--char-height) * 0.94);
     overflow: hidden; pointer-events: none; user-select: none;
     opacity: .78;   /* they are scenery — the reels stay the focus */
@@ -147,12 +169,15 @@
   }
   .chip[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
   .chip .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
+  #balanceLbl { font-family: var(--label); font-size: 12px; letter-spacing: .1em; }
   /* the graffiti face sets numerals tight enough that they read as one blob — tracking
      them apart is what makes the figures legible at this size */
   .stat .val {
     font-family: var(--mono); font-size: 16px; font-weight: 700;
     letter-spacing: .13em; font-variant-numeric: tabular-nums;
   }
+  /* the balance figure is set in Timegoing, which does not need the graffiti face's tracking */
+  #balance { font-family: var(--num); font-size: 19px; letter-spacing: .04em; font-weight: 400; }
   /* the win only exists while there is one, and it announces itself when it arrives */
   .chip.winchip { border: 2px solid var(--gold); animation: winchip .52s cubic-bezier(.2,.9,.3,1.45); }
   .chip.winchip .val { color: var(--gold); }
@@ -202,7 +227,7 @@
   .intrologo.in { opacity: 1; transform: none; }
   .intromsg {
     position: absolute; max-width: 680px; margin: 0;
-    font-family: var(--legible); font-size: 13px; line-height: 1.75; color: var(--ink-soft);
+    font-family: var(--plain); font-size: 13px; line-height: 1.75; color: var(--ink-soft);
     opacity: 0; transition: opacity .8s ease;
   }
   .intromsg.in { opacity: 1; }
@@ -335,7 +360,7 @@
   .kvgrid b { display: block; font-size: 18px; margin: 2px 0; }
   .kvgrid small { color: var(--ink-soft); font-size: 11px; }
   .paytable { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
-  .prow { display: grid; grid-template-columns: 48px 1fr; gap: 4px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-family: var(--legible); font-size: 12px; }
+  .prow { display: grid; grid-template-columns: 48px 1fr; gap: 4px 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-family: var(--legible); font-size: 13px; }
   .prow .ptext { grid-column: 1 / -1; color: var(--ink); line-height: 1.55; }
   .ptile { width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); background: var(--panel2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--disp); box-sizing: border-box; }
   .ptile.wild { color: var(--spray); }  .ptile.char { color: var(--teal); }
@@ -344,7 +369,7 @@
   /* six cluster-size tiers per symbol, laid out as two rows of three so the columns line up */
   .pvals { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 3px 14px; }
   .pvals b { color: var(--gold); margin-right: 4px; }  .pvals em { font-style: normal; color: var(--ink-soft); margin-left: 4px; }
-  table.modes, table.guide { width: 100%; border-collapse: collapse; font-family: var(--legible); font-size: 12px; }
+  table.modes, table.guide { width: 100%; border-collapse: collapse; font-family: var(--legible); font-size: 13px; }
   table.modes th, table.modes td, table.guide td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
   table.modes th { color: var(--ink-soft); font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
   table td em { font-style: normal; color: var(--ink-soft); }
@@ -370,7 +395,7 @@
     margin: 0 0 12px; font-family: var(--disp); font-size: 22px; letter-spacing: .06em;
     text-transform: uppercase; color: var(--spray);
   }
-  .infopanel p { font-family: var(--legible); font-size: 13px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
+  .infopanel p { font-family: var(--legible); font-size: 14px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
   .infopanel p.legal { color: var(--ink-soft); font-size: 11.5px; line-height: 1.7; }
   .infoclose {
     font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase;
@@ -461,11 +486,25 @@
   .cell.escat { color: var(--fs-purple); }
   .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite; }
   .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
+  /* a bonus symbol announces itself the moment its reel lands: punches up, shakes it off,
+     settles - on top of its glow, which keeps breathing underneath */
+  .cell.scat.scatland img  { animation: scatland .7s cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
+  .cell.escat.scatland img { animation: scatland .7s cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
+  .cell.scatland { z-index: 2; }
+  @keyframes scatland {
+    0%   { transform: scale(1); }
+    18%  { transform: scale(1.34) rotate(-6deg); }
+    34%  { transform: scale(1.1) rotate(5deg); }
+    50%  { transform: scale(1.22) rotate(-3deg); }
+    66%  { transform: scale(1.04) rotate(2deg); }
+    82%  { transform: scale(1.1) rotate(-1deg); }
+    100% { transform: scale(1); }
+  }
   /* The Multi. Until its art lands it is the sprayed box with its value set into it; the
      value is the whole point of the symbol, so it is the tile. */
   .cell.booster { background: url("assets/ui_box.png") center / 100% 100% no-repeat; border-color: transparent; }
   .cell.booster .multface {
-    position: relative; z-index: 1; font-family: var(--disp); font-size: 18px; line-height: 1;
+    position: relative; z-index: 1; font-family: var(--num); font-size: 22px; line-height: 1;
     color: var(--fs-green); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px rgba(168,240,0,.8);
   }
   /* it blows out: the Multi itself, then the four cells it hits */
@@ -490,7 +529,7 @@
     position: absolute; display: grid; place-items: center; white-space: nowrap;
     /* --shrink is set by paintCell() from the value's length, so a stacked value like
        x1001.25 still fits inside the cell instead of running past its edges */
-    font-family: var(--disp); font-size: calc(22px * var(--shrink, 1)); line-height: 1;
+    font-family: var(--num); font-size: calc(26px * var(--shrink, 1)); line-height: 1;
     color: var(--fs-green); opacity: .42; text-shadow: 0 0 12px rgba(168,240,0,.9);
     transition: opacity .18s linear;
   }
@@ -511,6 +550,7 @@
   @media (prefers-reduced-motion: reduce) {
     .cell.scat img  { animation: none; filter: drop-shadow(0 0 7px rgba(168, 240, 0, .95)); }
     .cell.escat img { animation: none; filter: drop-shadow(0 0 7px rgba(192, 38, 216, .95)); }
+    .cell.scatland img { animation: none !important; }
   }
   .cell.drop  { animation: drop .3s ease-out; }
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -541,12 +581,14 @@
      settle in place: symbols never move away from where they landed or change face.
      Bottom-up stagger keeps the old gravity read without a second drop-in pass. */
   /* the column absorbs the landing: each tile squashes then springs back, rippling from the
-     top tile down so it reads as the icons reacting to the hit in the order they arrive */
+     bottom tile up - the one that hits the floor first settles first, like a stack landing */
   /* --i is the cell's row, set in buildBoard(), so the ripple covers however many rows the
      board has rather than a fixed list of nth-children */
   .reel.impact > .cell {
     animation: impact .36s cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    /* --ib counts rows from the BOTTOM: the tile that hits the floor first settles first and
+       the shake runs up the column, the way a stack lands */
+    animation-delay: calc(var(--ib, 0) * 45ms);
   }
   @keyframes impact {
     0%   { transform: translateY(-2px) scaleY(1.04) scaleX(.985); }
@@ -764,6 +806,7 @@
     background: rgba(14, 12, 18, .88); border-radius: 12px; padding: 5px 9px;
     box-shadow: 0 2px 10px rgba(0,0,0,.35);
   }
+  .betbox #betVal, #betVal { font-family: var(--num) !important; letter-spacing: .06em; text-indent: 0; font-weight: 400; font-size: 19px; }
   /* The stepper is hand-sprayed art, not type: the cyan-on-magenta box is the button and
      the glyph is painted inside it. font-size:0 drops the - and + characters the markup
      still carries for anything that reads the DOM without the stylesheet; the buttons keep
@@ -895,7 +938,7 @@
   /* bet stepper inside the panel — same control as the bar, driving the same bet */
   .bonusbet { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 4px; }
   .bonusbet .lbl {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
     color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55);
   }
   .bonusbet .amt { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
@@ -915,8 +958,8 @@
   .bonusbet button:active:not(:disabled) { transform: scale(.93); }
   .bonusbet button:disabled { filter: grayscale(.7); }
   .bonusbet .amt {
-    font-family: var(--mono); font-size: 16px; font-weight: 700; min-width: 132px; text-align: center;
-    letter-spacing: .34em; text-indent: .17em; font-variant-numeric: tabular-nums;
+    font-family: var(--num); font-size: 19px; font-weight: 400; min-width: 132px; text-align: center;
+    letter-spacing: .06em; font-variant-numeric: tabular-nums;
   }
   .bonustotal {
     text-align: center; font-family: var(--legible); font-size: 12.5px; color: #fff;
@@ -1208,6 +1251,8 @@ const state = {
   playing: false, skip: false,
   grid: [],   // the multipliers Multis have left on the cells this spin (or this bonus)
   pad: [],    // the hidden symbol above each reel - it is the next one to drop in on a tumble
+  multiCount: 0,   // Multis that have gone off this spin: each rings a little higher than the last
+  multiTotal: 0,   // ... and across the whole round, for the bust at the end of a dry one
 };
 
 const $ = id => document.getElementById(id);
@@ -1252,7 +1297,8 @@ function buildBoard() {
     for (let y = 0; y < ROWS; y++) {
       const c = document.createElement("div");
       c.className = "cell low";
-      c.style.setProperty("--i", y);   // its row, for the landing ripple's stagger (CSS .reel.impact)
+      c.style.setProperty("--i", y);   // its row from the top
+      c.style.setProperty("--ib", ROWS - 1 - y);   // and from the bottom, for the landing ripple (CSS .reel.impact)
       reel.appendChild(c); cellEls[r].push(c);
     }
     board.appendChild(reel);
@@ -1326,7 +1372,7 @@ function placeMultLayer() {
 }
 function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
 function clearFx() {
-  eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop"));
+  eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop", "scatland"));
   $("board").classList.remove("spotlight");
   clearWinChip();
 }
@@ -1476,6 +1522,14 @@ function spinReel(r, ev, stripCol, duration, prev) {
       reel.classList.remove("spinning");
       overlay.remove();
       try { spin.cancel(); haze.cancel(); } catch (e) { /* already done */ }
+      // bonus symbols announce themselves as their reel lands: a pop and a shake, and the
+      // reveal note - once per reel, throttled so a skipped spin can't fire seven at once
+      let scat = 0;
+      for (const c of cells) if (c.classList.contains("scat") || c.classList.contains("escat")) { c.classList.add("scatland"); scat++; }
+      if (scat) {
+        sfxGap("scatterLand", 140, 1 + r * .02);
+        setTimeout(() => { for (const c of cells) c.classList.remove("scatland"); }, 800);
+      }
       if (state.skip || REDUCED_MOTION) { cleanup(); return; }
       reel.classList.add("impact");
       boardThud(r);
@@ -1625,7 +1679,7 @@ function setRoundWin(v) {
   // the chip is not a permanent readout any more: it arrives with the win and leaves with it
   if (chip) {
     if (v > 0) {
-      if (chip.hidden) { chip.hidden = false; void chip.offsetWidth; }   // flush so it re-pops
+      if (chip.hidden) { chip.hidden = false; void chip.offsetWidth; sfx("winText"); }   // flush so it re-pops
     } else {
       chip.hidden = true;
     }
@@ -1643,6 +1697,17 @@ const SFX = {
   coins: "assets/sfx_coins.wav", bell: "assets/sfx_bell.wav",
   dripA: "assets/sfx_drip_a.wav", dripB: "assets/sfx_drip_b.wav", dripC: "assets/sfx_drip_c.wav",
   dripD: "assets/sfx_drip_d.wav", dripE: "assets/sfx_drip_e.wav", dripF: "assets/sfx_drip_f.wav",
+  // Casino Machines pack: each one is named for the moment it belongs to
+  scatterLand: "assets/sfx_scatter_land.wav",   // a bonus symbol lands (Wild Symbol Reveal)
+  pop: "assets/sfx_pop.wav",                     // one icon popping off the board (Symbol Pop)
+  multiHit: "assets/sfx_multi_hit.wav",          // a Multi going off (Scatter Symbol Hit)
+  alertA: "assets/sfx_jackpot_alert_a.wav", alertB: "assets/sfx_jackpot_alert_b.wav",   // a run of Multis
+  bustA: "assets/sfx_bust_a.wav", bustB: "assets/sfx_bust_b.wav",   // Multis landed, nothing used them
+  winText: "assets/sfx_win_text.wav",            // the win amount popping up (Flashy Win Text)
+  hoverLoop: "assets/sfx_hover_loop.wav",        // looped under the pointer on the Bonus button
+  autoStart: "assets/sfx_auto_start.wav", autoStop: "assets/sfx_auto_stop.wav",
+  menuOpen: "assets/sfx_menu_open.wav", menuClose: "assets/sfx_menu_close.wav",
+  toggle: "assets/sfx_toggle.wav",               // rapid, sound and music switches
 };
 const DRIP_SFX = ["dripA", "dripB", "dripC", "dripD", "dripE", "dripF"];
 // avoids repeating the last pick, so back-to-back drips in one round never double up
@@ -1657,7 +1722,10 @@ const SFX_VOL = {
   spin: .5, bet: .45, reels: .3, jackpotA: .55, jackpotB: .55, skip: .45, line: .4,
   bonusStart: .55, bonusEnd: .55, coins: .4, bell: .55,
   dripA: .5, dripB: .5, dripC: .5, dripD: .5, dripE: .5, dripF: .5,
+  scatterLand: .55, pop: .42, multiHit: .55, alertA: .55, alertB: .55, bustA: .5, bustB: .5,
+  winText: .5, hoverLoop: .28, autoStart: .45, autoStop: .45, menuOpen: .4, menuClose: .4, toggle: .4,
 };
+const bustMemo = { last: null };
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
 // covered at each. Differentiating it gives the reels' velocity, which drives the pitch, so
 // the sound rises and falls exactly with the symbols. Keep in step with spinReel().
@@ -1786,6 +1854,43 @@ function sfx(name, rate = 1) {
   src.start();
 }
 
+// The same clip can't be allowed to fire seven times in one frame (seven reels landing on a
+// skipped spin, say): one play, then nothing until the gap has passed.
+const sfxLast = {};
+function sfxGap(name, gapMs, rate = 1) {
+  const now = performance.now();
+  if ((sfxLast[name] || 0) + gapMs > now) return;
+  sfxLast[name] = now;
+  sfx(name, rate);
+}
+
+// An open-ended loop with a soft start; the function it returns fades it out. Used for the
+// hover hum on the Bonus button, which lasts exactly as long as the pointer stays.
+function loopHold(name) {
+  if (vol.sfx <= 0) return () => {};
+  const ctx = audio();
+  if (!ctx || !sfxBuf[name]) return () => {};
+  const level = SFX_VOL[name] ?? .4;
+  const src = ctx.createBufferSource();
+  src.buffer = sfxBuf[name];
+  src.loop = true;
+  const g = ctx.createGain();
+  const t = ctx.currentTime;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(level, t + .12);
+  src.connect(g).connect(sfxBus);
+  src.start(t);
+  return () => {
+    const t2 = ctx.currentTime;
+    try {
+      g.gain.cancelScheduledValues(t2);
+      g.gain.setValueAtTime(g.gain.value, t2);
+      g.gain.linearRampToValueAtTime(0, t2 + .15);
+      src.stop(t2 + .2);
+    } catch (e) { /* already stopped */ }
+  };
+}
+
 // One loop for the whole spin, its pitch following the reels' own speed curve.
 function loopSfx(name, ms, curve) {
   if (vol.sfx <= 0) return () => {};
@@ -1888,14 +1993,29 @@ const handlers = {
       if (p.reel < 0 || p.reel >= REELS) continue;
       goneByReel[p.reel].add(Math.min(Math.max(p.row - 1, 0), ROWS - 1));   // padded -> display row
     }
-    // 1. pop the actual winning symbols; the multiplier under each stays and comes forward
-    let anyGone = false;
-    for (let r = 0; r < REELS; r++) for (const y of goneByReel[r]) {
-      cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare"); anyGone = true;
-    }
-    if (!anyGone) return;
-    if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo), 0.7);
-    await delay(state.skip ? 0 : 300);
+    // 1. pop the winning symbols ONE AT A TIME, reel by reel, top to bottom, each with its own
+    //    pop note (a whisker higher each time); the multiplier under each stays and comes
+    //    forward. The gap shrinks for big clusters so a 20-cell board still clears in under
+    //    half a second; a skipped round pops everything at once with a single note.
+    const order = [];
+    for (let r = 0; r < REELS; r++) for (const y of [...goneByReel[r]].sort((a, b) => a - b)) order.push([r, y]);
+    if (!order.length) return;
+    // Rapid quarters every delay(), so the pops are spaced on the same clock and the wait
+    // for the last one is a hold (never shortened); whatever is still pending when gravity
+    // is about to rebuild the column is dropped, so no pop can ever land on a new tile.
+    const quick = $("turbo").checked ? 4 : 1;
+    const gap = state.skip ? 0 : Math.min(55, Math.floor(420 / order.length)) / quick;
+    const timers = [];
+    order.forEach(([r, y], i) => {
+      const go = () => {
+        cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare");
+        if (!state.skip || i === 0) sfx("pop", 1 + i * .012);
+      };
+      if (gap) timers.push(setTimeout(go, i * gap)); else go();
+    });
+    if (gap) await hold(gap * (order.length - 1));   // every scheduled pop has fired by now
+    timers.forEach(clearTimeout);
+    await delay(state.skip ? 0 : 300);               // the last tile's pop tail
     // 2. gravity, per column
     for (let r = 0; r < REELS; r++) {
       for (let y = 0; y < ROWS; y++) { cellEls[r][y].classList.remove("explode", "tdrop"); cellEls[r][y].style.removeProperty("--fall"); }
@@ -1952,7 +2072,11 @@ const handlers = {
     for (const b of ev.boosters || []) {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
       at(b).classList.add("boom");
-      sfx("bell");
+      // every Multi in a round rings a little higher than the one before, and a run of them
+      // is its own event: the third, and every third after, gets the jackpot alert (A, B, A...)
+      state.multiCount++; state.multiTotal++;
+      sfx("multiHit", Math.min(1.9, 1 + .07 * (state.multiCount - 1)));
+      if (state.multiCount >= 3 && state.multiCount % 3 === 0) sfx((state.multiCount / 3) % 2 ? "alertA" : "alertB");
       tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
       await hold(state.skip ? 90 : 260);
       for (const c of b.cells || []) at(c).classList.add("hit");
@@ -1992,6 +2116,7 @@ const handlers = {
   },
 
   async updateFreeSpin(ev) {
+    state.multiCount = 0;   // each free spin is its own crescendo: the ramp and the alert count start over
     $("fsNow").textContent = `${ev.amount + 1} / ${ev.total}`;
     state.fsTotal = ev.total;
     await delay(160);
@@ -2090,6 +2215,7 @@ async function presentRound(round, { settle = true } = {}) {
   state.grid = emptyGrid();
   state.anticipated = false;
   state.bonusHit = false;
+  state.multiCount = 0; state.multiTotal = 0;
   setTags(0, 4);
 
   // The amounts inside a round's events are hundredths of the bet, which is what cents()
@@ -2137,7 +2263,9 @@ async function presentRound(round, { settle = true } = {}) {
   } else {
     // no "lose" here: a spin that pays nothing is most spins. The characters only sulk when
     // a bonus was actually on the table - a near miss above, or a bonus that failed to clear
-    // its own cost in freeSpinEnd.
+    // its own cost in freeSpinEnd. Multis that went off with nothing to multiply are their
+    // own small tragedy, though: that gets the bust.
+    if (state.multiTotal > 0) sfx(pickSfx(["bustA", "bustB"], bustMemo));
     tick("No win — run it back.");
   }
 }
@@ -2167,6 +2295,7 @@ function paintBonus() {
   $("bonusBetDown").disabled = state.betIdx <= 0;
 }
 function closeBonus() {
+  if (!$("bonusWrap").hidden) sfx("menuClose");
   $("bonusWrap").hidden = true;
   $("bonusBtn").classList.remove("open");
 }
@@ -2175,10 +2304,30 @@ function openBonus() {
   if (!$("bonusWrap").hidden) { closeBonus(); return; }   // the same button closes it
   $("bonusWrap").hidden = false;
   $("bonusBtn").classList.add("open");
+  sfx("menuOpen");
   paintBonus();
   $("bonusGo").focus();
 }
-$("bonusBtn").addEventListener("click", () => { sfx("bet", 1); openBonus(); });
+$("bonusBtn").addEventListener("click", () => openBonus());
+// The Bonus button hums while the pointer rests on it - a mouse pointer, that is: a finger
+// has no hover, and a disabled button has nothing to offer.
+{
+  const btn = $("bonusBtn");
+  let stopHover = null, mouseOn = false;
+  const stop = () => { if (stopHover) { stopHover(); stopHover = null; } };
+  const start = () => { if (!btn.disabled && !stopHover && mouseOn) stopHover = loopHold("hoverLoop"); };
+  btn.addEventListener("pointerenter", e => {
+    if (e.pointerType && e.pointerType !== "mouse") return;
+    mouseOn = true; start();
+  });
+  btn.addEventListener("pointerleave", () => { mouseOn = false; stop(); });
+  btn.addEventListener("pointerdown", stop);
+  addEventListener("blur", stop);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
+  // a round started from the keyboard disables the button under a resting pointer: the hum
+  // stops with it, and comes back when the button does if the pointer never left
+  new MutationObserver(() => { if (btn.disabled) stop(); else start(); }).observe(btn, { attributes: true, attributeFilter: ["disabled"] });
+}
 $("bonusStd").addEventListener("click", () => { bonusMode = "bonus"; sfx("bet", 1.1); paintBonus(); });
 $("bonusExt").addEventListener("click", () => { bonusMode = "extremebonus"; sfx("bet", .9); paintBonus(); });
 $("bonusBetUp").addEventListener("click", () => { state.betIdx = Math.min(state.betIdx + 1, state.bets.length - 1); sfx("bet", 1.22); refreshBet(); });
@@ -2242,6 +2391,7 @@ function confirmAuto() {
     $("autoBet").textContent = fmt(bet());
     $("autoText").firstChild.textContent = T("Rounds at ");
     openPop("autoPop");
+    sfx("menuOpen");
     $("autoYes").focus();
     const pick = e => {
       const b = e.target.closest("button[data-n]");
@@ -2249,7 +2399,7 @@ function confirmAuto() {
       opts.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
       n = Number(b.dataset.n);
     };
-    const done = v => { off(); closePops(); resolve(v); };
+    const done = v => { off(); closePops(); if (!v) sfx("menuClose"); resolve(v); };
     const yes = () => done(n), no = () => done(0);
     const away = e => { if (!pop.hidden && !e.target.closest("#autoPop, #autoBtn")) no(); };
     const key = e => { if (e.key === "Escape") no(); };
@@ -2273,22 +2423,26 @@ function setAutoBtn() {
   b.setAttribute("aria-label", on ? T("Stop auto play") : T("Auto play"));
   b.title = b.getAttribute("aria-label");
 }
+let autoStopped = false;   // the press already played the stop; runAuto's exit must not repeat it
 async function runAuto(n) {
-  state.auto = n; setAutoBtn();
+  state.auto = n; autoStopped = false; setAutoBtn();
+  sfx("autoStart");
   while (state.auto > 0) {
-    if (state.playing) { await delay(120); continue; }   // let a running round finish first
+    if (state.playing) { await hold(120); continue; }    // let a running round finish first (hold, not
+                                                          // delay: delay collapses to nothing on a skipped
+                                                          // round and this would spin the page frozen)
     if (bet() > state.balance) break;
     state.auto--; setAutoBtn();
     if (!(await playRound("base"))) break;
     if (state.auto > 0) await delay(450);   // a breath between rounds, so each result can be read
   }
   state.auto = 0; setAutoBtn();
+  if (!autoStopped) sfx("autoStop");   // count ran out, balance ran out, or a round failed
 }
 $("autoBtn").addEventListener("click", async () => {
-  if (autoDismiss) { autoDismiss(); sfx("skip"); return; }   // same button closes the picker
-  if (state.auto > 0) { state.auto = 0; setAutoBtn(); sfx("skip"); return; }
+  if (autoDismiss) { autoDismiss(); return; }   // same button closes the picker (done() plays the close)
+  if (state.auto > 0) { state.auto = 0; autoStopped = true; setAutoBtn(); sfx("autoStop"); return; }   // the press is the moment
   if (REPLAY || !RGS.state.authenticated) return;
-  sfx("bet", 1);
   const n = await confirmAuto();
   if (n > 0) runAuto(n);
 });
@@ -2417,13 +2571,17 @@ async function makeCharacter({ el, base, name, ambient, flavour }) {
   app.stage.addChild(actor);
 
   // The rig is drawn feet-on-the-floor, centred: scale so the skeleton's own height fills
-  // the box, which is what the CSS vars were calibrated against.
+  // the box the CSS vars were calibrated against - the box minus the headroom, which is
+  // there so an animation that rises above the standing pose (smoke, a raised arm) is
+  // drawn instead of clipped at the top edge.
   const fit = () => {
     const w = app.renderer.width, h = app.renderer.height;
     if (!w || !h) return;
-    actor.scale.set(h / (data.height || 1));
+    const head = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-headroom")) || 1;
+    actor.scale.set(h / head / (data.height || 1));
     actor.position.set(w / 2, h);
   };
+  (window.__chars || (window.__chars = [])).push({ name, app, actor, data });   // debug handle
   fit();
   app.renderer.on("resize", fit);
   addEventListener("resize", fit);
@@ -2780,7 +2938,8 @@ for (const b of BUSES) {
   $(b.btn).addEventListener("click", () => {
     const on = $(b.pop).hidden;
     showBar(b, on);
-    if (on) { $(b.bar).focus({ preventScroll: true }); sfx("bet", 1); }
+    sfx("toggle");
+    if (on) $(b.bar).focus({ preventScroll: true });
   });
 }
 // pressing away from the cluster puts every bar back. A pointerdown can be retargeted at a
@@ -2797,6 +2956,8 @@ paintVol();
 function showMenu(on) {
   const pop = $("menuPop"), btn = $("menuBtn");
   if (!pop || !btn) return;
+  if (pop.hidden === !on) return;   // already there: no sound, no work
+  sfx(on ? "menuOpen" : "menuClose");
   pop.hidden = !on;
   if (on) {
     placePop(pop, btn);
@@ -2807,7 +2968,7 @@ function showMenu(on) {
   btn.classList.toggle("open", on);
   btn.setAttribute("aria-expanded", on ? "true" : "false");
 }
-$("menuBtn").addEventListener("click", () => { const on = $("menuPop").hidden; showMenu(on); if (on) sfx("bet", 1); });
+$("menuBtn").addEventListener("click", () => showMenu($("menuPop").hidden));
 document.addEventListener("pointerdown", e => {
   if (!$("menuPop").hidden && !e.target.closest?.(".menuslot, .vpop")) showMenu(false);
 }, true);
@@ -2826,7 +2987,7 @@ function setRapid(on) {
   }
   try { localStorage.setItem("smukiez.rapid", on ? "1" : "0"); } catch (e) { /* storage blocked */ }
 }
-$("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); sfx("bet", 1.12); });
+$("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); sfx("toggle"); });
 let rapidWas = false;
 try { rapidWas = localStorage.getItem("smukiez.rapid") === "1"; } catch (e) { /* storage blocked */ }
 setRapid(rapidWas);
@@ -2855,8 +3016,10 @@ document.addEventListener("visibilitychange", async () => {
   const wrap = $("infoWrap"), open = $("infoBtn"), close = $("infoClose");
   if (!wrap || !open) return;
   const show = on => {
+    if (wrap.hidden === !on) return;
     if (on) $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
     wrap.hidden = !on;
+    sfx(on ? "menuOpen" : "menuClose");
   };
   open.addEventListener("click", () => show(true));
   close.addEventListener("click", () => show(false));
