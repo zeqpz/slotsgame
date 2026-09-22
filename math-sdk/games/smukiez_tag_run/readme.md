@@ -1,20 +1,26 @@
-# Smukiez Tag Run — math model (v3)
+# Smukiez Tag Run — math model (v4, 7x7 cluster)
 
-5x4 board, 30 fixed paylines, tumbling reels, RTP 0.965, max win 5000x. See `DESIGN.md` at
-the project root for the systems spec and the frontend event contract.
+7x7 board, cluster pays, tumbling reels, RTP 0.965, max win 5000x. See `DESIGN.md` at the
+project root for the systems spec and the frontend event contract.
+
+## Wins
+
+A cluster is 5 or more of the same symbol connected side to side (no diagonals), anywhere
+on the board. Every cluster on a board pays, by size tier (5 | 6 | 7-8 | 9-11 | 12-15 |
+16+), then the winning symbols leave and the refill is paid again. There are no paylines.
 
 ## Symbols
 
 | id | role |
 |----|------|
-| M  | Multi — the booster. Lands with a value from 1.25x to 1000x, rolled on landing. It blows out: itself and the four cells sharing an edge with it are cleared, each of those five cells has the value ADDED to its own multiplier, and new symbols drop in on top. A line paying through multiplied cells is multiplied by the SUM of the values on its cells. Scatters are immune to the blast. No line value. |
+| M  | Multi — the booster. Lands with a value from 1.25x to 1000x, rolled on landing. Every cluster on the board is paid first; then it blows out: itself and the four cells sharing an edge with it are cleared (in the same tumble as the paid cluster symbols), each of those five cells has the value ADDED to its own multiplier, and new symbols drop in on top. A cluster covering multiplied cells is multiplied by the SUM of the values on those cells. Scatters are immune to the blast. No pay of its own. |
 | BS | Crew Leader — bonus scatter; 3/4/5 trigger 10/12/15 free spins |
 | ES | The Phantom — extreme scatter; 2 = direct Extreme Bonus (17 spins), 1 + standard trigger = upgraded Extreme |
-| H1-H7 | premiums |
-| L1-L10 | lows |
+| H1-H7 | premiums (scarce on the strips) |
+| L1-L10 | lows (L1-L4 carry the hit rate) |
 
 There is no wild. The Paint Drip wild, the painted-reel colour bonus, the Full Wall award and
-the C1/C2/C3 characters were all removed in v3.
+the C1/C2/C3 characters were removed in v3; the 5x4 payline board was replaced in v4.
 
 ## Cell multipliers
 
@@ -23,9 +29,9 @@ they survive every refill. In the base game they last for the rest of the spin. 
 they are wiped once at bonus entry and then persist across every free spin of that bonus -
 this is what makes a bonus spin worth more than a base spin.
 
-Every Multi value is a multiple of 0.25 and every pay a multiple of 0.4, so a line times any
-sum of values is exactly a whole tenth of the bet - the only granularity the RGS accepts -
-with nothing rounded. That is why the floor is 1.25x rather than 1.2x.
+Every Multi value is a multiple of 0.25 and every pay a multiple of 0.4, so a cluster times
+any sum of values is exactly a whole tenth of the bet - the only granularity the RGS accepts
+- with nothing rounded. That is why the floor is 1.25x rather than 1.2x.
 
 ## Modes
 
@@ -36,8 +42,9 @@ with nothing rounded. That is why the floor is 1.25x rather than 1.2x.
 ## Free spins
 
 Tag Meter: every winning spin adds a tag; a full meter awards +3 spins (at most +9 per
-bonus) and resets. Multis land more often in the bonus strips (`FR0`, `FRE`) and their value
-tables run richer (`booster_mults_free`, `booster_mults_extreme` in `game_config.py`).
+bonus) and resets. Multis land more often in the bonus strips (`FR0`, `FRE`: 2 per 100-stop
+reel, about one a spin) and their value tables run richer (`booster_mults_free`,
+`booster_mults_extreme` in `game_config.py`).
 
 ## Running
 
@@ -49,6 +56,7 @@ override because there is no MSVC linker here.
 ```
 python run.py --base 100000 --bonus 20000 --extreme 20000 --threads 8 --optimize --checks
 python reels/gen_reels.py                        # regenerate reel CSVs after editing specs
+python ../../../tools/gen_strips_js.py           # then refresh the client's spin-through strips
 python ../../../tools/shrink_books.py library/publish_files/books_*.jsonl.zst   # compact wins
 python ../../../tools/check_books.py  library/publish_files/books_base.jsonl.zst  # publisher rules
 ```

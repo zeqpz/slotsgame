@@ -1,10 +1,10 @@
-"""Smukiez Tag Run - game configuration: symbols, paytable, paylines, bet modes.
+"""Smukiez Tag Run - game configuration: symbols, cluster paytable, bet modes.
 
 Symbol legend (art layer maps these ids to final art):
     M   Multi             the booster (1.25x .. 1000x). It lands, blows out itself and the four cells that
                           share an edge with it, leaves its multiplier on each of those
-                          five cells, and new symbols drop in. A line paying through
-                          multiplied cells is multiplied by the SUM of the values on its
+                          five cells, and new symbols drop in. A cluster covering
+                          multiplied cells is multiplied by the SUM of the values on those
                           cells. Two Multis reaching the same cell add. Pays nothing itself.
     BS  Crew Leader       bonus scatter: 3/4/5 -> 8/10/12 free spins
     ES  The Phantom       extreme scatter: 2 = direct Extreme Bonus, 1 + standard trigger = upgrade
@@ -36,78 +36,56 @@ class GameConfig(Config):
         self.provider_name = "smukiez"
         self.working_name = "Smukiez Tag Run"
         self.wincap = 5000.0
-        self.win_type = "lines"
+        self.win_type = "cluster"
         self.rtp = 0.965
         self.construct_paths()
 
-        # Game dimensions
-        self.num_reels = 5
-        self.num_rows = [4] * self.num_reels
+        # Game dimensions: a 7x7 cluster board
+        self.num_reels = 7
+        self.num_rows = [7] * self.num_reels
 
-        # Max board changes (cascades) within a single spin. A Multi blowing out counts as one,
-        # a winning tumble counts as one. Without a cap a spin can chain for a very long time
+        # Max board changes (cascades) within a single spin. Each pass of the cascade loop is
+        # one: a board's paid clusters and any Multi blow-outs on it leave in the same tumble.
+        # Without a cap a spin can chain for a very long time
         # toward the wincap, which bloats the book past what the RGS will ingest and buries
         # the player in an endless tumble.
         self.max_tumbles_per_spin = 12
 
-        # Paytable: (kind, symbol): payout in total-bet multiples, paid per line.
-        # There is no wild any more, so lines hit less often and cascades run shorter than
-        # they did with sticky paint; the pays are four times the v2 cascade table to carry
-        # that. The Multi is what makes them big.
-        self.paytable = {
-            (5, "H1"): 4.8, (4, "H1"): 2, (3, "H1"): 0.8,
-            (5, "H2"): 4, (4, "H2"): 1.6, (3, "H2"): 0.8,
-            (5, "H3"): 3.2, (4, "H3"): 1.2, (3, "H3"): 0.4,
-            (5, "H4"): 2.4, (4, "H4"): 1.2, (3, "H4"): 0.4,
-            (5, "H5"): 2, (4, "H5"): 0.8, (3, "H5"): 0.4,
-            (5, "H6"): 2, (4, "H6"): 0.8, (3, "H6"): 0.4,
-            (5, "H7"): 1.6, (4, "H7"): 0.8, (3, "H7"): 0.4,
-            (5, "L1"): 1.2, (4, "L1"): 0.8, (3, "L1"): 0.4,
-            (5, "L2"): 1.2, (4, "L2"): 0.4, (3, "L2"): 0.4,
-            (5, "L3"): 0.8, (4, "L3"): 0.4, (3, "L3"): 0.4,
-            (5, "L4"): 0.8, (4, "L4"): 0.4, (3, "L4"): 0.4,
-            (5, "L5"): 0.8, (4, "L5"): 0.4, (3, "L5"): 0.4,
-            (5, "L6"): 0.8, (4, "L6"): 0.4, (3, "L6"): 0.4,
-            (5, "L7"): 0.4, (4, "L7"): 0.4, (3, "L7"): 0.4,
-            (5, "L8"): 0.4, (4, "L8"): 0.4, (3, "L8"): 0.4,
-            (5, "L9"): 0.4, (4, "L9"): 0.4, (3, "L9"): 0.4,
-            (5, "L10"): 0.4, (4, "L10"): 0.4, (3, "L10"): 0.4,
+        # Paytable: (cluster size, symbol) -> payout in total-bet multiples, per cluster.
+        # Six size tiers: 5 | 6 | 7-8 | 9-11 | 12-15 | 16+ (up to the whole 49-cell board).
+        # Every value is a multiple of 0.4: a cluster times any SUM of Multi values (multiples
+        # of 0.25) then lands exactly on a tenth of the bet, the only granularity the RGS
+        # accepts. The Multi is what makes them big; a bare cluster is a nudge.
+        t5, t6, t7, t9, t12, t16 = (5, 5), (6, 6), (7, 8), (9, 11), (12, 15), (16, 49)
+        tiers = (t5, t6, t7, t9, t12, t16)
+        cluster_pays = {
+            "H1": (4.0, 8.0, 16.0, 40.0, 100.0, 400.0),
+            "H2": (3.2, 6.0, 12.0, 30.0, 80.0, 300.0),
+            "H3": (2.4, 4.8, 10.0, 24.0, 60.0, 200.0),
+            "H4": (2.0, 4.0, 8.0, 20.0, 48.0, 160.0),
+            "H5": (1.6, 3.2, 6.4, 16.0, 40.0, 120.0),
+            "H6": (1.6, 3.2, 6.4, 16.0, 40.0, 120.0),
+            "H7": (1.2, 2.4, 4.8, 12.0, 32.0, 100.0),
+            "L1": (0.8, 1.6, 3.2, 8.0, 20.0, 60.0),
+            "L2": (0.8, 1.6, 3.2, 8.0, 20.0, 60.0),
+            "L3": (0.8, 1.2, 2.4, 6.0, 16.0, 48.0),
+            "L4": (0.4, 1.2, 2.4, 6.0, 16.0, 48.0),
+            "L5": (0.4, 0.8, 2.0, 4.8, 12.0, 40.0),
+            "L6": (0.4, 0.8, 2.0, 4.8, 12.0, 40.0),
+            "L7": (0.4, 0.8, 1.6, 4.0, 10.0, 32.0),
+            "L8": (0.4, 0.8, 1.6, 4.0, 10.0, 32.0),
+            "L9": (0.4, 0.8, 1.2, 3.2, 8.0, 24.0),
+            "L10": (0.4, 0.8, 1.2, 3.2, 8.0, 24.0),
         }
+        pay_group = {}
+        for sym, pays in cluster_pays.items():
+            for tier, pay in zip(tiers, pays):
+                pay_group[(tier, sym)] = pay
+        self.paytable = self.convert_range_table(pay_group)
 
-        # 30 fixed paylines on the 5x4 board (row index per reel, 0 = top)
-        self.paylines = {
-            1: [0, 0, 0, 0, 0],
-            2: [1, 1, 1, 1, 1],
-            3: [2, 2, 2, 2, 2],
-            4: [3, 3, 3, 3, 3],
-            5: [0, 1, 0, 1, 0],
-            6: [1, 0, 1, 0, 1],
-            7: [1, 2, 1, 2, 1],
-            8: [2, 1, 2, 1, 2],
-            9: [2, 3, 2, 3, 2],
-            10: [3, 2, 3, 2, 3],
-            11: [0, 1, 2, 1, 0],
-            12: [3, 2, 1, 2, 3],
-            13: [1, 2, 3, 2, 1],
-            14: [2, 1, 0, 1, 2],
-            15: [0, 0, 1, 0, 0],
-            16: [3, 3, 2, 3, 3],
-            17: [1, 1, 0, 1, 1],
-            18: [2, 2, 3, 2, 2],
-            19: [0, 1, 2, 3, 3],
-            20: [3, 2, 1, 0, 0],
-            21: [1, 0, 0, 0, 1],
-            22: [2, 3, 3, 3, 2],
-            23: [0, 1, 1, 1, 0],
-            24: [3, 2, 2, 2, 3],
-            25: [1, 1, 2, 3, 3],
-            26: [2, 2, 1, 0, 0],
-            27: [0, 2, 0, 2, 0],
-            28: [3, 1, 3, 1, 3],
-            29: [1, 3, 1, 3, 1],
-            30: [2, 0, 2, 0, 2],
-        }
         self.include_padding = True
+        # Wins are clusters: five or more of a kind touching side to side, anywhere on the
+        # 7x7 board (win_type "cluster"; there are no paylines).
         # "multiplier" gives the Multi its value slot (rolled when it lands) and puts that
         # value into every reveal/tumble event, so the client can show it on the tile.
         # "booster" is what the game logic looks for. There is no wild in this game.
@@ -154,7 +132,7 @@ class GameConfig(Config):
         # whole game. The optimiser decides how often Multi outcomes appear at all; these
         # tables only shape what a Multi is worth when it does.
         # Every value is a multiple of 0.25 and every paytable entry a multiple of 0.4, so a
-        # line times any SUM of values lands exactly on a tenth of the bet - the only
+        # cluster times any SUM of values lands exactly on a tenth of the bet - the only
         # granularity the RGS accepts - with nothing rounded and nothing shown that is not
         # exactly what was paid. That is why the floor is 1.25x and not 1.2x.
         booster_mults_base = {
@@ -162,14 +140,14 @@ class GameConfig(Config):
             50: 6, 100: 2.5, 250: 0.9, 500: 0.35, 1000: 0.15,
         }
         # in a bonus the values persist and stack across spins, so the tables lean richer:
-        # the standard bonus averages ~8x a Multi, the extreme ~14x
+        # the standard bonus averages ~8x a Multi, the extreme ~10x and every one is 2x or more
         booster_mults_free = {
             1.25: 120, 1.5: 140, 2: 180, 3: 180, 5: 140, 10: 90, 20: 45,
             50: 20, 100: 8, 250: 3, 500: 1.2, 1000: 0.6,
         }
         booster_mults_extreme = {
-            2: 130, 3: 170, 5: 190, 10: 150, 20: 85, 50: 38,
-            100: 15, 250: 6, 500: 2.5, 1000: 1.2,
+            2: 200, 3: 200, 5: 180, 10: 110, 20: 50, 50: 20,
+            100: 8, 250: 3, 500: 1.2, 1000: 0.6,
         }
         # wincap simulations only: the strip is dense with Multis and every one is huge, so
         # the 5000x is reached in a handful of cascades instead of a thousand resimulations

@@ -2,19 +2,34 @@
  *
  * Every number here mirrors math-sdk/games/smukiez_tag_run/game_config.py; the reviewer
  * checks wins against this page, so it must never drift from the paytable the books were
- * generated with. Pays are multiples of the TOTAL bet, per line, left to right.
+ * generated with. Pays are multiples of the TOTAL bet, per cluster, stepped by cluster size.
  *
  * Social mode (Stake.us) forbids a list of gambling terms. Copy is written once in the
  * normal vocabulary and passed through T() which swaps the restricted words when the game
  * is loaded with social=true — see the jurisdiction-requirements guideline.
  */
 const RULES = (() => {
-  const PAYS = {   // symbol: [5-of-a-kind, 4, 3] — verbatim from game_config.py
-    H1: [4.8, 2, 0.8],  H2: [4, 1.6, 0.8],   H3: [3.2, 1.2, 0.4], H4: [2.4, 1.2, 0.4],
-    H5: [2, 0.8, 0.4],  H6: [2, 0.8, 0.4],   H7: [1.6, 0.8, 0.4],
-    L1: [1.2, 0.8, 0.4], L2: [1.2, 0.4, 0.4], L3: [0.8, 0.4, 0.4], L4: [0.8, 0.4, 0.4],
-    L5: [0.8, 0.4, 0.4], L6: [0.8, 0.4, 0.4], L7: [0.4, 0.4, 0.4], L8: [0.4, 0.4, 0.4],
-    L9: [0.4, 0.4, 0.4], L10: [0.4, 0.4, 0.4],
+  // Cluster size tiers: a cluster of 5, 6, 7-8, 9-11, 12-15 or 16+ matching symbols. One
+  // entry per tier, in that order — verbatim from game_config.py.
+  const TIERS = ["5", "6", "7-8", "9-11", "12-15", "16+"];
+  const PAYS = {   // symbol: [t5, t6, t7_8, t9_11, t12_15, t16plus]
+    H1: [4, 8, 16, 40, 100, 400],
+    H2: [3.2, 6, 12, 30, 80, 300],
+    H3: [2.4, 4.8, 10, 24, 60, 200],
+    H4: [2, 4, 8, 20, 48, 160],
+    H5: [1.6, 3.2, 6.4, 16, 40, 120],
+    H6: [1.6, 3.2, 6.4, 16, 40, 120],
+    H7: [1.2, 2.4, 4.8, 12, 32, 100],
+    L1: [0.8, 1.6, 3.2, 8, 20, 60],
+    L2: [0.8, 1.6, 3.2, 8, 20, 60],
+    L3: [0.8, 1.2, 2.4, 6, 16, 48],
+    L4: [0.4, 1.2, 2.4, 6, 16, 48],
+    L5: [0.4, 0.8, 2, 4.8, 12, 40],
+    L6: [0.4, 0.8, 2, 4.8, 12, 40],
+    L7: [0.4, 0.8, 1.6, 4, 10, 32],
+    L8: [0.4, 0.8, 1.6, 4, 10, 32],
+    L9: [0.4, 0.8, 1.2, 3.2, 8, 24],
+    L10: [0.4, 0.8, 1.2, 3.2, 8, 24],
   };
   const NAMES = {
     M: "Multi", BS: "Crew Leader", ES: "The Phantom",
@@ -25,13 +40,6 @@ const RULES = (() => {
   };
   const ORDER = ["H1", "H2", "H3", "H4", "H5", "H6", "H7",
                  "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"];
-  const PAYLINES = [
-    [0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3],[0,1,0,1,0],[1,0,1,0,1],[1,2,1,2,1],
-    [2,1,2,1,2],[2,3,2,3,2],[3,2,3,2,3],[0,1,2,1,0],[3,2,1,2,3],[1,2,3,2,1],[2,1,0,1,2],
-    [0,0,1,0,0],[3,3,2,3,3],[1,1,0,1,1],[2,2,3,2,2],[0,1,2,3,3],[3,2,1,0,0],[1,0,0,0,1],
-    [2,3,3,3,2],[0,1,1,1,0],[3,2,2,2,3],[1,1,2,3,3],[2,2,1,0,0],[0,2,0,2,0],[3,1,3,1,3],
-    [1,3,1,3,1],[2,0,2,0,2],
-  ];
   const RTP = "96.50%", MAX_WIN = 5000;
   const MULTI_MIN = 1.25, MULTI_MAX = 1000;
 
@@ -75,15 +83,6 @@ const RULES = (() => {
     return `<img class="ptile" src="assets/${sym}.png" alt="${esc(NAMES[sym])}" draggable="false">`;
   }
 
-  function lineSvg(rows, n) {
-    const w = 50, h = 40, cx = i => 5 + i * 10, cy = r => 5 + r * 10;
-    let cells = "";
-    for (let r = 0; r < 5; r++) for (let c = 0; c < 4; c++)
-      cells += `<rect x="${r * 10 + 0.5}" y="${c * 10 + 0.5}" width="9" height="9" rx="1" class="${rows[r] === c ? "on" : ""}"/>`;
-    const pts = rows.map((r, i) => `${cx(i)},${cy(r)}`).join(" ");
-    return `<figure class="pline"><svg viewBox="0 0 ${w} ${h}" aria-label="Payline ${n}">${cells}<polyline points="${pts}"/></svg><figcaption>${n}</figcaption></figure>`;
-  }
-
   /**
    * opts: { bet: integer 6dp, fmt(amount) -> string, social: bool, modeCost: {bonus, extremebonus} }
    */
@@ -99,9 +98,7 @@ const RULES = (() => {
         ${tile(sym)}
         <div class="pname">${esc(t(NAMES[sym]))}<small>${sym}</small></div>
         <div class="pvals">
-          <div><b>5</b> ${x(p[0])} <em>${money(p[0])}</em></div>
-          <div><b>4</b> ${x(p[1])} <em>${money(p[1])}</em></div>
-          <div><b>3</b> ${x(p[2])} <em>${money(p[2])}</em></div>
+          ${TIERS.map((tier, i) => `<div><b>${tier}</b> ${x(p[i])} <em>${money(p[i])}</em></div>`).join("")}
         </div>
       </div>`;
     }).join("");
@@ -109,7 +106,7 @@ const RULES = (() => {
     const html = `
 <section>
   <h4>${t("About the game")}</h4>
-  <p>${t(`Smukiez Tag Run is a 5-reel, 4-row video slot with 30 fixed paylines and tumbling reels. Wins form left to right on adjacent reels starting from reel 1, and only the highest win per line counts. Winning symbols are removed and new ones drop in, and every new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
+  <p>${t(`Smukiez Tag Run is a 7-reel, 7-row video slot with cluster pays and tumbling reels. A cluster is 5 or more matching symbols touching horizontally or vertically, anywhere on the board; every cluster on the board pays, winning symbols are removed, new ones drop in, and the new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
   <div class="kvgrid">
     <div><span>RTP</span><b>${RTP}</b><small>${t("every mode")}</small></div>
     <div><span>${t("Max win")}</span><b>${x(MAX_WIN)}</b><small>${t("of the total bet")} · ${money(MAX_WIN)}</small></div>
@@ -131,18 +128,18 @@ const RULES = (() => {
 
 <section>
   <h4>${t("Paytable")}</h4>
-  <p class="fine">${t("5 / 4 / 3 of a kind on a payline, multiples of the total bet and the amount at your current bet. There is no wild symbol.")}</p>
+  <p class="fine">${t("Pays by cluster size: 5 / 6 / 7-8 / 9-11 / 12-15 / 16 or more matching symbols touching horizontally or vertically. Multiples of the total bet and the amount at your current bet. There is no wild symbol.")}</p>
   <div class="paytable">${payRows}</div>
 </section>
 
 <section>
   <h4>${t("Special symbols")}</h4>
   <div class="prow">${tile("M")}<div class="pname">${t("Multi — Multiplier")}<small>M</small></div>
-    <div class="ptext">${t(`Lands with a value from ${x(MULTI_MIN)} to ${x(MULTI_MAX)}, shown on the symbol. It then blows out: the Multi and the four symbols sharing an edge with it are removed, each of those five cells keeps the Multi's value, and new symbols drop in on top. A winning line that runs through one or more of those cells is multiplied by the SUM of the values on the cells it uses. When two Multis reach the same cell their values add. In the base game the values last for the rest of the spin, including every tumble; in a bonus they stay on the board for the whole feature. Crew Leader and The Phantom are never removed by a Multi. The Multi has no line value of its own.`)}</div></div>
+    <div class="ptext">${t(`Lands with a value from ${x(MULTI_MIN)} to ${x(MULTI_MAX)}, shown on the symbol. Every winning cluster on the board is paid first; only then does it blow out: the Multi and the four symbols sharing an edge with it are removed, each of those five cells keeps the Multi's value, and new symbols drop in on top. A winning cluster that covers one or more of those cells is multiplied by the SUM of the values on the cells it covers. When two Multis reach the same cell their values add. In the base game the values last for the rest of the spin, including every tumble; in a bonus they stay on the board for the whole feature. Crew Leader and The Phantom are never removed by a Multi. The Multi does not form clusters and has no value of its own.`)}</div></div>
   <div class="prow"><img class="ptile" src="assets/BS.png" alt="Crew Leader" draggable="false"><div class="pname">${t("Crew Leader — Bonus Scatter")}<small>BS</small></div>
-    <div class="ptext">${t("Appears anywhere. 3, 4 or 5 Crew Leaders on one spin award 10, 12 or 15 free spins (the Standard Bonus). Crew Leader has no line value of its own.")}</div></div>
+    <div class="ptext">${t("Appears anywhere. 3, 4 or 5 Crew Leaders on one spin award 10, 12 or 15 free spins (the Standard Bonus). Crew Leader does not form clusters and has no value of its own.")}</div></div>
   <div class="prow"><img class="ptile" src="assets/ES.png" alt="The Phantom" draggable="false"><div class="pname">${t("The Phantom — Extreme Scatter")}<small>ES</small></div>
-    <div class="ptext">${t("2 Phantoms anywhere on one spin award 17 free spins in the Extreme Bonus directly. 1 Phantom on the same spin as a Crew Leader trigger upgrades that trigger to the Extreme Bonus, keeping its spin count. The Phantom has no line value of its own.")}</div></div>
+    <div class="ptext">${t("2 Phantoms anywhere on one spin award 17 free spins in the Extreme Bonus directly. 1 Phantom on the same spin as a Crew Leader trigger upgrades that trigger to the Extreme Bonus, keeping its spin count. The Phantom does not form clusters and has no value of its own.")}</div></div>
 </section>
 
 <section>
@@ -154,15 +151,9 @@ const RULES = (() => {
 </section>
 
 <section>
-  <h4>${t("Paylines")}</h4>
-  <p class="fine">${t("30 fixed lines, always active. Wins form left to right from reel 1.")}</p>
-  <div class="plines">${PAYLINES.map((r, i) => lineSvg(r, i + 1)).join("")}</div>
-</section>
-
-<section>
   <h4>${t("How to play")}</h4>
   <table class="guide">
-    <tr><td><b>${t("Spin")}</b></td><td>${t("Plays one round at the current bet. The spacebar does the same. While the reels are turning the button reads Skip and lands them at once (clicking the board also skips); the paylines are always shown in full.")}</td></tr>
+    <tr><td><b>${t("Spin")}</b></td><td>${t("Plays one round at the current bet. The spacebar does the same. While the reels are turning the button reads Skip and lands them at once (clicking the board also skips); every winning cluster is always shown in full.")}</td></tr>
     <tr><td><b>− / +</b></td><td>${t("Lowers or raises the bet through every level offered by the server.")}</td></tr>
     <tr><td><b>${t("Bonus")}</b></td><td>${t("Opens the bonus chooser: pick Standard or Extreme, set the bet, and the total charge is shown before you press Play.")}</td></tr>
     <tr><td><b>${t("Auto")}</b></td><td>${t("Plays a chosen number of rounds one after another at the current bet. You confirm the number before it starts; press it again to stop. It also stops when the balance can't cover the next round.")}</td></tr>
@@ -178,5 +169,5 @@ const RULES = (() => {
     return html;
   }
 
-  return { render, T, PAYS, NAMES, PAYLINES, RTP, MAX_WIN };
+  return { render, T, PAYS, TIERS, NAMES, RTP, MAX_WIN };
 })();

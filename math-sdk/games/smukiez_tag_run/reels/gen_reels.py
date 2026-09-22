@@ -1,15 +1,20 @@
 """Generate the Smukiez Tag Run reel-strip CSVs (deterministic; stdlib only).
 
-Strips (100 positions x 5 reels):
+Strips (100 positions x 7 reels), for the 7x7 cluster board:
     BR0     base game
     BRE     base game with Phantom (ES) scatters, used for forced Extreme entries
     FR0     standard bonus free spins (no scatters)
     FRE     extreme bonus free spins (no scatters)
     FRWCAP  Multi-rich free-spin strip for wincap simulations
 
-Symbol counts below are per reel (a single int applies to all 5 reels, a 5-list sets
-each reel). Scatter-class symbols (BS/ES) keep a circular gap of >= 6 so at most one can
-appear in any 4-row window, which the exact-count board forcing relies on.
+Symbol counts below are per reel (a single int applies to all 7 reels, a 7-list sets
+each reel). Scatter-class symbols (BS/ES) keep a circular gap of >= SCATTER_GAP so at most
+one can appear in any 7-row window (plus its padding), which the exact-count board forcing
+relies on.
+
+Cluster pays live or die on symbol frequency: a cluster needs five of a kind touching, so
+the lows are skewed hard toward a few common ones (L1/L2 carry the hit rate) and the
+premiums are scarce so a premium cluster is an event.
 
 Run:  python gen_reels.py
 """
@@ -18,46 +23,47 @@ import os
 import random
 
 STRIP_LEN = 100
-NUM_REELS = 5
-SCATTER_GAP = 6  # min circular distance between scatter-class symbols on a reel
+NUM_REELS = 7
+SCATTER_GAP = 10  # min circular distance between scatter-class symbols on a reel (window is 9 incl. padding)
 LOW_WEIGHTS = {
-    "L1": 1.0, "L2": 1.05, "L3": 1.1, "L4": 1.15, "L5": 1.2,
-    "L6": 1.2, "L7": 1.25, "L8": 1.25, "L9": 1.3, "L10": 1.3,
+    "L1": 3.0, "L2": 2.6, "L3": 2.2, "L4": 1.8, "L5": 1.4,
+    "L6": 1.0, "L7": 0.7, "L8": 0.5, "L9": 0.35, "L10": 0.25,
 }
 
-# per-strip symbol counts: {symbol: int | [r0, r1, r2, r3, r4]}
+BASE_HIGHS = {"H1": 1, "H2": 2, "H3": 2, "H4": 2, "H5": 2, "H6": 2, "H7": 3}
+FREE_HIGHS = {"H1": 2, "H2": 2, "H3": 2, "H4": 2, "H5": 3, "H6": 3, "H7": 3}
+
+# per-strip symbol counts: {symbol: int | [r0 .. r6]}
 STRIPS = {
-    # M is the Multi. Every C1/C2/C3 and W slot they replaced went to the premiums, so the
-    # premium density is a little higher than v2 rather than a little lower.
     "BR0": {
         "seed": 101,
-        "scatters": {"BS": 2},
+        "scatters": {"BS": 1},
         "specials": {"M": 1},
-        "highs": {"H1": 5, "H2": 5, "H3": 5, "H4": 5, "H5": 5, "H6": 5, "H7": 5},
+        "highs": BASE_HIGHS,
     },
     "BRE": {
         "seed": 202,
-        "scatters": {"BS": 2, "ES": [0, 2, 0, 2, 0]},
+        "scatters": {"BS": 1, "ES": [0, 1, 0, 1, 0, 1, 0]},
         "specials": {"M": 1},
-        "highs": {"H1": 5, "H2": 5, "H3": 5, "H4": 5, "H5": 5, "H6": 5, "H7": 5},
+        "highs": BASE_HIGHS,
     },
     "FR0": {
         "seed": 303,
         "scatters": {},
-        "specials": {"M": 7},
-        "highs": {"H1": 7, "H2": 7, "H3": 7, "H4": 7, "H5": 7, "H6": 7, "H7": 7},
+        "specials": {"M": 2},
+        "highs": FREE_HIGHS,
     },
     "FRE": {
         "seed": 404,
         "scatters": {},
-        "specials": {"M": 11},
-        "highs": {"H1": 7, "H2": 7, "H3": 7, "H4": 7, "H5": 7, "H6": 7, "H7": 7},
+        "specials": {"M": 2},
+        "highs": FREE_HIGHS,
     },
     "FRWCAP": {
         "seed": 505,
         "scatters": {},
-        "specials": {"M": 22},
-        "highs": {"H1": 8, "H2": 8, "H3": 8, "H4": 8, "H5": 8, "H6": 8, "H7": 8},
+        "specials": {"M": 15},
+        "highs": {"H1": 4, "H2": 4, "H3": 4, "H4": 4, "H5": 4, "H6": 4, "H7": 5},
     },
 }
 

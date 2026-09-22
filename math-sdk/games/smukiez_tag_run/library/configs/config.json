@@ -2,7 +2,7 @@
     "workingName": "Smukiez Tag Run",
     "frontendConfig": {
         "file": "fe_config.json",
-        "sha256": "51ca53865af33e47fc277522001789f928adad4490b30181076bf8def3e49722"
+        "sha256": "7ef31356d4477f9f7f4a2df272bc0a567fae329091cfcaf09e891d4f48c43e1f"
     },
     "gameID": "smukiez_tag_run",
     "rtp": 96.5,
@@ -11,7 +11,7 @@
     "providerNumber": 0,
     "standardForceFile": {
         "file": "force.json",
-        "sha256": "94bd43c6b57214dcb33a909d0f0a6884c85956679e32abebd6b9a7bb95bad914"
+        "sha256": "9a4f0e92713bdc48e9fb85db127d1577dd6a10d181b1020768016f6cb9315a33"
     },
     "bookShelfConfig": [
         {
@@ -19,12 +19,12 @@
             "tables": [
                 {
                     "file": "lookUpTable_base_0.csv",
-                    "sha256": "32d4340e4fc5fb38a82dc9ba4c84a7bdf9627817192f880bc338c394e2125319"
+                    "sha256": "eca49458a95f4b0d0037d4d4a9d55f7a711aa25c072fafcf147a7d33b78295c1"
                 }
             ],
             "cost": 1.0,
             "rtp": 0.965,
-            "std": 10.72,
+            "std": 10.44,
             "bookLength": 100000,
             "feature": true,
             "autoEndRoundDisabled": false,
@@ -32,11 +32,11 @@
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_base.jsonl.zst",
-                "sha256": "3e02dfdc39093eeb016a7fef3340c92958945dc7a83da690df3a13c2572a96e8"
+                "sha256": "80bb43cb4db6108ebc5797ce558383d68bebf183b88273f5a917656257faa746"
             },
             "forceFile": {
                 "file": "force_record_base.json",
-                "sha256": "ae0e8072ff7b9f702816e43a8b11f7448a80afa669856c6451c678cc1b7425ac"
+                "sha256": "3e68929e21553152c6c616aed1a38dfa1e0fb31965f50f90485f3324f7c4cae5"
             }
         },
         {
@@ -44,12 +44,12 @@
             "tables": [
                 {
                     "file": "lookUpTable_bonus_0.csv",
-                    "sha256": "037db045b0b257345eb7aa42d9f9dab432fc802ca1393ee65334fbb384df4c7b"
+                    "sha256": "0e5af41765b9453542524a73f999025eb46c0bddb099de8d03d360fb75e1a954"
                 }
             ],
             "cost": 100.0,
             "rtp": 0.965,
-            "std": 1.21,
+            "std": 1.74,
             "bookLength": 20000,
             "feature": false,
             "autoEndRoundDisabled": false,
@@ -57,11 +57,11 @@
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_bonus.jsonl.zst",
-                "sha256": "df4f81cdf6592a5c0c1bcabe51acb101f4c15bbd831852021c6d3e6142e75c11"
+                "sha256": "b150027b66cef05f5f50173e81611330f10daf97252f1ab16e1b094c00b0f7be"
             },
             "forceFile": {
                 "file": "force_record_bonus.json",
-                "sha256": "59026b280327d646a43f94ffbe382baa20f25f3cdf0d52addb2d59cf1c048346"
+                "sha256": "d472c7872be6aaa3bbb4b2b8869d136effd41114f62862f8bb2e1409b66bba95"
             }
         },
         {
@@ -69,12 +69,12 @@
             "tables": [
                 {
                     "file": "lookUpTable_extremebonus_0.csv",
-                    "sha256": "7ae754107c347d5c078e41c9566d4fe6eaa26c22838cc2592b9e8adc37dec19c"
+                    "sha256": "5c3088938584e0983bc91355ed25dd63aa577d66595a463fc73fcc343f467885"
                 }
             ],
             "cost": 400.0,
             "rtp": 0.965,
-            "std": 1.22,
+            "std": 1.23,
             "bookLength": 20000,
             "feature": false,
             "autoEndRoundDisabled": false,
@@ -82,11 +82,11 @@
             "maxWin": 5000.0,
             "booksFile": {
                 "file": "books_extremebonus.jsonl.zst",
-                "sha256": "b4c874a641a62a8b30aaa5b89f58bdb544feb82d20be635f128e10866d40852c"
+                "sha256": "e09f9aca3d4165a4361fcdcf8051992c892247c25c03fcdeaae87608eff2787e"
             },
             "forceFile": {
                 "file": "force_record_extremebonus.json",
-                "sha256": "721164e3e97fe565b9570025ff42e607be26d0215f7e583e2ead520fcbb47cf1"
+                "sha256": "409fa7b1f77b3e6e9dc354127bb95450bb924fc489e10485efee0510ef04c3c1"
             }
         }
     ]

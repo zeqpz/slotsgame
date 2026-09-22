@@ -77,24 +77,24 @@ class GameExecutables(GameCalculations):
             if sym.check_attribute("booster")
         ]
 
-    def resolve_boosters(self) -> bool:
+    def mark_boosters(self) -> bool:
         """Blow out every Multi on the board and leave its multiplier behind.
 
         Each Multi takes itself and the four cells sharing an edge with it. Those cells get
-        the Multi's value ADDED to whatever they already carry and are cleared, so new
-        symbols drop in on top of the multipliers. Scatters are immune: a bonus that has
+        the Multi's value ADDED to whatever they already carry and are flagged to leave, so
+        the refill lands on top of the multipliers. Scatters are immune: a bonus that has
         just landed must not be blown off the board by the thing that landed next to it.
 
-        The board is tumbled here, so the caller sees one tumbleBoard event per pass.
-        Returns True if the board changed - the refill may drop another Multi, so callers
-        loop until this returns False.
+        This only flags and emits the booster event; it never tumbles. The caller takes
+        everything flagged - the symbols of the lines it has just paid AND these blast cells
+        - off the board in one tumble, so a Multi can never remove a line before it pays.
+        Returns True if anything was flagged.
         """
         boosters = self.find_boosters()
         if not boosters:
             return False
 
         self.booster_details = []
-        cleared = set()
         for reel, row in boosters:
             value = self.board[reel][row].get_attribute("multiplier")
             cells = [(reel, row)] + Cluster.get_neighbours(self.board, reel, row, [])
@@ -105,13 +105,37 @@ class GameExecutables(GameCalculations):
                     continue
                 self.grid_mults[r][c] = round(self.grid_mults[r][c] + value, 2)
                 target.explode = True
-                cleared.add((r, c))
                 hit.append({"reel": r, "row": c})
             self.booster_details.append({"reel": reel, "row": row, "mult": value, "cells": hit})
 
         booster_event(self)
-        self.tumble_explode_positions = [{"reel": r, "row": c} for r, c in sorted(cleared)]
+        return True
+
+    def flagged_positions(self) -> list:
+        """Every visible cell whose symbol is flagged to leave, reel-major, win-position rows."""
+        return [
+            {"reel": r, "row": c}
+            for r, column in enumerate(self.board)
+            for c, sym in enumerate(column)
+            if sym.explode
+        ]
+
+    def tumble_flagged(self) -> None:
+        """Take every flagged symbol off the board in ONE tumble.
+
+        The tumbleBoard event lists exactly the cells flagged right now (the SDK's
+        shallow-copied board_before_tumble can't be trusted to re-derive them - its inner
+        reels are mutated during the refill), so paid line symbols and Multi blast cells
+        leave together and the client sees one drop.
+        """
+        self.tumble_explode_positions = self.flagged_positions()
         self.tumble_game_board()
+
+    def resolve_boosters(self) -> bool:
+        """Blow out the Multis and tumble the result: one board change per pass."""
+        if not self.mark_boosters():
+            return False
+        self.tumble_flagged()
         return True
 
     def settle_boosters(self, tumbles: int, cap: int = None) -> int:

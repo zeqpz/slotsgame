@@ -37,10 +37,12 @@
     --char-fade: 280ms;      /* crossfade between the character's clips (JS reads this) */
     --char-inset: -3vw;      /* how far in from each edge they stand; negative pushes them out */
     /* Board size lives here so the spin overlay's CELL_STEP can be derived from the same
-       numbers — hardcoding it separately means the reels mis-align the moment a cell resizes. */
-    --cell-w: 120px;
-    --cell-h: 103px;
-    --cell-gap: 7px;
+       numbers — hardcoding it separately means the reels mis-align the moment a cell resizes.
+       Sized for the 7x7 cluster board: seven of these, gaps included, take about the room
+       the old 5x4 board did. */
+    --cell-w: 86px;
+    --cell-h: 74px;
+    --cell-gap: 5px;
   }
   @font-face {
     font-family: "Jraot Hollow";
@@ -339,18 +341,13 @@
   .ptile.wild { color: var(--spray); }  .ptile.char { color: var(--teal); }
   .ptile span { font-size: 14px; }  .ptile small { font-size: 8px; letter-spacing: .14em; color: var(--ink-soft); }
   .pname { font-weight: 600; }  .pname small { display: block; color: var(--ink-soft); font-weight: 400; font-size: 10px; letter-spacing: .12em; }
-  .pvals { grid-column: 1 / -1; display: flex; gap: 14px; flex-wrap: wrap; }
+  /* six cluster-size tiers per symbol, laid out as two rows of three so the columns line up */
+  .pvals { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 3px 14px; }
   .pvals b { color: var(--gold); margin-right: 4px; }  .pvals em { font-style: normal; color: var(--ink-soft); margin-left: 4px; }
   table.modes, table.guide { width: 100%; border-collapse: collapse; font-family: var(--legible); font-size: 12px; }
   table.modes th, table.modes td, table.guide td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
   table.modes th { color: var(--ink-soft); font-weight: 600; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
   table td em { font-style: normal; color: var(--ink-soft); }
-  .plines { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; }
-  .pline { margin: 0; text-align: center; font-family: var(--legible); font-size: 10px; color: var(--ink-soft); }
-  .pline svg { width: 100%; display: block; }
-  .pline rect { fill: var(--panel2); stroke: var(--line); stroke-width: .6; }
-  .pline rect.on { fill: rgba(240, 86, 139, .35); }
-  .pline polyline { fill: none; stroke: var(--spray); stroke-width: 1.4; stroke-linejoin: round; }
   @media (max-width: 640px) { .paytable, .kvgrid { grid-template-columns: 1fr; } }
   /* autoplay count picker */
   .autoopts { display: flex; gap: 8px; margin: 8px 0 16px; }
@@ -395,17 +392,20 @@
 
   /* main — slots front and center, info cards beneath */
   .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 76px 20px 22px; align-items: center; }
-  .stage { position: relative; padding-bottom: 108px; }   /* room for the frame's bottom overhang */
+  .stage { position: relative; padding-bottom: 140px; }   /* room for the frame's bottom overhang */
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
     position: relative; display: flex; gap: var(--cell-gap); padding: 14px;
   }
   /* top/height are independent: the overall size stays, the frame just sits higher so its
-     bottom drips don't hang low under the board */
+     bottom drips don't hang low under the board. The art's opening runs from 13% to 81% of
+     its height, so the box is tall enough for seven rows to sit inside it and the top offset
+     puts the opening's edge just above the first row, the way the band used to touch the
+     old top row. */
   #paintframe {
-    position: absolute; left: -64px; top: -66px;
-    width: calc(100% + 128px); height: calc(100% + 170px);
+    position: absolute; left: -64px; top: -85px;
+    width: calc(100% + 128px); height: calc(100% + 220px);
     z-index: 3; pointer-events: none; user-select: none;
   }
   .board.pop { animation: boardpop .38s cubic-bezier(.2,.9,.3,1.35); }
@@ -428,11 +428,12 @@
   .cell {
     width: var(--cell-w); height: var(--cell-h); background: transparent; border: 2px solid transparent;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-    font-family: var(--mono); font-weight: 700; font-size: 14px; position: relative;
+    font-family: var(--mono); font-weight: 700; font-size: 11px; position: relative;
     transition: background .25s, border-color .25s, transform .12s, opacity .22s linear;
   }
-  /* while a line is lit, everything that is not on it fades back, so the winning run is
-     the only thing on the board at full strength */
+  /* while a cluster is lit, everything that is not in it fades back, so the winning cluster
+     is the only thing on the board at full strength - even a big one still reads, because
+     everything around it drops to under half */
   .board.spotlight .cell:not(.winhit) { opacity: .42; }
   .cell .sub { font-size: 9px; font-weight: 400; letter-spacing: .1em; color: var(--ink-soft); }
   /* text tiles (wild + characters, until their art lands) must not spill past the cell —
@@ -464,7 +465,7 @@
      value is the whole point of the symbol, so it is the tile. */
   .cell.booster { background: url("assets/ui_box.png") center / 100% 100% no-repeat; border-color: transparent; }
   .cell.booster .multface {
-    position: relative; z-index: 1; font-family: var(--disp); font-size: 22px; line-height: 1;
+    position: relative; z-index: 1; font-family: var(--disp); font-size: 18px; line-height: 1;
     color: var(--fs-green); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px rgba(168,240,0,.8);
   }
   /* it blows out: the Multi itself, then the four cells it hits */
@@ -480,13 +481,24 @@
     35%  { transform: scale(1.14); filter: brightness(1.6); }
     100% { transform: none; }
   }
-  /* the value a Multi left on a cell: behind the symbol, faint, until the multipliers reset */
-  .cell .gmult {
-    position: absolute; inset: 0; z-index: 0; display: grid; place-items: center;
-    pointer-events: none; font-family: var(--disp); font-size: 30px; line-height: 1;
+  /* The values Multis leave on the cells live in their own layer UNDER the reels, one slot
+     per cell, placed from the cells' layout (not their rects), so they are never part of a
+     tile's animation: when a symbol explodes the number stays, when the refill drops in the
+     number is already there under it. Faint behind a symbol, bright while the cell is bare. */
+  .multlayer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .multlayer .gmult {
+    position: absolute; display: grid; place-items: center; white-space: nowrap;
+    /* --shrink is set by paintCell() from the value's length, so a stacked value like
+       x1001.25 still fits inside the cell instead of running past its edges */
+    font-family: var(--disp); font-size: calc(22px * var(--shrink, 1)); line-height: 1;
     color: var(--fs-green); opacity: .42; text-shadow: 0 0 12px rgba(168,240,0,.9);
+    transition: opacity .18s linear;
   }
-  .cell > img { position: relative; z-index: 1; }
+  .multlayer .gmult.bare { opacity: .95; }
+  .multlayer .gmult[hidden] { display: none; }
+  /* No z-index on .reel: the icons already paint above the numbers because #multLayer
+     (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
+     would paint a booming or exploding tile that overhangs its neighbour UNDER that reel. */
   @media (prefers-reduced-motion: reduce) { .cell.boom, .cell.hit { animation: none; } }
   @keyframes scatglow {
     0%, 100% { filter: drop-shadow(0 0 5px rgba(168, 240, 0, .9)) drop-shadow(0 0 14px rgba(168, 240, 0, .45)); }
@@ -530,17 +542,18 @@
      Bottom-up stagger keeps the old gravity read without a second drop-in pass. */
   /* the column absorbs the landing: each tile squashes then springs back, rippling from the
      top tile down so it reads as the icons reacting to the hit in the order they arrive */
-  .reel.impact > .cell { animation: impact .36s cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%; }
+  /* --i is the cell's row, set in buildBoard(), so the ripple covers however many rows the
+     board has rather than a fixed list of nth-children */
+  .reel.impact > .cell {
+    animation: impact .36s cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
   @keyframes impact {
     0%   { transform: translateY(-2px) scaleY(1.04) scaleX(.985); }
     38%  { transform: translateY(3.5px) scaleY(.92) scaleX(1.03); }
     68%  { transform: translateY(-1.2px) scaleY(1.02) scaleX(.995); }
     100% { transform: none; }
   }
-  .reel.impact > .cell:nth-child(1) { animation-delay: 0ms; }
-  .reel.impact > .cell:nth-child(2) { animation-delay: 45ms; }
-  .reel.impact > .cell:nth-child(3) { animation-delay: 90ms; }
-  .reel.impact > .cell:nth-child(4) { animation-delay: 135ms; }
   /* the whole board takes a nudge on every landing — --thud is set per reel */
   .board.thud { animation: boardthud .24s cubic-bezier(.2,.8,.3,1); }
   @keyframes boardthud {
@@ -552,10 +565,10 @@
   /* A winning tile POPS. There used to be a sprayed frame drawn around it as well; the
      frame read as a box sitting on top of the art rather than as the art reacting, so the
      symbol itself does the work now - it punches up, shakes the hit off and settles a
-     little proud of the others, lit from behind so the line reads at a glance. */
+     little proud of the others, lit from behind so the cluster reads at a glance. */
   .cell.winhit {
     /* above its neighbours so the pop is never clipped by the next tile, but below the
-       payline's own layer (z-index 2) so the stroke and its multiplier still read on top */
+       win chip (z-index 4) so the cluster's amount still reads on top */
     transform: scale(1.06); z-index: 1;
     animation: winpop .52s cubic-bezier(.25,.85,.35,1);
   }
@@ -572,55 +585,33 @@
   @media (prefers-reduced-motion: reduce) {
     .cell.winhit { animation: none; }
   }
-  /* payline stroke — the spray dab tiled along each leg of the line, slashed on fast.
-     Two offset layers at different sizes keep it from reading as evenly-spaced dots. */
-  .payline { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
-  .payseg {
-    position: absolute; transform-origin: left center;
-    /* three phases of the same dab: a tiled dab alone leaves gaps between cores, so the
-       layers are offset and sized differently to close them into one sprayed stroke */
-    background-image: url("assets/sprayline.png"), url("assets/sprayline.png"), url("assets/sprayline.png");
-    background-repeat: repeat-x, repeat-x, repeat-x;
-    background-size: 21px 104%, 17px 132%, 27px 86%;
-    background-position: 0 center, 7px center, 15px center;
-    animation: payslash .14s cubic-bezier(.2,.8,.3,1) both;
-    will-change: clip-path;
-  }
-  @keyframes payslash {
-    0%   { clip-path: inset(0 100% 0 0); opacity: .5; }
-    60%  { opacity: 1; }
-    100% { clip-path: inset(0 0 0 0); opacity: 1; }
-  }
-  /* the line's multiplier, punched over the stroke once it has been sprayed on */
-  .linemult {
-    position: absolute; z-index: 3; pointer-events: none; white-space: nowrap;
+  /* the win chip - the cluster's amount (and its multiplier, when it has one) punched over
+     the cluster's middle tile while the cluster is lit. placeWinChip() sets left/top from the
+     cells' layout, the same offset walk placeMultLayer() does, never from a rect. */
+  .winchip {
+    position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-align: center;
     transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
     transform-origin: center center;
-    font-family: var(--disp); font-size: 24px; line-height: 1; color: var(--gold);
-    padding: 5px 12px 3px;
-    background: rgba(18, 13, 22, .88);   /* plate, or the tag is unreadable over the symbols */
+    font-family: var(--disp); font-size: 17px; line-height: 1.05; color: var(--gold);
+    padding: 5px 12px 4px; border-radius: 999px;
+    background: rgba(18, 13, 22, .9);   /* plate, or the chip is unreadable over the symbols */
     border: 2px solid var(--gold);
-    box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 20px rgba(245,197,24,.35);
+    box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 18px rgba(245,197,24,.3);
     text-shadow: 0 2px 0 rgba(0,0,0,.6);
-    animation: multpop .5s cubic-bezier(.2,.85,.3,1) both;
+    animation: chippop .32s cubic-bezier(.2,.85,.3,1.25) both;
   }
-  @keyframes multpop {
-    0%   { transform: translate(-50%, -50%) scale(0) rotate(-14deg); opacity: 0; }
-    14%  { transform: translate(-50%, -50%) scale(1.45) rotate(5deg); opacity: 1; }   /* tween pop */
-    26%  { transform: translate(-50%, -50%) scale(.92) rotate(-4deg); }
-    38%  { transform: translate(-50%, -52%) scale(1.12) rotate(3.2deg); }             /* shake */
-    50%  { transform: translate(-51%, -49%) scale(.99) rotate(-2.4deg); }
-    62%  { transform: translate(-49%, -51%) scale(1.04) rotate(1.6deg); }
-    74%  { transform: translate(-50.5%, -50%) scale(1) rotate(-1deg); }
-    86%  { transform: translate(-49.6%, -50%) rotate(.5deg); }
-    100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  .winchip small { display: block; font-size: 12px; letter-spacing: .06em; color: var(--fs-green); }
+  @keyframes chippop {
+    0%   { transform: translate(-50%, -50%) scale(.5); opacity: 0; }
+    60%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   }
   .cell.flood { animation: flood .5s ease-out; }
   @keyframes flood { 0% { background: var(--panel2); } 40% { background: var(--spray); } 100% { background: var(--spray-deep); } }
   .cell.pulse { animation: pulse .6s ease-in-out; }
   @keyframes pulse { 0%,100% { transform: none; } 50% { transform: scale(1.12); } }
   @media (prefers-reduced-motion: reduce) {
-    .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .payseg, .linemult, .stat .val, .spin { animation: none !important; transition: none !important; }
+    .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .winchip, .stat .val, .spin { animation: none !important; transition: none !important; }
   }
 
   .ticker {
@@ -1120,13 +1111,13 @@
           <img class="cardart" src="assets/BS.png" alt="" draggable="false">
           <span class="ttl">Standard</span>
           <span class="mult" id="bonusStdCost"></span>
-          <span class="desc" id="bonusStdDesc">8, 10 or 12 free spins. Sticky Paint Drips, +1x per painted reel, Tag Meter 4.</span>
+          <span class="desc" id="bonusStdDesc">10, 12 or 15 free spins. Multis land often and every value they leave stays on the board for the whole bonus. Tag Meter 4.</span>
         </button>
         <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
           <img class="cardart" src="assets/ES.png" alt="" draggable="false">
           <span class="ttl">Extreme</span>
           <span class="mult" id="bonusExtCost"></span>
-          <span class="desc" id="bonusExtDesc">10 free spins. Paint starts at +2x, richer characters, Tag Meter 3, best odds of the Full Wall.</span>
+          <span class="desc" id="bonusExtDesc">17 free spins. Every Multi is worth x2 or more, values stack across the feature, Tag Meter 3.</span>
         </button>
       </div>
       <div class="bonusbet">
@@ -1206,7 +1197,7 @@ const SYM = {
 for (const def of Object.values(SYM)) {   // pre-warm icon cache
   if (def.img) { const i = new Image(); i.src = def.img; }
 }
-const REELS = 5, ROWS = 4;
+const REELS = 7, ROWS = 7;   // the 7x7 cluster board; the events still pad every reel by one row top and bottom
 // Cost multipliers mirror index.json. The RGS applies them server-side (it debits
 // amount x cost); these are only so the buy buttons can show the right price.
 const MODE_COST = { base: 1, bonus: 100, extremebonus: 400 };
@@ -1239,8 +1230,20 @@ function delay(ms) {
 /* ---------- board ---------- */
 const cellEls = [];
 const reelEls = [];
+const multEls = [];   // multEls[r][y]: the number slot under cell (r, y)
 function buildBoard() {
   const board = $("board");
+  const layer = document.createElement("div");
+  layer.className = "multlayer"; layer.id = "multLayer";
+  board.appendChild(layer);
+  for (let r = 0; r < REELS; r++) {
+    multEls.push([]);
+    for (let y = 0; y < ROWS; y++) {
+      const g = document.createElement("div");
+      g.className = "gmult"; g.hidden = true;
+      layer.appendChild(g); multEls[r].push(g);
+    }
+  }
   for (let r = 0; r < REELS; r++) {
     const reel = document.createElement("div");
     reel.className = "reel"; reel.dataset.reel = r;
@@ -1249,6 +1252,7 @@ function buildBoard() {
     for (let y = 0; y < ROWS; y++) {
       const c = document.createElement("div");
       c.className = "cell low";
+      c.style.setProperty("--i", y);   // its row, for the landing ripple's stagger (CSS .reel.impact)
       reel.appendChild(c); cellEls[r].push(c);
     }
     board.appendChild(reel);
@@ -1286,31 +1290,48 @@ function setCell(r, y, sym) {
   el.className = cellClass(sym);
   fillCell(el, sym);
   (shownSym[r] || (shownSym[r] = []))[y] = sym;
-  paintCell(r, y);   // fillCell just wiped the cell; put the multiplier back behind the new symbol
 }
-// The multipliers a Multi leaves behind belong to the CELL, not the symbol on it, so they are
-// drawn as a layer behind whatever symbol happens to be there and re-applied on every write.
+// The multipliers a Multi leaves behind belong to the CELL, not the symbol on it. They are
+// drawn in #multLayer, a layer under the reels with one slot per cell, so a tile can explode,
+// fall or drop in on top of its number without ever taking the number with it.
 const emptyGrid = () => Array.from({ length: REELS }, () => Array(ROWS).fill(0));
 function paintCell(r, y) {
-  const el = cellEls[r][y], v = (state.grid[r] || [])[y] || 0;
-  let g = el.querySelector(".gmult");
+  const g = multEls[r][y], v = (state.grid[r] || [])[y] || 0;
   if (v > 0) {
-    if (!g) { g = document.createElement("div"); g.className = "gmult"; el.prepend(g); }
-    g.textContent = "x" + fmtMult(v);
-  } else if (g) {
-    g.remove();
+    const t = "x" + fmtMult(v);
+    g.textContent = t; g.hidden = false;
+    // the face shrinks with the value's length (a fraction of the rule's own font size, see
+    // .multlayer .gmult) so a stacked x1001.25 never runs past the cell
+    g.style.setProperty("--shrink", t.length > 7 ? ".58" : t.length > 5 ? ".76" : "1");
+  } else g.hidden = true;
+}
+function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
+function resetGrid() { state.grid = emptyGrid(); paintGrid(); }
+// Each slot sits exactly where its cell is laid out. Offsets, not rects: a rect includes
+// whatever transform the cell is animating through, an offset is the resting slot.
+function placeMultLayer() {
+  const board = $("board");
+  if (!multEls.length) return;
+  for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+    const cell = cellEls[r][y], g = multEls[r][y];
+    let x = 0, top = 0, el = cell;
+    while (el && el !== board) {
+      x += el.offsetLeft; top += el.offsetTop;
+      el = el.offsetParent;
+      if (el && el !== board) { x += el.clientLeft; top += el.clientTop; }   // the parent's border
+    }
+    g.style.left = x + "px"; g.style.top = top + "px";
+    g.style.width = cell.offsetWidth + "px"; g.style.height = cell.offsetHeight + "px";
   }
 }
-function paintGrid() { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
-function resetGrid() { state.grid = emptyGrid(); paintGrid(); }
 function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
 function clearFx() {
   eachCell(el => el.classList.remove("winhit", "flood", "pulse", "drop"));
   $("board").classList.remove("spotlight");
-  clearPayline();
+  clearWinChip();
 }
 // delay() collapses to nothing once the player skips, which is right for reels and tumbles
-// and wrong for paylines: a skipped round still has to show which lines paid. This one holds.
+// and wrong for wins: a skipped round still has to show which clusters paid. This one holds.
 const hold = ms => new Promise(r => setTimeout(r, ms));
 
 const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -1347,7 +1368,7 @@ function bounceFx() {
 }
 
 // One nudge of the whole board per landed reel, a touch harder for each reel that lands
-// after the last, plus a soft thunk. Restarted per reel so five landings read as five hits.
+// after the last, plus a soft thunk. Restarted per reel so every landing reads as its own hit.
 function boardThud(r) {
   const bd = $("board");
   bd.style.setProperty("--thud", String(0.7 + r * 0.12));
@@ -1383,8 +1404,10 @@ function spinReel(r, ev, stripCol, duration, prev) {
     const prevOff = Number.isInteger(prev?.stop) ? prev.stop : null;
     const prevRow = prev?.row?.length === ROWS ? prev.row : null;
 
-    const passCount = Math.max(12, Math.round(duration / 55));
     const landBlock = ev.board[r].length;   // children [0, landBlock) are the landing block
+    // long enough that the landing block and the start window can never overlap, whatever
+    // the board height: 9 landing symbols, ROWS on screen, and a couple to meet under the blur
+    const passCount = Math.max(landBlock + ROWS + 2, Math.round(duration / 55));
     const first = passCount - ROWS;         // children [first, passCount) are the start window
     const seam = Math.round((landBlock + first) / 2);   // the two runs meet here, under full blur
     const restY = -CELL_STEP;               // child 1 (board row 1) at the window top
@@ -1456,7 +1479,8 @@ function spinReel(r, ev, stripCol, duration, prev) {
       if (state.skip || REDUCED_MOTION) { cleanup(); return; }
       reel.classList.add("impact");
       boardThud(r);
-      setTimeout(cleanup, $("turbo").checked ? 220 : 420);
+      // long enough for the seventh row's ripple (6 x 45ms in, .36s long) to finish settling
+      setTimeout(cleanup, $("turbo").checked ? 320 : 660);
     };
     const skipWatch = setInterval(() => { if (state.skip) land(); }, 80);
     spin.onfinish = land;
@@ -1818,30 +1842,34 @@ const handlers = {
 
   async winInfo(ev) {
     if (!ev.wins.length) return;
-    charReact("win");   // one reaction for the burst, not one per line
+    charReact("win");   // one reaction for the burst, not one per cluster
     $("board").classList.add("spotlight");
     for (const raw of ev.wins) {
-      // A win arrives either as a compact tuple or in the older object form. The tuple exists
+      // A win is a cluster: 5+ matching symbols touching side to side, anywhere on the board.
+      // It arrives either as a compact tuple or in the older object form. The tuple exists
       // because Stake rejects any book over 512 KiB and the spelled-out form blew past it on
       // long tumble chains - see tools/shrink_books.py. Normalise once, read it the same after.
-      //   [symbol, kind, win, [[reel,row]...], lineIndex, multiplier]
+      //   [symbol, size, win, [[reel,row]...], null (was the line index), multiplier]
+      // The multiplier is the SUM of the Multi values on the cluster's cells, 1 when none.
       const w = Array.isArray(raw) ? {
         symbol: raw[0], kind: raw[1], win: raw[2],
         positions: (raw[3] || []).map(p => ({ reel: p[0], row: p[1] })),
-        meta: { lineIndex: raw[4], multiplier: raw[5] ?? 1 },
+        meta: { multiplier: raw[5] ?? 1 },
       } : raw;
-      clearFxWins();
-      void $("board").offsetWidth;   // flush the removal so every line's boxes pop in fresh,
-                                     // including cells carried over from the previous line
-      for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
-      drawPayline(w.positions, (w.meta || {}).multiplier);
-      sfx("line");   // one call per payline as it lights up - skipping does not skip lines
       const m = w.meta || {};
-      const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${w.kind}</b>`, `line ${m.lineIndex ?? "—"}`];
-      if (m.multiplier > 1) parts.push(`<b>x${fmtMult(m.multiplier)}</b>`);
+      const mult = m.multiplier ?? 1;
+      const size = w.kind ?? m.clusterSize ?? w.positions.length;
+      clearFxWins();
+      void $("board").offsetWidth;   // flush the removal so every cluster's tiles pop in fresh,
+                                     // including cells carried over from the previous cluster
+      for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
+      placeWinChip(w.positions, cents(w.win), mult);
+      sfx("line");   // one call per cluster as it lights up - skipping does not skip clusters
+      const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${size}</b>`, "cluster"];
+      if (mult > 1) parts.push(`<b>x${fmtMult(mult)}</b>`);
       parts.push(`<b>${fmt(cents(w.win))}</b>`);
       tick(parts.join(" · "));
-      await hold(430);   // every line gets its moment, skip or no skip
+      await hold(430);   // every cluster gets its moment, skip or no skip
     }
     await hold(180);
     clearFxWins();
@@ -1849,19 +1877,22 @@ const handlers = {
   },
 
   async tumbleBoard(ev) {
-    // Physical tumble: ONLY the winning cells pop; per column the tiles above each gap fall
-    // down by exactly the gaps below them, a fresh tile drops in from the top for every gap,
-    // and tiles below the gap never move. explodingSymbols now lists only cells that truly
-    // left the board (wilds are sticky and are never included).
+    // Physical tumble: every cell in explodingSymbols pops in one drop - the symbols of the
+    // clusters just paid (winInfo) plus, when a Multi went off on this board (booster), the
+    // Multi and its edge neighbours; there is no wild in this game. Per column the tiles
+    // above each gap fall by exactly the gaps below them, a fresh tile drops in from the top
+    // for every gap, and tiles below a gap never move.
     const gone = ev.explodingSymbols || [];
     const goneByReel = Array.from({ length: REELS }, () => new Set());
     for (const p of gone) {
       if (p.reel < 0 || p.reel >= REELS) continue;
       goneByReel[p.reel].add(Math.min(Math.max(p.row - 1, 0), ROWS - 1));   // padded -> display row
     }
-    // 1. pop the actual winning symbols
+    // 1. pop the actual winning symbols; the multiplier under each stays and comes forward
     let anyGone = false;
-    for (let r = 0; r < REELS; r++) for (const y of goneByReel[r]) { cellEls[r][y].classList.add("explode"); anyGone = true; }
+    for (let r = 0; r < REELS; r++) for (const y of goneByReel[r]) {
+      cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare"); anyGone = true;
+    }
     if (!anyGone) return;
     if (!state.skip) sfx(pickSfx(DRIP_SFX, dripMemo), 0.7);
     await delay(state.skip ? 0 : 300);
@@ -1901,7 +1932,7 @@ const handlers = {
       }
     }
     await delay(state.skip ? 0 : 500);
-    eachCell(el => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); });
+    eachCell((el, r, y) => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); multEls[r][y].classList.remove("bare"); });
     for (let r = 0; r < REELS; r++) cellEls[r][0].parentElement.classList.remove("tumbling");
   },
 
@@ -1912,9 +1943,12 @@ const handlers = {
   },
 
   async booster(ev) {
-    // A Multi blows out: it lights up, then the four cells sharing an edge with it, its value
-    // lands on all five, and the tumbleBoard that follows clears them and drops new symbols
-    // in on top of the numbers. Skipping shortens this; it never hides it.
+    // A Multi blows out - after every cluster on this board has been paid, never before. It
+    // lights up, then the four cells sharing an edge with it, its value lands on all five,
+    // and the tumbleBoard that follows clears them (together with the paid cluster symbols)
+    // and drops new symbols in on top of the numbers. Skipping shortens this; never hides it.
+    clearFxWins();
+    $("board").classList.remove("spotlight");
     for (const b of ev.boosters || []) {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
       at(b).classList.add("boom");
@@ -1989,61 +2023,49 @@ const handlers = {
 
   async finalWin() { /* credited by playRound */ },
 };
-function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearPayline(); }
+function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearWinChip(); }
 
-function clearPayline() {
-  const layer = $("board").querySelector(".payline");
-  if (layer) layer.remove();
+function clearWinChip() {
+  const chip = $("board").querySelector(".winchip");
+  if (chip) chip.remove();
 }
 
-// Sprays the winning line on: one tiled segment per leg, each slashed in left-to-right
-// along its own axis, staggered so the stroke reads as a single fast stroke of the can.
-function drawPayline(positions, mult) {
-  clearPayline();
-  if (!positions || positions.length < 2) return;
+// The win chip: the cluster's amount (and its multiplier, when it has one) punched over the
+// cluster's middle tile while the cluster is lit. The middle is the cluster cell nearest the
+// mean of its positions, so the chip always sits on a tile that actually paid and never in
+// the hollow of an L or a ring. Placed the way placeMultLayer() places its slots - offsets
+// walked up to the board, never a rect: #app is transform-scaled to fit the window, so a rect
+// is not a layout length and would have to be divided back out first.
+function placeWinChip(positions, amount, mult) {
+  clearWinChip();
+  if (!positions || !positions.length) return;
   const board = $("board");
-  const br = board.getBoundingClientRect();
-  // #app is transform-scaled to fit the window, so a rect is NOT a layout length. The stroke
-  // is positioned with left/top inside the board, which the same transform scales again -
-  // so the rect deltas have to be divided back out first or every leg lands short of its
-  // icons and the whole line reads as drawn through the wrong tiles.
-  const k = br.width / Math.max(1, board.offsetWidth);
-  const pts = positions.map(p => {
-    const cr = cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)].getBoundingClientRect();
-    return { x: (cr.left - br.left + cr.width / 2) / k, y: (cr.top - br.top + cr.height / 2) / k };
-  });
-  const layer = document.createElement("div");
-  layer.className = "payline";
-  const step = Math.min(55, 170 / (pts.length - 1));   // whole stroke lands in ~200-270ms
-  for (let i = 1; i < pts.length; i++) {
-    const a = pts[i - 1], b = pts[i];
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const seg = document.createElement("div");
-    seg.className = "payseg";
-    seg.style.left = `${a.x}px`;
-    seg.style.top = `${a.y}px`;
-    seg.style.width = `${Math.hypot(dx, dy)}px`;
-    seg.style.height = `${(17 + Math.random() * 5).toFixed(1)}px`;   // hand-sprayed thickness
-    seg.style.transform = `translateY(-50%) rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
-    seg.style.animationDelay = `${(i - 1) * step}ms`;
-    layer.appendChild(seg);
+  const rowOf = p => Math.min(Math.max(p.row - 1, 0), ROWS - 1);   // padded -> display row
+  const mr = positions.reduce((s, p) => s + p.reel, 0) / positions.length;
+  const my = positions.reduce((s, p) => s + rowOf(p), 0) / positions.length;
+  let best = positions[0], bestD = Infinity;
+  for (const p of positions) {
+    const d = (p.reel - mr) ** 2 + (rowOf(p) - my) ** 2;
+    if (d < bestD) { best = p; bestD = d; }
   }
-  // the line's own multiplier (paint x characters), punched over the middle of the stroke
-  // once the spray has landed. 1x lines carry no multiplier, so they get no badge.
-  if (mult > 1) {
-    const mid = pts.length % 2
-      ? pts[(pts.length - 1) / 2]
-      : { x: (pts[pts.length / 2 - 1].x + pts[pts.length / 2].x) / 2,
-          y: (pts[pts.length / 2 - 1].y + pts[pts.length / 2].y) / 2 };
-    const tag = document.createElement("div");
-    tag.className = "linemult";
-    tag.textContent = `${+mult.toFixed(2)}X`;
-    tag.style.left = `${mid.x}px`;
-    tag.style.top = `${mid.y}px`;
-    tag.style.animationDelay = `${(pts.length - 1) * step}ms`;   // lands as the stroke finishes
-    layer.appendChild(tag);
+  const cell = cellEls[best.reel][rowOf(best)];
+  let x = 0, top = 0, el = cell;
+  while (el && el !== board) {
+    x += el.offsetLeft; top += el.offsetTop;
+    el = el.offsetParent;
+    if (el && el !== board) { x += el.clientLeft; top += el.clientTop; }   // the parent's border
   }
-  board.appendChild(layer);
+  const chip = document.createElement("div");
+  chip.className = "winchip";
+  chip.textContent = fmt(amount);
+  if (mult > 1) {   // 1x clusters carry no multiplier, so they get no second line
+    const tag = document.createElement("small");
+    tag.textContent = "x" + fmtMult(mult);
+    chip.appendChild(tag);
+  }
+  chip.style.left = (x + cell.offsetWidth / 2) + "px";
+  chip.style.top = (top + cell.offsetHeight / 2) + "px";
+  board.appendChild(chip);
 }
 
 const RGS_MESSAGE = {
@@ -2495,6 +2517,7 @@ async function makeCharacter({ el, base, name, ambient, flavour }) {
 // derived from the natural size, never compounded on the previous scale.
 let fitBusy = false;
 function fitToScreen() {
+  placeMultLayer();   // the slots follow the cells whenever the layout moves
   const app = $("app"), stage = document.querySelector(".stage");
   if (!app || !stage || fitBusy) return;
   // Every write below resizes the very boxes the observer watches, so guard against being
