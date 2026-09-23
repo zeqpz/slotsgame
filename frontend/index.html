@@ -538,7 +538,6 @@
   .multlayer .gmult.bare { opacity: .95; }
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
-  .splatlayer { position: absolute; z-index: 0; pointer-events: none; }   /* under the reels and the numbers */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
@@ -1394,69 +1393,31 @@ function paintCell(r, y) {
 }
 function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
 
-/* ---------- paint splats ---------- */
-// Every icon that pops off the board bursts into paint: a splash on the spot that blooms
-// and dries, and a spray of droplets thrown outward that slow in the air, land wherever
-// they fall - on the board, over the frame - and dry away. One canvas, one frame loop while
-// there is wet paint, nothing when there is not. Colours follow the icon that popped.
+/* ---------- the shatter ---------- */
+// Every icon that pops comes apart: its picture is cut into nine pieces that fly out, turn,
+// fall and fade - the cell's own artwork in flight, and nothing left behind. One canvas over
+// the board, hanging past its edges so a piece can fly over the frame; a frame loop while
+// anything is in the air, nothing when there is not.
 const SPLAT_PAD = 96;
-let splatCanvas = null, splatCtx = null, shardCanvas = null, shardCtx = null;
-let splatParts = [], splatStains = [], splatShards = [], splatRaf = 0;
-// A colour and its family: the icon's own paint, a lighter and a darker pour of it, the
-// two hues either side of it, and one accent from the wall's own spray - six cans a splat.
-function colourFamily(base) {
-  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(base);
-  if (!m) return [base];
-  let r = +m[1] / 255, g = +m[2] / 255, b = +m[3] / 255;
-  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
-  let h = 0, sat = 0;
-  if (mx !== mn) {
-    const d = mx - mn;
-    sat = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
-    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
-    h *= 60;
-  }
-  const hsl = (hh, ss, ll) => `hsl(${Math.round((hh + 360) % 360)} ${Math.round(ss * 100)}% ${Math.round(ll * 100)}%)`;
-  const S = Math.max(sat, .35), L = Math.min(Math.max(l, .3), .7);
-  const css = getComputedStyle(document.documentElement), accents = ["--spray", "--teal", "--fs-green", "--gold", "--orange"];
-  return [base, hsl(h, S, Math.min(.85, L + .18)), hsl(h, S, Math.max(.15, L - .15)), hsl(h + 35, S, L), hsl(h - 35, S, L),
-    css.getPropertyValue(accents[Math.floor(Math.random() * accents.length)]).trim() || base];
-}
-function splatPalette(sym) {
-  const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim() || "#F0568B";
-  const cls = (SYM[sym && sym.name] || { cls: "low" }).cls;
-  return {
-    high: [v("--gold"), v("--orange"), v("--spray")],
-    low: [v("--spray"), v("--teal"), v("--fs-green"), v("--orange")],
-    scat: [v("--fs-green"), v("--gold")],
-    escat: [v("--fs-purple"), v("--spray")],
-    booster: [v("--fs-green"), v("--gold")],
-  }[cls] || [v("--spray"), v("--teal")];
-}
-function splatLayer() {
+let shardCanvas = null, shardCtx = null, splatShards = [], splatRaf = 0;
+function shardLayer() {
   const board = $("board");
   if (!board) return null;
-  if (!splatCanvas) {
-    splatCanvas = document.createElement("canvas");
-    splatCanvas.className = "splatlayer";
-    board.insertBefore(splatCanvas, $("multLayer") || board.firstChild);   // the paint: behind the numbers and the icons
-    splatCtx = splatCanvas.getContext("2d");
+  if (!shardCanvas) {
     shardCanvas = document.createElement("canvas");
     shardCanvas.className = "shardlayer";
-    board.appendChild(shardCanvas);   // the flying pieces of the icon: over everything
+    board.appendChild(shardCanvas);   // over everything
     shardCtx = shardCanvas.getContext("2d");
   }
   const w = board.offsetWidth + SPLAT_PAD * 2, h = board.offsetHeight + SPLAT_PAD * 2;
   const dpr = Math.min(2, devicePixelRatio || 1);
-  for (const [cv, cx] of [[splatCanvas, splatCtx], [shardCanvas, shardCtx]]) {
-    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
-      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-      cv.style.width = w + "px"; cv.style.height = h + "px";
-      cv.style.left = -SPLAT_PAD + "px"; cv.style.top = -SPLAT_PAD + "px";
-      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+  if (shardCanvas.width !== Math.round(w * dpr) || shardCanvas.height !== Math.round(h * dpr)) {
+    shardCanvas.width = Math.round(w * dpr); shardCanvas.height = Math.round(h * dpr);
+    shardCanvas.style.width = w + "px"; shardCanvas.style.height = h + "px";
+    shardCanvas.style.left = -SPLAT_PAD + "px"; shardCanvas.style.top = -SPLAT_PAD + "px";
+    shardCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  return splatCtx;
+  return shardCtx;
 }
 function cellCentre(r, y) {   // the cell's resting spot inside the board, by layout, not by rect
   const board = $("board"), cell = cellEls[r][y];
@@ -1468,119 +1429,35 @@ function cellCentre(r, y) {   // the cell's resting spot inside the board, by la
   }
   return { x: x + cell.offsetWidth / 2 + SPLAT_PAD, y: top + cell.offsetHeight / 2 + SPLAT_PAD, w: cell.offsetWidth };
 }
-// The paint is the icon's own colour: the most saturated third of its pixels, averaged,
-// read once per symbol from the art itself so new art recolours the paint on its own.
-const iconColours = {};
-function iconColour(sym) {
-  const name = sym && sym.name, def = SYM[name];
-  if (!def) return null;
-  if (name in iconColours) return iconColours[name];
-  iconColours[name] = null;   // pending; the palette stands in until the read completes
-  if (!def.img) {
-    const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim();
-    iconColours[name] = def.cls === "escat" ? v("--fs-purple") : def.cls === "scat" ? v("--fs-green") : v("--gold");
-    return iconColours[name];
-  }
-  const img = new Image();
-  const read = () => {
-    try {
-      const c = document.createElement("canvas"); c.width = c.height = 48;
-      const x = c.getContext("2d"); x.drawImage(img, 0, 0, 48, 48);
-      const d = x.getImageData(0, 0, 48, 48).data, px = [];
-      for (let i = 0; i < d.length; i += 4) {
-        if (d[i + 3] < 140) continue;
-        const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-        const lum = (r + g + b) / 3;
-        if (lum < 28 || lum > 238) continue;   // outlines and highlights are not the colour
-        px.push([r, g, b, mx ? (mx - mn) / mx : 0]);
-      }
-      px.sort((a, b) => b[3] - a[3]);
-      const top = px.slice(0, Math.max(6, Math.floor(px.length * .33)));
-      if (!top.length) return;
-      let r = 0, g = 0, b = 0;
-      for (const q of top) { r += q[0]; g += q[1]; b += q[2]; }
-      iconColours[name] = `rgb(${Math.round(r / top.length)}, ${Math.round(g / top.length)}, ${Math.round(b / top.length)})`;
-    } catch (e) { /* a tainted canvas or a missing file: the palette stands in */ }
-  };
-  img.onload = read;
-  img.src = def.img;
-  return null;
-}
 function splat(r, y, sym) {
   if (REDUCED_MOTION) return;
-  const ctx = splatLayer();
+  const ctx = shardLayer();
   if (!ctx) return;
-  const own = iconColour(sym), palette = own ? colourFamily(own) : splatPalette(sym);
-  const c = cellCentre(r, y), t = tempo(), now = performance.now();
-  const pick = () => palette[Math.floor(Math.random() * palette.length)];
-  // The icon itself comes apart: its picture is cut into pieces that fly out with the
-  // paint, turning and shrinking as they go, and the tile is emptied on the spot. This is
-  // the real thing splatting, not a stand-in - the cell's own artwork, in flight.
   const img = cellEls[r][y].querySelector("img");
-  if (img && img.complete && img.naturalWidth) {
-    const box = cellEls[r][y].getBoundingClientRect(), k = box.width / Math.max(1, cellEls[r][y].offsetWidth);
-    const boxW = (img.getBoundingClientRect().width / k) || c.w * .8, boxH = (img.getBoundingClientRect().height / k) || c.w * .8;
-    // object-fit: contain letterboxes the picture inside its box: cut the picture, not the box
-    const ar = img.naturalWidth / img.naturalHeight;
-    const drawW = boxW / boxH > ar ? boxH * ar : boxW, drawH = boxW / boxH > ar ? boxH : boxW / ar;
-    const cols = 3, rows = 3;
-    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
-      const sw = img.naturalWidth / cols, sh = img.naturalHeight / rows;
-      const pw = drawW / cols, ph = drawH / rows;
-      const ox = (i + .5) * pw - drawW / 2, oy = (j + .5) * ph - drawH / 2;   // this piece's spot in the icon
-      const a = Math.atan2(oy, ox) + (Math.random() - .5) * .9, sp = c.w * (.05 + Math.random() * .16) / t;
-      splatShards.push({ img, sx: i * sw, sy: j * sh, sw, sh, pw, ph, x: c.x + ox, y: c.y + oy,
-        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .05 / t, rot: 0, vrot: (Math.random() - .5) * .35,
-        born: now, life: (640 + Math.random() * 360) * t });
-    }
-    img.style.visibility = "hidden";   // the tile is bare now; the pieces carry the picture away
+  if (!(img && img.complete && img.naturalWidth)) return;   // a Multi tile has no picture to break
+  const c = cellCentre(r, y), t = tempo(), now = performance.now();
+  const box = cellEls[r][y].getBoundingClientRect(), k = box.width / Math.max(1, cellEls[r][y].offsetWidth);
+  const boxW = (img.getBoundingClientRect().width / k) || c.w * .8, boxH = (img.getBoundingClientRect().height / k) || c.w * .8;
+  // object-fit: contain letterboxes the picture inside its box: cut the picture, not the box
+  const ar = img.naturalWidth / img.naturalHeight;
+  const drawW = boxW / boxH > ar ? boxH * ar : boxW, drawH = boxW / boxH > ar ? boxH : boxW / ar;
+  const cols = 3, rows = 3;
+  for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+    const sw = img.naturalWidth / cols, sh = img.naturalHeight / rows;
+    const pw = drawW / cols, ph = drawH / rows;
+    const ox = (i + .5) * pw - drawW / 2, oy = (j + .5) * ph - drawH / 2;   // this piece's spot in the icon
+    const a = Math.atan2(oy, ox) + (Math.random() - .5) * .9, sp = c.w * (.05 + Math.random() * .16) / t;
+    splatShards.push({ img, sx: i * sw, sy: j * sh, sw, sh, pw, ph, x: c.x + ox, y: c.y + oy,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .05 / t, rot: 0, vrot: (Math.random() - .5) * .35,
+      born: now, life: (640 + Math.random() * 360) * t });
   }
-  // the splash: fat blobs on the spot that bloom for a moment, then dry
-  for (let i = 0; i < 6; i++) {
-    splatStains.push({ x: c.x + (Math.random() - .5) * c.w * .55, y: c.y + (Math.random() - .5) * c.w * .55,
-      r: c.w * (.1 + Math.random() * .2), colour: pick(), born: now, life: (700 + Math.random() * 600) * t, bloom: true });
-  }
-  // the spray: droplets flung outward, slowed by the air, pulled down a touch
-  const n = 18 + Math.floor(Math.random() * 10);
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, sp = c.w * (.08 + Math.random() * .26) / t;
-    splatParts.push({ x: c.x, y: c.y, px: c.x, py: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .06 / t,
-      r: 1.4 + Math.random() * 4.2, colour: pick(), born: now, life: (240 + Math.random() * 360) * t });
-  }
+  img.style.visibility = "hidden";   // the tile is bare now; the pieces carry the picture away
   if (!splatRaf) {
     let last = now;
     const step = ts => {
       const dt = Math.min(40, ts - last) / 16.67; last = ts;
       const t2 = tempo();
-      ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height);
-      // stains dry: full paint for a while, then they thin out and go
-      splatStains = splatStains.filter(st => ts - st.born < st.life);
-      for (const st of splatStains) {
-        const age = (ts - st.born) / st.life;
-        const rr = st.bloom ? st.r * Math.min(1, .35 + age * 2.2) : st.r;
-        ctx.globalAlpha = age < .55 ? .5 : .5 * (1 - (age - .55) / .45);   /* wet paint, but the icons read through it */
-        ctx.fillStyle = st.colour;
-        ctx.beginPath(); ctx.arc(st.x, st.y, rr, 0, Math.PI * 2); ctx.fill();
-      }
-      // droplets fly, trail a little, and land as stains where they stop
-      const landed = [];
-      splatParts = splatParts.filter(pt => {
-        pt.px = pt.x; pt.py = pt.y;
-        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
-        pt.vx *= Math.pow(.9, dt); pt.vy = pt.vy * Math.pow(.9, dt) + .32 * dt / t2;
-        if (ts - pt.born >= pt.life) { landed.push(pt); return false; }
-        return true;
-      });
-      for (const pt of landed) splatStains.push({ x: pt.x, y: pt.y, r: pt.r * 1.5, colour: pt.colour, born: ts, life: (900 + Math.random() * 700) * t2, bloom: false });
-      ctx.globalAlpha = .62;
-      for (const pt of splatParts) {
-        ctx.strokeStyle = pt.colour; ctx.lineWidth = pt.r * 1.6; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(pt.px, pt.py); ctx.lineTo(pt.x, pt.y); ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-      // the pieces of the icons, on the front canvas: they fly, turn, shrink and go
-      const fx = shardCtx;
-      fx.clearRect(0, 0, shardCanvas.width, shardCanvas.height);
+      ctx.clearRect(0, 0, shardCanvas.width, shardCanvas.height);
       splatShards = splatShards.filter(sh => ts - sh.born < sh.life);
       for (const sh of splatShards) {
         const age = (ts - sh.born) / sh.life;
@@ -1588,14 +1465,14 @@ function splat(r, y, sym) {
         sh.vx *= Math.pow(.92, dt); sh.vy = sh.vy * Math.pow(.92, dt) + .3 * dt / t2;
         sh.rot += sh.vrot * dt;
         const scale = 1 - age * .12;   // a piece stays a piece of the picture; it only fades at the end
-        fx.save();
-        fx.globalAlpha = age < .65 ? 1 : 1 - (age - .65) / .35;
-        fx.translate(sh.x, sh.y); fx.rotate(sh.rot);
-        fx.drawImage(sh.img, sh.sx, sh.sy, sh.sw, sh.sh, -sh.pw * scale / 2, -sh.ph * scale / 2, sh.pw * scale, sh.ph * scale);
-        fx.restore();
+        ctx.save();
+        ctx.globalAlpha = age < .65 ? 1 : 1 - (age - .65) / .35;
+        ctx.translate(sh.x, sh.y); ctx.rotate(sh.rot);
+        ctx.drawImage(sh.img, sh.sx, sh.sy, sh.sw, sh.sh, -sh.pw * scale / 2, -sh.ph * scale / 2, sh.pw * scale, sh.ph * scale);
+        ctx.restore();
       }
-      if (splatParts.length || splatStains.length || splatShards.length) splatRaf = requestAnimationFrame(step);
-      else { splatRaf = 0; ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height); fx.clearRect(0, 0, shardCanvas.width, shardCanvas.height); }
+      if (splatShards.length) splatRaf = requestAnimationFrame(step);
+      else { splatRaf = 0; ctx.clearRect(0, 0, shardCanvas.width, shardCanvas.height); }
     };
     splatRaf = requestAnimationFrame(step);
   }
@@ -2198,7 +2075,7 @@ const handlers = {
     const timers = [];
     order.forEach(([r, y], i) => {
       const go = () => {
-        splat(r, y, shownSym[r][y]);   // the icon bursts into its own paint
+        splat(r, y, shownSym[r][y]);   // the icon comes apart
         cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare");
         sfx("pop", .8 + Math.random() * .55 + i * .01);   // every pop its own pitch, drifting up through a run
       };
@@ -3365,7 +3242,6 @@ async function boot() {
   }
 }
 boot();
-for (const name of Object.keys(SYM)) iconColour({ name });   // paint colours, read from the art up front
 </script>
 <script>
 /* 2026-09-17 art-button behaviour — additive; wraps setButtons for the skip overlay */
