@@ -665,19 +665,27 @@
     position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-align: center;
     transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
     transform-origin: center center;
-    font-family: var(--disp); font-size: 17px; line-height: 1.05; color: var(--gold);
-    padding: 5px 12px 4px; border-radius: 999px;
-    background: rgba(18, 13, 22, .9);   /* plate, or the chip is unreadable over the symbols */
-    border: 2px solid var(--gold);
-    box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 18px rgba(245,197,24,.3);
-    text-shadow: 0 2px 0 rgba(0,0,0,.6);
-    animation: chippop calc(.32s * var(--tempo, 1)) cubic-bezier(.2,.85,.3,1.25) both;
+    font-family: var(--num); font-size: 30px; line-height: 1; color: var(--gold);
+    /* the sprayed magenta box is the plate: its cyan band and the notch on top stay clear
+       of the figure, and the whole thing is stretched to the text it carries */
+    min-width: 170px; padding: 28px 30px 24px;
+    background: url("assets/win_box.png") center / 100% 100% no-repeat;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,.65));
+    text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 9px rgba(0,0,0,.55);
+    animation: chippop calc(.72s * var(--tempo, 1)) ease-out both;
   }
-  .winchip small { display: block; font-size: 12px; letter-spacing: .06em; color: var(--fs-green); }
+  .winchip small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
+  /* it bursts out past its size, settles, then shakes itself still */
   @keyframes chippop {
-    0%   { transform: translate(-50%, -50%) scale(.5); opacity: 0; }
-    60%  { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    0%   { transform: translate(-50%, -50%) scale(.15) rotate(-8deg); opacity: 0; }
+    34%  { transform: translate(-50%, -50%) scale(1.24) rotate(2.5deg); opacity: 1; }
+    46%  { transform: translate(-50%, -50%) scale(.93) rotate(-2.5deg); }
+    56%  { transform: translate(-53%, -50%) scale(1.07) rotate(2deg); }
+    66%  { transform: translate(-47%, -50%) scale(1) rotate(-2deg); }
+    76%  { transform: translate(-51.5%, -50%) scale(1.03) rotate(1.2deg); }
+    86%  { transform: translate(-48.8%, -50%) scale(1) rotate(-.8deg); }
+    94%  { transform: translate(-50.5%, -50%) scale(1.01) rotate(.4deg); }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
   }
   .cell.flood { animation: flood .5s ease-out; }
   @keyframes flood { 0% { background: var(--panel2); } 40% { background: var(--spray); } 100% { background: var(--spray-deep); } }
