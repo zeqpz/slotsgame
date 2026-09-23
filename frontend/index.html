@@ -665,6 +665,19 @@
     position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-align: center;
     transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
     transform-origin: center center;
+    font-family: var(--disp); font-size: 17px; line-height: 1.05; color: var(--gold);
+    padding: 5px 12px 4px; border-radius: 999px;
+    background: rgba(18, 13, 22, .9);   /* plate, or the chip is unreadable over the symbols */
+    border: 2px solid var(--gold);
+    box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 18px rgba(245,197,24,.3);
+    text-shadow: 0 2px 0 rgba(0,0,0,.6);
+  }
+  /* the popup over the icons: the cluster's amount (and its multiplier, when it has one)
+     punched over the cluster's middle tile while the cluster is lit */
+  .winpop {
+    position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-align: center;
+    transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
+    transform-origin: center center;
     font-family: var(--num); font-size: 30px; line-height: 1; color: var(--gold);
     /* the sprayed magenta box is the plate: its cyan band and the notch on top stay clear
        of the figure, and the whole thing is stretched to the text it carries */
@@ -674,7 +687,7 @@
     text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 9px rgba(0,0,0,.55);
     animation: chippop calc(.72s * var(--tempo, 1)) ease-out both;
   }
-  .winchip small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
+  .winpop small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
   /* it bursts out past its size, settles, then shakes itself still */
   @keyframes chippop {
     0%   { transform: translate(-50%, -50%) scale(.15) rotate(-8deg); opacity: 0; }
@@ -692,7 +705,7 @@
   .cell.pulse { animation: pulse calc(.6s * var(--tempo, 1)) ease-in-out; }
   @keyframes pulse { 0%,100% { transform: none; } 50% { transform: scale(1.12); } }
   @media (prefers-reduced-motion: reduce) {
-    .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .winchip, .stat .val, .spin { animation: none !important; transition: none !important; }
+    .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .winchip, .winpop, .stat .val, .spin { animation: none !important; transition: none !important; }
   }
 
   .ticker {
@@ -2330,7 +2343,7 @@ function drawWinLine(positions) {
 }
 
 function clearWinChip() {
-  const chip = $("board").querySelector(".winchip");
+  const chip = $("board").querySelector(".winpop");
   if (chip) chip.remove();
 }
 
@@ -2360,7 +2373,7 @@ function placeWinChip(positions, amount, mult) {
     if (el && el !== board) { x += el.clientLeft; top += el.clientTop; }   // the parent's border
   }
   const chip = document.createElement("div");
-  chip.className = "winchip";
+  chip.className = "winpop";
   chip.textContent = fmt(amount);
   if (mult > 1) {   // 1x clusters carry no multiplier, so they get no second line
     const tag = document.createElement("small");
