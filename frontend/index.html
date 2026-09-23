@@ -488,8 +488,8 @@
   .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
   /* a bonus symbol announces itself the moment its reel lands: punches up, shakes it off,
      settles - on top of its glow, which keeps breathing underneath */
-  .cell.scat.scatland img  { animation: scatland .7s cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
-  .cell.escat.scatland img { animation: scatland .7s cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
+  .cell.scat.scatland img  { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
+  .cell.escat.scatland img { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
   .cell.scatland { z-index: 2; }
   @keyframes scatland {
     0%   { transform: scale(1); }
@@ -508,8 +508,8 @@
     color: var(--fs-green); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px rgba(168,240,0,.8);
   }
   /* it blows out: the Multi itself, then the four cells it hits */
-  .cell.boom { animation: multiboom .55s cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
-  .cell.hit  { animation: multihit .5s cubic-bezier(.25,.85,.35,1); }
+  .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
+  .cell.hit  { animation: multihit calc(.5s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1); }
   @keyframes multiboom {
     0%   { transform: scale(1); }
     40%  { transform: scale(1.4) rotate(-4deg); filter: brightness(1.7); }
@@ -534,6 +534,9 @@
     transition: opacity .18s linear;
   }
   .multlayer .gmult.bare { opacity: .95; }
+  /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
+     over the frame; above the tiles, below nothing that matters */
+  .splatlayer { position: absolute; z-index: 4; pointer-events: none; }
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -556,7 +559,7 @@
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
   /* cascade: only the winning symbols pop and vanish; per column the survivors above the
      gap fall, a new symbol drops in from the top, and each moving tile lands with a bounce. */
-  .cell.explode { animation: cellExplode .3s cubic-bezier(.5,-0.25,.7,.5) forwards; z-index: 3; }
+  .cell.explode { animation: cellExplode calc(.3s * var(--tempo, 1)) cubic-bezier(.5,-0.25,.7,.5) forwards; z-index: 3; }
   @keyframes cellExplode {
     0%   { transform: scale(1); opacity: 1; filter: brightness(1); }
     30%  { transform: scale(1.34) rotate(-6deg); opacity: 1; filter: brightness(2.1) saturate(1.5); }
@@ -566,7 +569,7 @@
   /* --fall (px, negative) = how far above this cell's resting slot the tile starts, so each
      tile drops exactly the number of rows it really moved. Survivors that didn't move get no
      .tdrop at all, so the column never "resets" as a block. */
-  .cell.tdrop { animation: tumbleDrop .5s both; transform-origin: 50% 100%; z-index: 2; }
+  .cell.tdrop { animation: tumbleDrop calc(.5s * var(--tempo, 1)) both; transform-origin: 50% 100%; z-index: 2; }
   @keyframes tumbleDrop {
     0%   { transform: translateY(var(--fall, -120%)); opacity: .3; animation-timing-function: cubic-bezier(.45,.05,.55,.95); }
     12%  { opacity: 1; }
@@ -585,10 +588,10 @@
   /* --i is the cell's row, set in buildBoard(), so the ripple covers however many rows the
      board has rather than a fixed list of nth-children */
   .reel.impact > .cell {
-    animation: impact .36s cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%;
+    animation: impact calc(.36s * var(--tempo, 1)) cubic-bezier(.22,.9,.3,1.2) both; transform-origin: 50% 100%;
     /* --ib counts rows from the BOTTOM: the tile that hits the floor first settles first and
        the shake runs up the column, the way a stack lands */
-    animation-delay: calc(var(--ib, 0) * 45ms);
+    animation-delay: calc(var(--ib, 0) * 45ms * var(--tempo, 1));
   }
   @keyframes impact {
     0%   { transform: translateY(-2px) scaleY(1.04) scaleX(.985); }
@@ -612,7 +615,7 @@
     /* above its neighbours so the pop is never clipped by the next tile, but below the
        win chip (z-index 4) so the cluster's amount still reads on top */
     transform: scale(1.06); z-index: 1;
-    animation: winpop .52s cubic-bezier(.25,.85,.35,1);
+    animation: winpop calc(.52s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1);
   }
   .cell.winhit img { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
   @keyframes winpop {
@@ -640,7 +643,7 @@
     border: 2px solid var(--gold);
     box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 18px rgba(245,197,24,.3);
     text-shadow: 0 2px 0 rgba(0,0,0,.6);
-    animation: chippop .32s cubic-bezier(.2,.85,.3,1.25) both;
+    animation: chippop calc(.32s * var(--tempo, 1)) cubic-bezier(.2,.85,.3,1.25) both;
   }
   .winchip small { display: block; font-size: 12px; letter-spacing: .06em; color: var(--fs-green); }
   @keyframes chippop {
@@ -650,7 +653,7 @@
   }
   .cell.flood { animation: flood .5s ease-out; }
   @keyframes flood { 0% { background: var(--panel2); } 40% { background: var(--spray); } 100% { background: var(--spray-deep); } }
-  .cell.pulse { animation: pulse .6s ease-in-out; }
+  .cell.pulse { animation: pulse calc(.6s * var(--tempo, 1)) ease-in-out; }
   @keyframes pulse { 0%,100% { transform: none; } 50% { transform: scale(1.12); } }
   @media (prefers-reduced-motion: reduce) {
     .cell, .cell::after, .reel, .banner, .board, #bgwall, .charfx, .spincol, .winchip, .stat .val, .spin { animation: none !important; transition: none !important; }
@@ -962,10 +965,10 @@
     letter-spacing: .06em; font-variant-numeric: tabular-nums;
   }
   .bonustotal {
-    text-align: center; font-family: var(--legible); font-size: 12.5px; color: #fff;
+    text-align: center; font-family: var(--plain); font-size: 12.5px; color: #fff;   /* the word stays in the original face */
     text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
   }
-  .bonustotal b { font-family: var(--mono); font-size: 21px; letter-spacing: .12em; color: #fff; display: block; margin-top: 4px; }
+  .bonustotal b { font-family: var(--num); font-size: 24px; letter-spacing: .05em; color: #fff; display: block; margin-top: 4px; }   /* the amount, like every other amount */
   /* Play is the sprayed yellow plate with the word set into it */
   .bonusgo {
     display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
@@ -1009,7 +1012,9 @@
     transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
   }
   .spinbtn:hover:not(:disabled)::after { scale: 1.13; }
-  .spinbtn:hover:not(:disabled)::before { scale: 1.04; }
+  /* the plate lifts under the pointer whichever button is showing on it, spin or skip */
+  .spinwrap:hover .spinbtn::before { scale: 1.04; }
+  .spinwrap:hover .skipbtn.show { filter: brightness(1.15) drop-shadow(0 0 8px rgba(255,255,255,.35)); }
   .spinbtn.spun::after { animation: btnFloat 3.8s ease-in-out infinite, spin360 .8s cubic-bezier(.55,.05,.15,1); }
   /* arrows shrink away as the skip pops in (.4s delay to match the skip), pop back when it leaves */
   .spinbtn.arrows-away::after { scale: 0 !important; transition-delay: .4s; }
@@ -1020,9 +1025,9 @@
     border: none; padding: 0; cursor: pointer; font-size: 0;   /* image only, no "SKIP" text */
     opacity: 0; scale: .6; pointer-events: none;
     animation: btnFloat 4.2s ease-in-out infinite;   /* gentle drift, like the spin arrows */
-    transition: opacity .2s ease, scale .25s cubic-bezier(.3,.7,.4,1.5);
+    transition: opacity .2s ease, scale .25s cubic-bezier(.3,.7,.4,1.5), filter .15s ease;
   }
-  .skipbtn.show { opacity: 1; scale: 1; pointer-events: auto; transition-delay: .4s; }
+  .skipbtn.show { opacity: 1; scale: 1; pointer-events: auto; transition-delay: .4s, .4s, 0s; }
 
   .bonusbtn {
     position: relative; width: 146px; height: 74px;
@@ -1254,6 +1259,12 @@ const state = {
   multiCount: 0,   // Multis that have gone off this spin: each rings a little higher than the last
   multiTotal: 0,   // ... and across the whole round, for the bust at the end of a dry one
 };
+// skip is a property so every write to it, wherever it comes from, retunes the CSS clock too
+Object.defineProperty(state, "skip", {
+  get() { return this._skip === true; },
+  set(v) { this._skip = !!v; if (typeof syncTempo === "function") syncTempo(); },
+  enumerable: true,
+});
 
 const $ = id => document.getElementById(id);
 const fmt = v => RGS.money(v);
@@ -1266,10 +1277,16 @@ const bet = () => state.bets[state.betIdx] || 0;
 // bet is a 6dp integer, so round back to a whole integer amount.
 const cents = c => Math.round(c / 100 * bet());
 
+// One clock for the whole presentation. Rapid and Skip both run it at TEMPO_FAST: every
+// wait, every hold and (through --tempo) every CSS animation gets shorter by the same factor,
+// so nothing is ever dropped, it just happens faster. Skip's one instant effect is on the
+// reels themselves (spinReel lands them the moment it is pressed): a spin that then hits
+// nothing is over at once, a spin that hits plays its hits at pace.
+const TEMPO_FAST = .4;
+const tempo = () => (state.skip || $("turbo").checked) ? TEMPO_FAST : 1;
+function syncTempo() { document.documentElement.style.setProperty("--tempo", String(tempo())); }
 function delay(ms) {
-  if (state.skip) return Promise.resolve();
-  const t = $("turbo").checked ? ms / 4 : ms;
-  return new Promise(r => setTimeout(r, t));
+  return new Promise(r => setTimeout(r, ms * tempo()));
 }
 
 /* ---------- board ---------- */
@@ -1352,6 +1369,109 @@ function paintCell(r, y) {
   } else g.hidden = true;
 }
 function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
+
+/* ---------- paint splats ---------- */
+// Every icon that pops off the board bursts into paint: a splash on the spot that blooms
+// and dries, and a spray of droplets thrown outward that slow in the air, land wherever
+// they fall - on the board, over the frame - and dry away. One canvas, one frame loop while
+// there is wet paint, nothing when there is not. Colours follow the icon that popped.
+const SPLAT_PAD = 96;
+let splatCanvas = null, splatCtx = null, splatParts = [], splatStains = [], splatRaf = 0;
+function splatPalette(sym) {
+  const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim() || "#F0568B";
+  const cls = (SYM[sym && sym.name] || { cls: "low" }).cls;
+  return {
+    high: [v("--gold"), v("--orange"), v("--spray")],
+    low: [v("--spray"), v("--teal"), v("--fs-green"), v("--orange")],
+    scat: [v("--fs-green"), v("--gold")],
+    escat: [v("--fs-purple"), v("--spray")],
+    booster: [v("--fs-green"), v("--gold")],
+  }[cls] || [v("--spray"), v("--teal")];
+}
+function splatLayer() {
+  const board = $("board");
+  if (!board) return null;
+  if (!splatCanvas) {
+    splatCanvas = document.createElement("canvas");
+    splatCanvas.className = "splatlayer";
+    board.appendChild(splatCanvas);
+    splatCtx = splatCanvas.getContext("2d");
+  }
+  const w = board.offsetWidth + SPLAT_PAD * 2, h = board.offsetHeight + SPLAT_PAD * 2;
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  if (splatCanvas.width !== Math.round(w * dpr) || splatCanvas.height !== Math.round(h * dpr)) {
+    splatCanvas.width = Math.round(w * dpr); splatCanvas.height = Math.round(h * dpr);
+    splatCanvas.style.width = w + "px"; splatCanvas.style.height = h + "px";
+    splatCanvas.style.left = -SPLAT_PAD + "px"; splatCanvas.style.top = -SPLAT_PAD + "px";
+    splatCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  return splatCtx;
+}
+function cellCentre(r, y) {   // the cell's resting spot inside the board, by layout, not by rect
+  const board = $("board"), cell = cellEls[r][y];
+  let x = 0, top = 0, el = cell;
+  while (el && el !== board) {
+    x += el.offsetLeft; top += el.offsetTop;
+    el = el.offsetParent;
+    if (el && el !== board) { x += el.clientLeft; top += el.clientTop; }
+  }
+  return { x: x + cell.offsetWidth / 2 + SPLAT_PAD, y: top + cell.offsetHeight / 2 + SPLAT_PAD, w: cell.offsetWidth };
+}
+function splat(r, y, sym) {
+  if (REDUCED_MOTION) return;
+  const ctx = splatLayer();
+  if (!ctx) return;
+  const palette = splatPalette(sym), c = cellCentre(r, y), t = tempo(), now = performance.now();
+  const pick = () => palette[Math.floor(Math.random() * palette.length)];
+  // the splash: fat blobs on the spot that bloom for a moment, then dry
+  for (let i = 0; i < 6; i++) {
+    splatStains.push({ x: c.x + (Math.random() - .5) * c.w * .55, y: c.y + (Math.random() - .5) * c.w * .55,
+      r: c.w * (.1 + Math.random() * .2), colour: pick(), born: now, life: (700 + Math.random() * 600) * t, bloom: true });
+  }
+  // the spray: droplets flung outward, slowed by the air, pulled down a touch
+  const n = 18 + Math.floor(Math.random() * 10);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = c.w * (.08 + Math.random() * .26) / t;
+    splatParts.push({ x: c.x, y: c.y, px: c.x, py: c.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .06 / t,
+      r: 1.4 + Math.random() * 4.2, colour: pick(), born: now, life: (240 + Math.random() * 360) * t });
+  }
+  if (!splatRaf) {
+    let last = now;
+    const step = ts => {
+      const dt = Math.min(40, ts - last) / 16.67; last = ts;
+      const t2 = tempo();
+      ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height);
+      // stains dry: full paint for a while, then they thin out and go
+      splatStains = splatStains.filter(st => ts - st.born < st.life);
+      for (const st of splatStains) {
+        const age = (ts - st.born) / st.life;
+        const rr = st.bloom ? st.r * Math.min(1, .35 + age * 2.2) : st.r;
+        ctx.globalAlpha = age < .55 ? .92 : .92 * (1 - (age - .55) / .45);
+        ctx.fillStyle = st.colour;
+        ctx.beginPath(); ctx.arc(st.x, st.y, rr, 0, Math.PI * 2); ctx.fill();
+      }
+      // droplets fly, trail a little, and land as stains where they stop
+      const landed = [];
+      splatParts = splatParts.filter(pt => {
+        pt.px = pt.x; pt.py = pt.y;
+        pt.x += pt.vx * dt; pt.y += pt.vy * dt;
+        pt.vx *= Math.pow(.9, dt); pt.vy = pt.vy * Math.pow(.9, dt) + .32 * dt / t2;
+        if (ts - pt.born >= pt.life) { landed.push(pt); return false; }
+        return true;
+      });
+      for (const pt of landed) splatStains.push({ x: pt.x, y: pt.y, r: pt.r * 1.5, colour: pt.colour, born: ts, life: (900 + Math.random() * 700) * t2, bloom: false });
+      ctx.globalAlpha = .95;
+      for (const pt of splatParts) {
+        ctx.strokeStyle = pt.colour; ctx.lineWidth = pt.r * 1.6; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(pt.px, pt.py); ctx.lineTo(pt.x, pt.y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      if (splatParts.length || splatStains.length) splatRaf = requestAnimationFrame(step);
+      else { splatRaf = 0; ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height); }
+    };
+    splatRaf = requestAnimationFrame(step);
+  }
+}
 function resetGrid() { state.grid = emptyGrid(); paintGrid(); }
 // Each slot sits exactly where its cell is laid out. Offsets, not rects: a rect includes
 // whatever transform the cell is animating through, an offset is the resting slot.
@@ -1378,7 +1498,7 @@ function clearFx() {
 }
 // delay() collapses to nothing once the player skips, which is right for reels and tumbles
 // and wrong for wins: a skipped round still has to show which clusters paid. This one holds.
-const hold = ms => new Promise(r => setTimeout(r, ms));
+const hold = ms => new Promise(r => setTimeout(r, ms * tempo()));   // never collapses, only quickens
 
 const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Read from the stylesheet rather than hardcoded: the spin overlay positions itself in whole
@@ -1403,7 +1523,7 @@ const FALLBACK_STRIP = ["L1", "H4", "L3", "H1", "L5", "H3", "L2", "H5", "L4", "H
 
 function bounceFx() {
   // background bounce + board pop + character hop, on every reveal (base and each free spin)
-  if (REDUCED_MOTION || state.skip) return;
+  if (REDUCED_MOTION) return;
   const bgw = $("bgwall"), bd = $("board");
   const chars = [...document.querySelectorAll(".charfx")];
   bgw.classList.remove("bounce"); bd.classList.remove("pop");
@@ -1530,11 +1650,11 @@ function spinReel(r, ev, stripCol, duration, prev) {
         sfxGap("scatterLand", 140, 1 + r * .02);
         setTimeout(() => { for (const c of cells) c.classList.remove("scatland"); }, 800);
       }
-      if (state.skip || REDUCED_MOTION) { cleanup(); return; }
+      if (REDUCED_MOTION) { cleanup(); return; }
       reel.classList.add("impact");
       boardThud(r);
       // long enough for the seventh row's ripple (6 x 45ms in, .36s long) to finish settling
-      setTimeout(cleanup, $("turbo").checked ? 320 : 660);
+      setTimeout(cleanup, 660 * tempo());
     };
     const skipWatch = setInterval(() => { if (state.skip) land(); }, 80);
     spin.onfinish = land;
@@ -1615,7 +1735,7 @@ async function banner(big, sub, ms, cls) {
 function tick(html) { $("ticker").innerHTML = html; }
 
 /* ---------- money ---------- */
-const countMs = () => ($("turbo").checked ? 260 : 650);
+const countMs = () => 650 * tempo();
 const tweens = new WeakMap();   // el -> in-flight count, so a new one cancels the old
 
 // Roll the figure from one amount to the next. rAF stalls in a hidden tab, so a hard
@@ -1633,7 +1753,7 @@ function countTo(el, from, to, ms, f = fmt) {
     if (t && t.token === token) { cancelAnimationFrame(t.raf); clearTimeout(t.land); tweens.delete(el); }
     el.textContent = f(to);
   };
-  if (REDUCED_MOTION || state.skip || ms <= 0 || from === to) { el.textContent = f(to); return; }
+  if (REDUCED_MOTION || ms <= 0 || from === to) { el.textContent = f(to); return; }   // skip only quickens (ms is already on the tempo)
   const t0 = performance.now();
   const step = now => {
     const t = tweens.get(el);
@@ -1650,7 +1770,7 @@ function countTo(el, from, to, ms, f = fmt) {
 
 // shake + tint the figure; classList, not className, so it keeps its .val styling
 function cashFx(el, dir) {
-  if (REDUCED_MOTION || state.skip) return;
+  if (REDUCED_MOTION) return;
   el.classList.remove("up", "down", "bump");
   void el.offsetWidth;   // flush so a repeat change restarts the shake
   if (dir) el.classList.add(dir);
@@ -1920,8 +2040,8 @@ const reelSfx = ms => loopSfx("reels", ms, REEL_CURVE);
 async function tallyUp(amount) {
   const el = $("tally");
   if (!el) return;
-  const quiet = state.skip || REDUCED_MOTION;
-  const ms = quiet ? 0 : ($("turbo").checked ? 750 : 1600);
+  const quiet = REDUCED_MOTION;
+  const ms = quiet ? 0 : 1600 * tempo();
   el.textContent = fmt(0);
   el.classList.remove("pop");
   void el.offsetWidth;                 // restart the pop on a repeat bonus
@@ -2003,19 +2123,19 @@ const handlers = {
     // Rapid quarters every delay(), so the pops are spaced on the same clock and the wait
     // for the last one is a hold (never shortened); whatever is still pending when gravity
     // is about to rebuild the column is dropped, so no pop can ever land on a new tile.
-    const quick = $("turbo").checked ? 4 : 1;
-    const gap = state.skip ? 0 : Math.min(55, Math.floor(420 / order.length)) / quick;
+    const gap = Math.min(55, Math.floor(420 / order.length)) * tempo();
     const timers = [];
     order.forEach(([r, y], i) => {
       const go = () => {
+        splat(r, y, shownSym[r][y]);   // the paint goes first, while the icon is still there
         cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare");
-        if (!state.skip || i === 0) sfx("pop", 1 + i * .012);
+        sfx("pop", 1 + i * .012);
       };
-      if (gap) timers.push(setTimeout(go, i * gap)); else go();
+      timers.push(setTimeout(go, i * gap));
     });
-    if (gap) await hold(gap * (order.length - 1));   // every scheduled pop has fired by now
+    await new Promise(r => setTimeout(r, gap * (order.length - 1)));   // every scheduled pop has fired
     timers.forEach(clearTimeout);
-    await delay(state.skip ? 0 : 300);               // the last tile's pop tail
+    await delay(300);                                // the last tile's pop tail
     // 2. gravity, per column
     for (let r = 0; r < REELS; r++) {
       for (let y = 0; y < ROWS; y++) { cellEls[r][y].classList.remove("explode", "tdrop"); cellEls[r][y].style.removeProperty("--fall"); }
@@ -2051,7 +2171,7 @@ const handlers = {
         }
       }
     }
-    await delay(state.skip ? 0 : 500);
+    await delay(500);
     eachCell((el, r, y) => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); multEls[r][y].classList.remove("bare"); });
     for (let r = 0; r < REELS; r++) cellEls[r][0].parentElement.classList.remove("tumbling");
   },
@@ -2078,9 +2198,9 @@ const handlers = {
       sfx("multiHit", Math.min(1.9, 1 + .07 * (state.multiCount - 1)));
       if (state.multiCount >= 3 && state.multiCount % 3 === 0) sfx((state.multiCount / 3) % 2 ? "alertA" : "alertB");
       tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
-      await hold(state.skip ? 90 : 260);
+      await hold(260);
       for (const c of b.cells || []) at(c).classList.add("hit");
-      await hold(state.skip ? 90 : 320);
+      await hold(320);
     }
     state.grid = (ev.gridMults || []).map(col => col.slice());
     paintGrid();
@@ -2116,6 +2236,7 @@ const handlers = {
   },
 
   async updateFreeSpin(ev) {
+    state.skip = false;     // skip covers ONE spin: every free spin offers the button again
     state.multiCount = 0;   // each free spin is its own crescendo: the ramp and the alert count start over
     $("fsNow").textContent = `${ev.amount + 1} / ${ev.total}`;
     state.fsTotal = ev.total;
@@ -2373,7 +2494,7 @@ async function playRound(mode) {
   // Some jurisdictions set a floor on how fast rounds may follow each other.
   const minMs = Number(RGS.jurisdiction().minimumRoundDuration) || 0;
   const left = minMs - (performance.now() - t0);
-  if (left > 0) await delay(left);
+  if (left > 0) await new Promise(r => setTimeout(r, left));   // real time: Rapid and Skip do not shorten a legal floor
 
   state.playing = false; state.skip = false;
   setButtons(true);
@@ -2986,6 +3107,7 @@ function setRapid(on) {
     btn.title = btn.getAttribute("aria-label");
   }
   try { localStorage.setItem("smukiez.rapid", on ? "1" : "0"); } catch (e) { /* storage blocked */ }
+  syncTempo();
 }
 $("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); sfx("toggle"); });
 let rapidWas = false;
