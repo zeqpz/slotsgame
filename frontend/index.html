@@ -688,9 +688,11 @@
     animation: chippop calc(.72s * var(--tempo, 1)) ease-out both;
   }
   .winpop small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
-  /* it bursts out past its size, settles, then shakes itself still */
+  /* from nothing: it starts too small to see, bursts out past its size, settles, then
+     shakes itself still. No fade - it is simply not there, and then it is */
   @keyframes chippop {
-    0%   { transform: translate(-50%, -50%) scale(.15) rotate(-8deg); opacity: 0; }
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(-14deg); opacity: 1; }
+    8%   { transform: translate(-50%, -50%) scale(.02) rotate(-12deg); }
     34%  { transform: translate(-50%, -50%) scale(1.24) rotate(2.5deg); opacity: 1; }
     46%  { transform: translate(-50%, -50%) scale(.93) rotate(-2.5deg); }
     56%  { transform: translate(-53%, -50%) scale(1.07) rotate(2deg); }
