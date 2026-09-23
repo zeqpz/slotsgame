@@ -416,7 +416,8 @@
   table.hist th { color: var(--ink-soft); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; }
   table.hist td.win { color: var(--green); font-weight: 600; }
   table.hist td.zero { color: var(--ink-soft); }
-  .banner.mega .big { color: var(--purple); } .banner.epic .big { color: var(--spray); }
+  .banner.mega .big { color: #4fe8ff; text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 34px rgba(58,226,255,.55); }
+  .banner.epic .big { color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 40px rgba(240,86,139,1), 0 0 70px rgba(240,86,139,.8); }
 
   /* main — slots front and center, info cards beneath */
   .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 76px 20px 22px; align-items: center; }
@@ -726,13 +727,23 @@
   /* banner overlay */
   .banner {
     position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; padding: 20px; z-index: 5;   /* no panel — the text stands on the board */
+    text-align: center; padding: 20px; z-index: 5;
+  }
+  /* the sprayed purple box with the cyan band stands behind the words: sized to the board,
+     kept to the art's own proportions, a touch see-through so the reels show beneath */
+  .banner::before {
+    content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
+    width: min(94%, 680px); aspect-ratio: 960 / 388;
+    transform: translate(-50%, -50%);
+    background: url("assets/banner_box.png") center / 100% 100% no-repeat;
+    opacity: .9;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.6));
   }
   /* bonus payout tally — rolls 0 to the total over the board before the closing banner */
   .tally {
     position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
     z-index: 6; pointer-events: none;
-    font-family: var(--disp); font-size: 58px; letter-spacing: .1em; color: var(--gold);
+    font-family: var(--num); font-size: 62px; letter-spacing: .04em; color: var(--gold);
     text-shadow: 0 5px 0 rgba(0,0,0,.75), 0 0 26px rgba(0,0,0,.9), 0 0 54px rgba(245,197,24,.5);
   }
   .tally.on { display: flex; }
@@ -745,20 +756,23 @@
   }
   .banner.show { display: flex; animation: bin .25s ease-out; }
   @keyframes bin { from { transform: scale(.92); opacity: 0; } to { transform: none; opacity: 1; } }
-  /* with the panel gone these sit straight on the reels, so they carry their own contrast */
+  /* the words keep their display font; over the purple they read in white, gold or cyan,
+     never in purple or pink */
   .banner .big {
     font-family: var(--disp); font-size: 42px; text-transform: uppercase; line-height: 1.05;
-    color: var(--spray); text-wrap: balance;
-    text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 44px rgba(0,0,0,.75);
+    color: #fff; text-wrap: balance;
+    text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 30px rgba(240,86,139,.8);
   }
   .banner .sub2 {
-    font-family: var(--mono); font-size: 16px; margin-top: 12px; color: var(--ink);
+    font-family: var(--mono); font-size: 16px; margin-top: 10px; color: var(--ink);
     text-shadow: 0 3px 0 rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.9);
   }
-  .banner.gold { border-color: var(--gold); } .banner.gold .big { color: var(--gold); }
+  /* the figures in the line - the amount, the multiplier - take the number font */
+  .banner .sub2 .num { font-family: var(--num); font-size: 24px; letter-spacing: .04em; color: var(--gold); vertical-align: -1px; }
+  .banner.gold .big { color: var(--gold); text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 34px rgba(245,197,24,.55); }
   .banner .muralimg { display: none; max-width: 94%; max-height: 46%; object-fit: contain; margin-top: 14px; border: 2px solid var(--gold); }
   .banner.muralshow .muralimg { display: block; }
-  .banner.purple { border-color: var(--purple); } .banner.purple .big { color: var(--purple); }
+  .banner.purple .big { color: #4fe8ff; text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 34px rgba(58,226,255,.55); }
 
   /* info cards under the board */
   .rail { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 920px; }
@@ -1735,7 +1749,9 @@ async function banner(big, sub, ms, cls) {
   const b = $("banner");
   b.className = "banner show " + (cls || "");
   $("bannerBig").textContent = big;
-  $("bannerSub").textContent = sub || "";
+  // the figures in the line take the number font; the words keep theirs
+  const esc = str => str.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  $("bannerSub").innerHTML = esc(sub || "").replace(/([^\w\s]{0,2}\d[\d,]*(?:\.\d+)?x?)/g, '<span class="num">$1</span>');
   await delay(ms);
   b.className = "banner";
 }
