@@ -682,10 +682,16 @@
     /* the sprayed magenta box is the plate: its cyan band and the notch on top stay clear
        of the figure, and the whole thing is stretched to the text it carries */
     min-width: 170px; padding: 28px 30px 24px;
-    background: url("assets/win_box.png") center / 100% 100% no-repeat;
     filter: drop-shadow(0 6px 12px rgba(0,0,0,.65));
     text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 9px rgba(0,0,0,.55);
     animation: chippop calc(.72s * var(--tempo, 1)) ease-out both;
+  }
+  /* the box is a layer of its own, a touch see-through, so the icons show faintly beneath
+     it while the figure on top stays solid */
+  .winpop::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: url("assets/win_box.png") center / 100% 100% no-repeat;
+    opacity: .8;
   }
   .winpop small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
   /* from nothing: it starts too small to see, bursts out past its size, settles, then
