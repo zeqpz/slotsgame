@@ -504,8 +504,8 @@
      value is the whole point of the symbol, so it is the tile. */
   .cell.booster { background: url("assets/ui_box.png") center / 100% 100% no-repeat; border-color: transparent; }
   .cell.booster .multface {
-    position: relative; z-index: 1; font-family: var(--num); font-size: 22px; line-height: 1;
-    color: var(--fs-green); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px rgba(168,240,0,.8);
+    position: relative; z-index: 1; font-family: var(--num); font-size: 26px; line-height: 1;
+    color: var(--heat, var(--fs-green)); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px var(--heat, var(--fs-green));
   }
   /* it blows out: the Multi itself, then the four cells it hits */
   .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
@@ -529,14 +529,16 @@
     position: absolute; display: grid; place-items: center; white-space: nowrap;
     /* --shrink is set by paintCell() from the value's length, so a stacked value like
        x1001.25 still fits inside the cell instead of running past its edges */
-    font-family: var(--num); font-size: calc(26px * var(--shrink, 1)); line-height: 1;
-    color: var(--fs-green); opacity: .42; text-shadow: 0 0 12px rgba(168,240,0,.9);
+    font-family: var(--num); font-size: calc(44px * var(--shrink, 1)); line-height: 1;
+    /* --heat is set by paintCell() from the value: green for a nudge, through yellow and
+       orange, to red for the big ones */
+    color: var(--heat, var(--fs-green)); opacity: .42; text-shadow: 0 0 14px var(--heat, var(--fs-green));
     transition: opacity .18s linear;
   }
   .multlayer .gmult.bare { opacity: .95; }
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
-  .splatlayer { position: absolute; z-index: 4; pointer-events: none; }
+  .splatlayer { position: absolute; z-index: 0; pointer-events: none; }   /* under the reels and the numbers */
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -1332,6 +1334,7 @@ function fillCell(el, sym) {
     const m = document.createElement("div");
     m.className = "multface";
     m.textContent = sym.multiplier ? "x" + fmtMult(sym.multiplier) : def.label;
+    if (sym.multiplier) m.style.setProperty("--heat", heatColour(sym.multiplier));
     el.append(m);
     return;
   }
@@ -1358,14 +1361,28 @@ function setCell(r, y, sym) {
 // drawn in #multLayer, a layer under the reels with one slot per cell, so a tile can explode,
 // fall or drop in on top of its number without ever taking the number with it.
 const emptyGrid = () => Array.from({ length: REELS }, () => Array(ROWS).fill(0));
+// A multiplier's colour is its heat: green for a nudge, yellow at 5x, orange at 20x, red
+// from 100x up. Anchored on the value table (log scale between anchors) so each step up
+// the table is a visible step warmer.
+const HEAT_ANCHORS = [[1.25, 100], [3, 75], [5, 58], [10, 45], [20, 32], [50, 18], [100, 8], [1000, 0]];   // [value, hue]
+function heatColour(v) {
+  const x = Math.max(1.25, Math.min(1000, v));
+  let hue = 0;
+  for (let i = 1; i < HEAT_ANCHORS.length; i++) {
+    const [v0, h0] = HEAT_ANCHORS[i - 1], [v1, h1] = HEAT_ANCHORS[i];
+    if (x <= v1) { const t = Math.log(x / v0) / Math.log(v1 / v0); hue = h0 + (h1 - h0) * t; break; }
+  }
+  return `hsl(${Math.round(hue)} 100% ${hue > 40 ? 55 : 52}%)`;
+}
 function paintCell(r, y) {
   const g = multEls[r][y], v = (state.grid[r] || [])[y] || 0;
   if (v > 0) {
     const t = "x" + fmtMult(v);
     g.textContent = t; g.hidden = false;
-    // the face shrinks with the value's length (a fraction of the rule's own font size, see
-    // .multlayer .gmult) so a stacked x1001.25 never runs past the cell
-    g.style.setProperty("--shrink", t.length > 7 ? ".58" : t.length > 5 ? ".76" : "1");
+    // the face fills the cell and shrinks with the value's length (a fraction of the rule's
+    // own font size, see .multlayer .gmult) so a stacked x1001.25 never runs past it
+    g.style.setProperty("--shrink", t.length > 7 ? ".46" : t.length > 5 ? ".56" : t.length > 3 ? ".72" : "1");
+    g.style.setProperty("--heat", heatColour(v));
   } else g.hidden = true;
 }
 function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
@@ -1394,7 +1411,7 @@ function splatLayer() {
   if (!splatCanvas) {
     splatCanvas = document.createElement("canvas");
     splatCanvas.className = "splatlayer";
-    board.appendChild(splatCanvas);
+    board.insertBefore(splatCanvas, $("multLayer") || board.firstChild);   // behind the numbers and the icons
     splatCtx = splatCanvas.getContext("2d");
   }
   const w = board.offsetWidth + SPLAT_PAD * 2, h = board.offsetHeight + SPLAT_PAD * 2;
@@ -1417,11 +1434,50 @@ function cellCentre(r, y) {   // the cell's resting spot inside the board, by la
   }
   return { x: x + cell.offsetWidth / 2 + SPLAT_PAD, y: top + cell.offsetHeight / 2 + SPLAT_PAD, w: cell.offsetWidth };
 }
+// The paint is the icon's own colour: the most saturated third of its pixels, averaged,
+// read once per symbol from the art itself so new art recolours the paint on its own.
+const iconColours = {};
+function iconColour(sym) {
+  const name = sym && sym.name, def = SYM[name];
+  if (!def) return null;
+  if (name in iconColours) return iconColours[name];
+  iconColours[name] = null;   // pending; the palette stands in until the read completes
+  if (!def.img) {
+    const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim();
+    iconColours[name] = def.cls === "escat" ? v("--fs-purple") : def.cls === "scat" ? v("--fs-green") : v("--gold");
+    return iconColours[name];
+  }
+  const img = new Image();
+  const read = () => {
+    try {
+      const c = document.createElement("canvas"); c.width = c.height = 48;
+      const x = c.getContext("2d"); x.drawImage(img, 0, 0, 48, 48);
+      const d = x.getImageData(0, 0, 48, 48).data, px = [];
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 140) continue;
+        const r = d[i], g = d[i + 1], b = d[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        const lum = (r + g + b) / 3;
+        if (lum < 28 || lum > 238) continue;   // outlines and highlights are not the colour
+        px.push([r, g, b, mx ? (mx - mn) / mx : 0]);
+      }
+      px.sort((a, b) => b[3] - a[3]);
+      const top = px.slice(0, Math.max(6, Math.floor(px.length * .33)));
+      if (!top.length) return;
+      let r = 0, g = 0, b = 0;
+      for (const q of top) { r += q[0]; g += q[1]; b += q[2]; }
+      iconColours[name] = `rgb(${Math.round(r / top.length)}, ${Math.round(g / top.length)}, ${Math.round(b / top.length)})`;
+    } catch (e) { /* a tainted canvas or a missing file: the palette stands in */ }
+  };
+  img.onload = read;
+  img.src = def.img;
+  return null;
+}
 function splat(r, y, sym) {
   if (REDUCED_MOTION) return;
   const ctx = splatLayer();
   if (!ctx) return;
-  const palette = splatPalette(sym), c = cellCentre(r, y), t = tempo(), now = performance.now();
+  const own = iconColour(sym), palette = own ? [own] : splatPalette(sym);
+  const c = cellCentre(r, y), t = tempo(), now = performance.now();
   const pick = () => palette[Math.floor(Math.random() * palette.length)];
   // the splash: fat blobs on the spot that bloom for a moment, then dry
   for (let i = 0; i < 6; i++) {
@@ -1446,7 +1502,7 @@ function splat(r, y, sym) {
       for (const st of splatStains) {
         const age = (ts - st.born) / st.life;
         const rr = st.bloom ? st.r * Math.min(1, .35 + age * 2.2) : st.r;
-        ctx.globalAlpha = age < .55 ? .92 : .92 * (1 - (age - .55) / .45);
+        ctx.globalAlpha = age < .55 ? .5 : .5 * (1 - (age - .55) / .45);   /* wet paint, but the icons read through it */
         ctx.fillStyle = st.colour;
         ctx.beginPath(); ctx.arc(st.x, st.y, rr, 0, Math.PI * 2); ctx.fill();
       }
@@ -1460,7 +1516,7 @@ function splat(r, y, sym) {
         return true;
       });
       for (const pt of landed) splatStains.push({ x: pt.x, y: pt.y, r: pt.r * 1.5, colour: pt.colour, born: ts, life: (900 + Math.random() * 700) * t2, bloom: false });
-      ctx.globalAlpha = .95;
+      ctx.globalAlpha = .62;
       for (const pt of splatParts) {
         ctx.strokeStyle = pt.colour; ctx.lineWidth = pt.r * 1.6; ctx.lineCap = "round";
         ctx.beginPath(); ctx.moveTo(pt.px, pt.py); ctx.lineTo(pt.x, pt.y); ctx.stroke();
@@ -2136,6 +2192,10 @@ const handlers = {
     await new Promise(r => setTimeout(r, gap * (order.length - 1)));   // every scheduled pop has fired
     timers.forEach(clearTimeout);
     await delay(300);                                // the last tile's pop tail
+    // the bare cells show their multipliers at full strength: give them a beat to be read
+    // before the drop covers them (longer when there is actually a number to read)
+    const numbers = order.some(([r, y]) => ((state.grid[r] || [])[y] || 0) > 0);
+    await hold(numbers ? 720 : 300);
     // 2. gravity, per column
     for (let r = 0; r < REELS; r++) {
       for (let y = 0; y < ROWS; y++) { cellEls[r][y].classList.remove("explode", "tdrop"); cellEls[r][y].style.removeProperty("--fall"); }
@@ -3290,6 +3350,7 @@ async function boot() {
   }
 }
 boot();
+for (const name of Object.keys(SYM)) iconColour({ name });   // paint colours, read from the art up front
 </script>
 <script>
 /* 2026-09-17 art-button behaviour — additive; wraps setButtons for the skip overlay */
