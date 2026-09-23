@@ -180,7 +180,7 @@
   #balance { font-family: var(--num); font-size: 19px; letter-spacing: .04em; font-weight: 400; }
   /* the win only exists while there is one, and it announces itself when it arrives */
   .chip.winchip { border: 2px solid var(--gold); animation: winchip .52s cubic-bezier(.2,.9,.3,1.45); }
-  .chip.winchip .val { color: var(--gold); }
+  .chip.winchip .val { color: var(--gold); font-family: var(--num); font-size: 19px; letter-spacing: .04em; font-weight: 400; }
   @keyframes winchip {
     0%   { transform: scale(.35); opacity: 0; }
     58%  { transform: scale(1.14); opacity: 1; }
@@ -421,7 +421,7 @@
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
-    position: relative; display: flex; gap: var(--cell-gap); padding: 14px;
+    position: relative; display: flex; gap: var(--cell-gap); padding: 30px 34px;   /* the frame's bands never touch an icon */
   }
   /* top/height are independent: the overall size stays, the frame just sits higher so its
      bottom drips don't hang low under the board. The art's opening runs from 13% to 81% of
@@ -429,8 +429,8 @@
      puts the opening's edge just above the first row, the way the band used to touch the
      old top row. */
   #paintframe {
-    position: absolute; left: -64px; top: -85px;
-    width: calc(100% + 128px); height: calc(100% + 220px);
+    position: absolute; left: -76px; top: -96px;
+    width: calc(100% + 152px); height: calc(100% + 240px);
     z-index: 3; pointer-events: none; user-select: none;
   }
   .board.pop { animation: boardpop .38s cubic-bezier(.2,.9,.3,1.35); }
@@ -539,6 +539,7 @@
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
   .splatlayer { position: absolute; z-index: 0; pointer-events: none; }   /* under the reels and the numbers */
+  .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -572,6 +573,12 @@
      tile drops exactly the number of rows it really moved. Survivors that didn't move get no
      .tdrop at all, so the column never "resets" as a block. */
   .cell.tdrop { animation: tumbleDrop calc(.5s * var(--tempo, 1)) both; transform-origin: 50% 100%; z-index: 2; }
+  /* the reveal: the old column drops out through the floor before the new one falls in */
+  .cell.fallout { animation: fallOut calc(.34s * var(--tempo, 1)) cubic-bezier(.55,0,.95,.45) forwards; }
+  @keyframes fallOut {
+    0%   { transform: translateY(0) rotate(0); opacity: 1; }
+    100% { transform: translateY(var(--out, 700px)) rotate(3deg); opacity: .7; }
+  }
   @keyframes tumbleDrop {
     0%   { transform: translateY(var(--fall, -120%)); opacity: .3; animation-timing-function: cubic-bezier(.45,.05,.55,.95); }
     12%  { opacity: 1; }
@@ -1393,7 +1400,28 @@ function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (le
 // they fall - on the board, over the frame - and dry away. One canvas, one frame loop while
 // there is wet paint, nothing when there is not. Colours follow the icon that popped.
 const SPLAT_PAD = 96;
-let splatCanvas = null, splatCtx = null, splatParts = [], splatStains = [], splatRaf = 0;
+let splatCanvas = null, splatCtx = null, shardCanvas = null, shardCtx = null;
+let splatParts = [], splatStains = [], splatShards = [], splatRaf = 0;
+// A colour and its family: the icon's own paint, a lighter and a darker pour of it, the
+// two hues either side of it, and one accent from the wall's own spray - six cans a splat.
+function colourFamily(base) {
+  const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(base);
+  if (!m) return [base];
+  let r = +m[1] / 255, g = +m[2] / 255, b = +m[3] / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  let h = 0, sat = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    sat = l > .5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
+    h *= 60;
+  }
+  const hsl = (hh, ss, ll) => `hsl(${Math.round((hh + 360) % 360)} ${Math.round(ss * 100)}% ${Math.round(ll * 100)}%)`;
+  const S = Math.max(sat, .35), L = Math.min(Math.max(l, .3), .7);
+  const css = getComputedStyle(document.documentElement), accents = ["--spray", "--teal", "--fs-green", "--gold", "--orange"];
+  return [base, hsl(h, S, Math.min(.85, L + .18)), hsl(h, S, Math.max(.15, L - .15)), hsl(h + 35, S, L), hsl(h - 35, S, L),
+    css.getPropertyValue(accents[Math.floor(Math.random() * accents.length)]).trim() || base];
+}
 function splatPalette(sym) {
   const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim() || "#F0568B";
   const cls = (SYM[sym && sym.name] || { cls: "low" }).cls;
@@ -1411,16 +1439,22 @@ function splatLayer() {
   if (!splatCanvas) {
     splatCanvas = document.createElement("canvas");
     splatCanvas.className = "splatlayer";
-    board.insertBefore(splatCanvas, $("multLayer") || board.firstChild);   // behind the numbers and the icons
+    board.insertBefore(splatCanvas, $("multLayer") || board.firstChild);   // the paint: behind the numbers and the icons
     splatCtx = splatCanvas.getContext("2d");
+    shardCanvas = document.createElement("canvas");
+    shardCanvas.className = "shardlayer";
+    board.appendChild(shardCanvas);   // the flying pieces of the icon: over everything
+    shardCtx = shardCanvas.getContext("2d");
   }
   const w = board.offsetWidth + SPLAT_PAD * 2, h = board.offsetHeight + SPLAT_PAD * 2;
   const dpr = Math.min(2, devicePixelRatio || 1);
-  if (splatCanvas.width !== Math.round(w * dpr) || splatCanvas.height !== Math.round(h * dpr)) {
-    splatCanvas.width = Math.round(w * dpr); splatCanvas.height = Math.round(h * dpr);
-    splatCanvas.style.width = w + "px"; splatCanvas.style.height = h + "px";
-    splatCanvas.style.left = -SPLAT_PAD + "px"; splatCanvas.style.top = -SPLAT_PAD + "px";
-    splatCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  for (const [cv, cx] of [[splatCanvas, splatCtx], [shardCanvas, shardCtx]]) {
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      cv.style.width = w + "px"; cv.style.height = h + "px";
+      cv.style.left = -SPLAT_PAD + "px"; cv.style.top = -SPLAT_PAD + "px";
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
   return splatCtx;
 }
@@ -1476,9 +1510,31 @@ function splat(r, y, sym) {
   if (REDUCED_MOTION) return;
   const ctx = splatLayer();
   if (!ctx) return;
-  const own = iconColour(sym), palette = own ? [own] : splatPalette(sym);
+  const own = iconColour(sym), palette = own ? colourFamily(own) : splatPalette(sym);
   const c = cellCentre(r, y), t = tempo(), now = performance.now();
   const pick = () => palette[Math.floor(Math.random() * palette.length)];
+  // The icon itself comes apart: its picture is cut into pieces that fly out with the
+  // paint, turning and shrinking as they go, and the tile is emptied on the spot. This is
+  // the real thing splatting, not a stand-in - the cell's own artwork, in flight.
+  const img = cellEls[r][y].querySelector("img");
+  if (img && img.complete && img.naturalWidth) {
+    const box = cellEls[r][y].getBoundingClientRect(), k = box.width / Math.max(1, cellEls[r][y].offsetWidth);
+    const boxW = (img.getBoundingClientRect().width / k) || c.w * .8, boxH = (img.getBoundingClientRect().height / k) || c.w * .8;
+    // object-fit: contain letterboxes the picture inside its box: cut the picture, not the box
+    const ar = img.naturalWidth / img.naturalHeight;
+    const drawW = boxW / boxH > ar ? boxH * ar : boxW, drawH = boxW / boxH > ar ? boxH : boxW / ar;
+    const cols = 3, rows = 3;
+    for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) {
+      const sw = img.naturalWidth / cols, sh = img.naturalHeight / rows;
+      const pw = drawW / cols, ph = drawH / rows;
+      const ox = (i + .5) * pw - drawW / 2, oy = (j + .5) * ph - drawH / 2;   // this piece's spot in the icon
+      const a = Math.atan2(oy, ox) + (Math.random() - .5) * .9, sp = c.w * (.05 + Math.random() * .16) / t;
+      splatShards.push({ img, sx: i * sw, sy: j * sh, sw, sh, pw, ph, x: c.x + ox, y: c.y + oy,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .05 / t, rot: 0, vrot: (Math.random() - .5) * .35,
+        born: now, life: (640 + Math.random() * 360) * t });
+    }
+    img.style.visibility = "hidden";   // the tile is bare now; the pieces carry the picture away
+  }
   // the splash: fat blobs on the spot that bloom for a moment, then dry
   for (let i = 0; i < 6; i++) {
     splatStains.push({ x: c.x + (Math.random() - .5) * c.w * .55, y: c.y + (Math.random() - .5) * c.w * .55,
@@ -1522,8 +1578,24 @@ function splat(r, y, sym) {
         ctx.beginPath(); ctx.moveTo(pt.px, pt.py); ctx.lineTo(pt.x, pt.y); ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      if (splatParts.length || splatStains.length) splatRaf = requestAnimationFrame(step);
-      else { splatRaf = 0; ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height); }
+      // the pieces of the icons, on the front canvas: they fly, turn, shrink and go
+      const fx = shardCtx;
+      fx.clearRect(0, 0, shardCanvas.width, shardCanvas.height);
+      splatShards = splatShards.filter(sh => ts - sh.born < sh.life);
+      for (const sh of splatShards) {
+        const age = (ts - sh.born) / sh.life;
+        sh.x += sh.vx * dt; sh.y += sh.vy * dt;
+        sh.vx *= Math.pow(.92, dt); sh.vy = sh.vy * Math.pow(.92, dt) + .3 * dt / t2;
+        sh.rot += sh.vrot * dt;
+        const scale = 1 - age * .12;   // a piece stays a piece of the picture; it only fades at the end
+        fx.save();
+        fx.globalAlpha = age < .65 ? 1 : 1 - (age - .65) / .35;
+        fx.translate(sh.x, sh.y); fx.rotate(sh.rot);
+        fx.drawImage(sh.img, sh.sx, sh.sy, sh.sw, sh.sh, -sh.pw * scale / 2, -sh.ph * scale / 2, sh.pw * scale, sh.ph * scale);
+        fx.restore();
+      }
+      if (splatParts.length || splatStains.length || splatShards.length) splatRaf = requestAnimationFrame(step);
+      else { splatRaf = 0; ctx.clearRect(0, 0, splatCanvas.width, splatCanvas.height); fx.clearRect(0, 0, shardCanvas.width, shardCanvas.height); }
     };
     splatRaf = requestAnimationFrame(step);
   }
@@ -1598,124 +1670,84 @@ function boardThud(r) {
   if (!state.skip) sfx("bet", 0.5 + r * 0.04);
 }
 
-function spinReel(r, ev, stripCol, duration, prev) {
+// The reveal. The column that is on screen drops out through the floor, then this round's
+// icons fall in from above the frame ONE AT A TIME, bottom row first, each landing on the
+// one before it with the same bounce a tumble uses. Reels go left to right; a reel held
+// back for a near miss waits its extra beat before its first icon falls. Skip lands the
+// whole column at once.
+function dropReel(r, ev, wait, inExtra = 0) {
   return new Promise(resolve => {
-    const reel = reelEls[r];
-    const cells = cellEls[r];
-    const cleanup = () => {
-      reel.classList.remove("spinning", "antic", "impact");
-      reel.querySelectorAll(".spincol").forEach(el => el.remove());
-      for (const c of cells) c.style.visibility = "";
+    const reel = reelEls[r], cells = cellEls[r], t = tempo();
+    reel.style.setProperty("--tempo", String(t));   // this column's animations keep the clock its schedule was planned on
+    const timers = [];
+    let done = false, placed = false;
+    const place = () => {   // this round's symbols into the column, hidden until each one falls
+      if (placed) return;
+      placed = true;
+      for (let y = 0; y < ROWS; y++) {
+        cells[y].classList.remove("fallout");
+        cells[y].style.removeProperty("--out");
+        setCell(r, y, ev.board[r][y + 1]);   // strip the 1-row padding
+        cells[y].style.visibility = "hidden";
+      }
+    };
+    const finish = () => {
+      if (done) return;
+      done = true;
+      timers.forEach(clearTimeout);
+      clearInterval(skipWatch);
+      place();
+      for (let y = 0; y < ROWS; y++) {
+        const c = cells[y];
+        c.classList.remove("fallout", "tdrop");
+        c.style.removeProperty("--fall"); c.style.removeProperty("--out");
+        c.style.visibility = "";
+      }
+      reel.classList.remove("tumbling", "antic");
+      reel.style.removeProperty("--tempo");
       resolve();
     };
-    if (REDUCED_MOTION || state.skip || !("animate" in reel)) { cleanup(); return; }
+    const skipWatch = setInterval(() => { if (state.skip) finish(); }, 60);
+    if (REDUCED_MOTION || state.skip) { finish(); return; }
 
-    // The overlay is pinned at BOTH ends, so the spin is continuous from first frame to
-    // last: its bottom ROWS children are the board that is on screen right now (the reel
-    // starts moving from what the player is looking at) and its children 1..ROWS are this
-    // round's landed board with board[0] as the padding row above (the reel decelerates
-    // onto the result). Both handoffs swap identical, identically-styled tiles, so no
-    // symbol ever changes face — not when the reel starts, not when it stops.
-    const src = stripCol && stripCol.length ? stripCol : FALLBACK_STRIP;
-    const n = src.length;
-    const at = (base, k) => src[(((base + k) % n) + n) % n];
-    // board[i] === strip[stop - 1 + i], so each block continues from its own stop and the
-    // pass-through stays a real contiguous run of the strip rather than invented symbols
-    const stop = ev.paddingPositions?.[r];
-    const newOff = Number.isInteger(stop) ? stop - 1 : Math.floor(Math.random() * n);
-    const prevOff = Number.isInteger(prev?.stop) ? prev.stop : null;
-    const prevRow = prev?.row?.length === ROWS ? prev.row : null;
-
-    const landBlock = ev.board[r].length;   // children [0, landBlock) are the landing block
-    // long enough that the landing block and the start window can never overlap, whatever
-    // the board height: 9 landing symbols, ROWS on screen, and a couple to meet under the blur
-    const passCount = Math.max(landBlock + ROWS + 2, Math.round(duration / 55));
-    const first = passCount - ROWS;         // children [first, passCount) are the start window
-    const seam = Math.round((landBlock + first) / 2);   // the two runs meet here, under full blur
-    const restY = -CELL_STEP;               // child 1 (board row 1) at the window top
-    const startY = -first * CELL_STEP;      // window opens on the board that is on screen now
-    const overlay = document.createElement("div");
-    overlay.className = "spincol";
-    for (let i = 0; i < passCount; i++) {
-      let s;
-      if (i < landBlock) s = ev.board[r][i];                             // where it lands
-      else if (i >= first && prevRow) s = prevRow[i - first];            // where it starts
-      else if (i >= seam && prevOff !== null) s = { name: at(prevOff, i - first) };  // run out of the old stop
-      else s = { name: at(newOff, i) };                                  // run into the new stop
-      const c = document.createElement("div");
-      c.className = cellClass(s);
-      fillCell(c, s);
-      overlay.appendChild(c);
-    }
-    for (const c of cells) c.style.visibility = "hidden";
-    // park the column on the start window before it is ever painted, so no frame can slip
-    // through showing it untransformed while the animation is still pending
-    overlay.style.transform = `translateY(${startY}px)`;
-    reel.appendChild(overlay);
-    reel.classList.add("spinning");
-    if ((ev.anticipation?.[r] || 0) > 0) reel.classList.add("antic");
-
-    const travel = restY - startY;
-    // Each reel rolls its own numbers so no two spins are identical: how far it winds up
-    // before dropping, how far past the stop it overshoots (the padding row above covers the
-    // gap it opens), and where the fast phase hands over to the glide.
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    const PULL = rnd(7, 13), OVERSHOOT = rnd(8, 14), GLIDE = rnd(0.58, 0.68), REBOUND = rnd(2, 4);
-    // transform and blur run as separate animations so each keeps its own timing curve
-    const spin = overlay.animate(
-      [
-        { transform: `translateY(${startY}px)`, offset: 0, easing: "cubic-bezier(.3,.6,.5,1)" },
-        { transform: `translateY(${startY - PULL}px)`, offset: 0.07, easing: "cubic-bezier(.55,0,.85,.35)" },   // wind up, then punch down
-        { transform: `translateY(${startY + travel * GLIDE}px)`, offset: 0.5, easing: "cubic-bezier(.12,.55,.28,1)" },
-        { transform: `translateY(${restY + OVERSHOOT}px)`, offset: 0.88, easing: "cubic-bezier(.3,0,.2,1)" },   // lands hard
-        { transform: `translateY(${restY - REBOUND}px)`, offset: 0.95, easing: "cubic-bezier(.3,0,.4,1)" },     // rebounds
-        { transform: `translateY(${restY}px)`, offset: 1 },
-      ],
-      { duration, fill: "forwards" }
-    );
-    // Blur follows speed, not the clock: nothing while it winds up, a curved rise as it
-    // punches into the fast phase, a curved fall through the glide, and gone before the
-    // overshoot — so the wind-up, the landing and the rebound are all sharp.
-    const haze = overlay.animate(
-      [
-        { filter: "blur(0px)", offset: 0 },
-        { filter: "blur(0px)", offset: 0.07, easing: "cubic-bezier(.6,0,.9,.6)" },
-        { filter: "blur(6px)", offset: 0.24, easing: "linear" },
-        { filter: "blur(6px)", offset: 0.5, easing: "cubic-bezier(.4,0,.75,.6)" },
-        { filter: "blur(2.2px)", offset: 0.74, easing: "cubic-bezier(.3,0,.5,1)" },
-        { filter: "blur(0px)", offset: 0.86 },
-        { filter: "blur(0px)", offset: 1 },
-      ],
-      { duration, fill: "forwards" }
-    );
-    let landed = false;
-    const land = () => {
-      if (landed) return;   // fired by onfinish, cancel, skip, or the hard timeout — first one wins
-      landed = true;
-      clearInterval(skipWatch);
-      // hand off in one synchronous block so it can never paint a half-swapped reel
-      for (const c of cells) c.style.visibility = "";
-      reel.classList.remove("spinning");
-      overlay.remove();
-      try { spin.cancel(); haze.cancel(); } catch (e) { /* already done */ }
-      // bonus symbols announce themselves as their reel lands: a pop and a shake, and the
-      // reveal note - once per reel, throttled so a skipped spin can't fire seven at once
-      let scat = 0;
-      for (const c of cells) if (c.classList.contains("scat") || c.classList.contains("escat")) { c.classList.add("scatland"); scat++; }
-      if (scat) {
+    const later = (ms, fn) => timers.push(setTimeout(fn, ms));
+    const arrive = y => {   // one icon lands: it bounces, a drip of paint, a bonus symbol announces itself
+      const c = cells[y];
+      c.style.visibility = "";
+      c.style.setProperty("--fall", (-(y + 1) * CELL_STEP - 48) + "px");   // from above the frame
+      void c.offsetWidth;
+      c.classList.add("tdrop");
+      sfxGap("dripLand", 40, .85 + Math.random() * .5);
+      if (c.classList.contains("scat") || c.classList.contains("escat")) {
+        c.classList.add("scatland");
         sfxGap("scatterLand", 140, 1 + r * .02);
-        setTimeout(() => { for (const c of cells) c.classList.remove("scatland"); }, 800);
+        later(800 * t, () => c.classList.remove("scatland"));
       }
-      if (REDUCED_MOTION) { cleanup(); return; }
-      reel.classList.add("impact");
-      boardThud(r);
-      // long enough for the seventh row's ripple (6 x 45ms in, .36s long) to finish settling
-      setTimeout(cleanup, 660 * tempo());
     };
-    const skipWatch = setInterval(() => { if (state.skip) land(); }, 80);
-    spin.onfinish = land;
-    spin.oncancel = land;
-    setTimeout(land, duration + 450);   // animation events need render ticks; a hidden tab must not hang
+    if ((ev.anticipation?.[r] || 0) > 0) reel.classList.add("antic");
+    reel.classList.add("tumbling");   // clip: icons leave through the floor and enter from above
+    later(wait, () => {
+      // 1. the old column drops out, bottom tiles first
+      for (let y = ROWS - 1; y >= 0; y--) {
+        const c = cells[y];
+        c.style.setProperty("--out", ((ROWS - y) * CELL_STEP + 60) + "px");
+        later((ROWS - 1 - y) * 28 * t, () => c.classList.add("fallout"));
+      }
+      const outDone = (340 + (ROWS - 1) * 28) * t;
+      // 2. this round's icons fall in, one at a time, bottom row up. A reel held back for a
+      //    near miss waits its extra beat HERE - empty and lit - so the suspense is a bare
+      //    column under a gold border, not last round's icons sitting there
+      later(outDone + inExtra, () => {
+        place();
+        for (let k = 0; k < ROWS; k++) {
+          const y = ROWS - 1 - k;
+          later(k * 95 * t, () => arrive(y));
+        }
+        later((ROWS - 1) * 95 * t + 380 * t, () => { boardThud(r); });
+        later((ROWS - 1) * 95 * t + 520 * t, finish);
+      });
+    });
+    later(wait + 8000, finish);   // a hidden tab must never hang the round
   });
 }
 
@@ -1728,38 +1760,19 @@ async function renderReveal(ev) {
     document.getElementById("skipBtn").classList.add("show");
     document.getElementById("spinBtn").classList.add("arrows-away");   // arrows shrink out as skip pops in
   }
-  // snapshot the outgoing board before it is overwritten — each reel starts its spin on it
-  const prev = reelEls.map((_, r) => ({
-    row: (shownSym[r] || []).slice(),
-    stop: shownStop ? shownStop[r] : null,
-  }));
-  for (let r = 0; r < REELS; r++) {
-    for (let y = 0; y < ROWS; y++) setCell(r, y, ev.board[r][y + 1]);   // strip 1-row padding
-    state.pad[r] = ev.board[r][0];   // the row above the board: first to fall in on a tumble
-  }
+  for (let r = 0; r < REELS; r++) state.pad[r] = ev.board[r][0];   // the row above the board: first to fall in on a tumble
   shownStop = ev.paddingPositions ? ev.paddingPositions.slice() : null;
 
-  const strips = stripsFor(ev.gameType);
-  const turbo = $("turbo").checked;
-  const base = turbo ? 280 : 720, stagger = turbo ? 75 : 215, anticExtra = turbo ? 300 : 900;
-  const jitter = turbo ? 20 : 55;   // per-reel timing wobble, small next to the stagger so order holds
-  const spans = reelEls.map((_, r) => base + r * stagger + (Math.random() * 2 - 1) * jitter + (ev.anticipation?.[r] || 0) * anticExtra);
-  // sticky painted reels don't spin, so only make the noise if something actually moves
-  // a reel held back for a near miss means a bonus symbol is down and one or two more
-  // would pay it off: the characters lean in while the rest of the reels run out
+  // reels go left to right; a reel held back for a near miss means a bonus symbol is down
+  // and one or two more would pay it off: it waits, and the characters lean in
+  const t = tempo(), stagger = 90 * t, anticExtra = 800 * t;
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     state.anticipated = true;
     charReact("anticipation");
   }
-  const spinning = true;
-  const hushReels = (spinning && !state.skip && !REDUCED_MOTION)
-    ? reelSfx(Math.max(...spans)) : () => {};
-  await Promise.all(
-    reelEls.map((_, r) => spinReel(r, ev, strips ? strips[r] : null, spans[r], prev[r]))
-  );
-  document.getElementById("skipBtn").classList.remove("show");   // reels landed — skip is done
+  await Promise.all(reelEls.map((_, r) => dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra)));
+  document.getElementById("skipBtn").classList.remove("show");   // the board is in — skip is done
   document.getElementById("spinBtn").classList.remove("arrows-away");   // arrows pop back as skip leaves
-  hushReels();   // cut it short if the round was skipped; otherwise it has already faded
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
@@ -1884,6 +1897,7 @@ const SFX = {
   autoStart: "assets/sfx_auto_start.wav", autoStop: "assets/sfx_auto_stop.wav",
   menuOpen: "assets/sfx_menu_open.wav", menuClose: "assets/sfx_menu_close.wav",
   toggle: "assets/sfx_toggle.wav",               // rapid, sound and music switches
+  dripLand: "assets/sfx_drip_b.wav",             // an icon landing on the pile during the reveal
 };
 const DRIP_SFX = ["dripA", "dripB", "dripC", "dripD", "dripE", "dripF"];
 // avoids repeating the last pick, so back-to-back drips in one round never double up
@@ -1900,6 +1914,7 @@ const SFX_VOL = {
   dripA: .5, dripB: .5, dripC: .5, dripD: .5, dripE: .5, dripF: .5,
   scatterLand: .55, pop: .42, multiHit: .55, alertA: .55, alertB: .55, bustA: .5, bustB: .5,
   winText: .5, hoverLoop: .28, autoStart: .45, autoStop: .45, menuOpen: .4, menuClose: .4, toggle: .4,
+  dripLand: .22,
 };
 const bustMemo = { last: null };
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
@@ -2183,9 +2198,9 @@ const handlers = {
     const timers = [];
     order.forEach(([r, y], i) => {
       const go = () => {
-        splat(r, y, shownSym[r][y]);   // the paint goes first, while the icon is still there
+        splat(r, y, shownSym[r][y]);   // the icon bursts into its own paint
         cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare");
-        sfx("pop", 1 + i * .012);
+        sfx("pop", .8 + Math.random() * .55 + i * .01);   // every pop its own pitch, drifting up through a run
       };
       timers.push(setTimeout(go, i * gap));
     });
