@@ -539,6 +539,23 @@
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
+  /* the win line: sprayed orange dots laid along the cluster, each fading in a beat after
+     the last, so the stroke is drawn on as the player watches */
+  .lineLayer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .lineLayer i {
+    position: absolute; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%;
+    background: radial-gradient(circle, var(--orange) 0 42%, rgba(255, 138, 42, .55) 60%, transparent 72%);
+    filter: drop-shadow(0 0 5px rgba(255, 138, 42, .8));
+    opacity: 0; transform: scale(var(--s, 1));
+    animation: dotIn calc(.3s * var(--tempo, 1)) ease-out both;
+    animation-delay: calc(var(--d, 0ms) * var(--tempo, 1));
+  }
+  @keyframes dotIn {
+    0%   { opacity: 0; transform: scale(.25); }
+    55%  { opacity: 1; transform: scale(calc(var(--s, 1) * 1.3)); }
+    100% { opacity: 1; transform: scale(var(--s, 1)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .lineLayer i { animation: none; opacity: 1; } }
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -1292,6 +1309,8 @@ const cents = c => Math.round(c / 100 * bet());
 // nothing is over at once, a spin that hits plays its hits at pace.
 const TEMPO_FAST = .4;
 const tempo = () => (state.skip || $("turbo").checked) ? TEMPO_FAST : 1;
+// a landing tile's note: the higher up the pile it lands, the higher it rings
+const dropPitch = row => .85 + .09 * (ROWS - 1 - row);
 function syncTempo() { document.documentElement.style.setProperty("--tempo", String(tempo())); }
 function delay(ms) {
   return new Promise(r => setTimeout(r, ms * tempo()));
@@ -1594,7 +1613,7 @@ function dropReel(r, ev, wait, inExtra = 0) {
       c.style.setProperty("--fall", (-(y + 1) * CELL_STEP - 48) + "px");   // from above the frame
       void c.offsetWidth;
       c.classList.add("tdrop");
-      sfxGap("dripLand", 40, .85 + Math.random() * .5);
+      later(275 * t, () => sfx("dripLand", dropPitch(y)));   // the note lands with the tile (55% of the drop)
       if (c.classList.contains("scat") || c.classList.contains("escat")) {
         c.classList.add("scatland");
         sfxGap("scatterLand", 140, 1 + r * .02);
@@ -1791,7 +1810,7 @@ const SFX_VOL = {
   dripA: .5, dripB: .5, dripC: .5, dripD: .5, dripE: .5, dripF: .5,
   scatterLand: .55, pop: .42, multiHit: .55, alertA: .55, alertB: .55, bustA: .5, bustB: .5,
   winText: .5, hoverLoop: .28, autoStart: .45, autoStop: .45, menuOpen: .4, menuClose: .4, toggle: .4,
-  dripLand: .22,
+  dripLand: .3,
 };
 const bustMemo = { last: null };
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
@@ -2036,13 +2055,14 @@ const handlers = {
       void $("board").offsetWidth;   // flush the removal so every cluster's tiles pop in fresh,
                                      // including cells carried over from the previous cluster
       for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
+      const drawMs = drawWinLine(w.positions);   // the orange stroke draws itself along the cluster
       placeWinChip(w.positions, cents(w.win), mult);
       sfx("line");   // one call per cluster as it lights up - skipping does not skip clusters
       const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${size}</b>`, "cluster"];
       if (mult > 1) parts.push(`<b>x${fmtMult(mult)}</b>`);
       parts.push(`<b>${fmt(cents(w.win))}</b>`);
       tick(parts.join(" · "));
-      await hold(430);   // every cluster gets its moment, skip or no skip
+      await hold(Math.max(600, drawMs + 260));   // the line finishes drawing and sits a beat; skip only quickens
     }
     await hold(180);
     clearFxWins();
@@ -2089,6 +2109,7 @@ const handlers = {
     const numbers = order.some(([r, y]) => ((state.grid[r] || [])[y] || 0) > 0);
     await hold(numbers ? 720 : 300);
     // 2. gravity, per column
+    const landers = [];   // every tile that drops, by the row it lands on
     for (let r = 0; r < REELS; r++) {
       for (let y = 0; y < ROWS; y++) { cellEls[r][y].classList.remove("explode", "tdrop"); cellEls[r][y].style.removeProperty("--fall"); }
       const goneRows = goneByReel[r];
@@ -2120,8 +2141,17 @@ const handlers = {
           cell.style.setProperty("--fall", (-fall * CELL_STEP) + "px");
           void cell.offsetWidth;                            // restart the animation from the top
           cell.classList.add("tdrop");
+          landers.push(fy);
         }
       }
+    }
+    // the same drop note as the reveal, same volume, pitched by how high each tile lands: the
+    // notes start at the impact and run bottom row up, a whisker apart, so a board of them
+    // reads as a rising patter rather than one thump
+    if (landers.length && !REDUCED_MOTION) {
+      landers.sort((a, b) => b - a);
+      const gap = Math.min(18, 260 / landers.length), at = 275 * tempo();
+      landers.forEach((fy, i) => setTimeout(() => sfx("dripLand", dropPitch(fy)), at + i * gap));
     }
     await delay(500);
     eachCell((el, r, y) => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); multEls[r][y].classList.remove("bare"); });
@@ -2221,7 +2251,52 @@ const handlers = {
 
   async finalWin() { /* credited by playRound */ },
 };
-function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearWinChip(); }
+function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearWinChip(); clearWinLine(); }
+
+// The win line: sprayed orange dots laid along the cluster, each one fading in after the
+// last, so the stroke is drawn on as the player watches. The path starts at the cluster's
+// top-left cell and steps to the nearest cell it has not visited, so it threads through
+// the shape rather than hopping across it. Returns how long the draw takes at tempo 1.
+const LINE_DOT_STEP = 11, LINE_DOT_GAP = 14, LINE_DRAW_MAX = 800;   // px per dot, ms per dot, ms cap on a draw
+let lineLayer = null;
+function clearWinLine() { if (lineLayer) lineLayer.innerHTML = ""; }
+function drawWinLine(positions) {
+  const board = $("board");
+  if (!board || !positions || positions.length < 2) return 0;
+  if (!lineLayer) { lineLayer = document.createElement("div"); lineLayer.className = "lineLayer"; board.appendChild(lineLayer); }
+  const pts = positions.map(p => {
+    const c = cellCentre(p.reel, Math.min(Math.max(p.row - 1, 0), ROWS - 1));
+    return { x: c.x - SPLAT_PAD, y: c.y - SPLAT_PAD, reel: p.reel, row: p.row };
+  });
+  const left = pts.sort((a, b) => a.reel - b.reel || a.row - b.row);
+  const path = [left.shift()];
+  while (left.length) {
+    const last = path[path.length - 1];
+    let bi = 0, bd = Infinity;
+    left.forEach((q, i) => { const d = Math.abs(q.x - last.x) + Math.abs(q.y - last.y); if (d < bd) { bd = d; bi = i; } });
+    path.push(left.splice(bi, 1)[0]);
+  }
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += Math.max(1, Math.round(Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y) / LINE_DOT_STEP));
+  const gap = Math.min(LINE_DOT_GAP, LINE_DRAW_MAX / Math.max(1, total));
+  const frag = document.createDocumentFragment();
+  let n = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1], b = path[i];
+    const k = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / LINE_DOT_STEP));
+    for (let j = (i === 1 ? 0 : 1); j <= k; j++) {
+      const u = j / k, d = document.createElement("i");
+      d.style.left = (a.x + (b.x - a.x) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
+      d.style.top = (a.y + (b.y - a.y) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
+      d.style.setProperty("--d", (n * gap).toFixed(1) + "ms");
+      d.style.setProperty("--s", (.8 + Math.random() * .5).toFixed(2));
+      frag.appendChild(d);
+      n++;
+    }
+  }
+  lineLayer.appendChild(frag);
+  return n * gap + 300;
+}
 
 function clearWinChip() {
   const chip = $("board").querySelector(".winchip");
