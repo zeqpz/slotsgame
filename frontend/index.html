@@ -292,9 +292,12 @@
   .uibtn.snd::before { width: 60%; height: 60%; background-image: url("assets/icon_sound.png"); }
   .uibtn.mus::before { width: 56%; height: 56%; background-image: url("assets/icon_music.png"); }
   .uibtn.nfo::before { width: 56%; height: 56%; background-image: url("assets/icon_info.png"); }
-  .uibtn:hover { transform: scale(1.07); filter: brightness(1.12); }
-  .uibtn:active { transform: scale(.93); }
+  .uibtn:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
+  .uibtn:active:not(:disabled) { transform: scale(.93); }
   .uibtn.open { filter: brightness(1.18) saturate(1.08); }
+  /* greyed while a round runs, the same as the bet stepper: the paint and the glyph both dull */
+  .uibtn:disabled { filter: grayscale(.95) brightness(.7); opacity: .6; cursor: default; }
+  .uibtn:disabled::before { filter: grayscale(1) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
   .uibtn.off::before { filter: grayscale(1) brightness(.5); }   /* that bus is at zero */
 
   /* the drag bar rides above its own button and only exists while it is open */
@@ -793,11 +796,14 @@
   }
   .sidebtn.auto::before  { width: 58%; height: 58%; background-image: url("assets/icon_auto.png"); }
   .sidebtn.rapid::before { width: 34%; height: 64%; background-image: url("assets/icon_rapid.png"); }
-  .sidebtn:hover { transform: scale(1.07); filter: brightness(1.12); }
-  .sidebtn:active { transform: scale(.93); }
+  .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
+  .sidebtn:active:not(:disabled) { transform: scale(.93); }
   /* armed: the box brightens and the glyph lights up in its own paint */
   .sidebtn.on { filter: brightness(1.22) saturate(1.12); }
   .sidebtn.on::before { filter: drop-shadow(0 0 8px rgba(168, 240, 0, .95)) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
+  /* greyed while a round runs, armed or not: the choice is kept, only the press is off */
+  .sidebtn:disabled, .sidebtn.on:disabled { filter: grayscale(.95) brightness(.7); opacity: .6; cursor: default; }
+  .sidebtn:disabled::before, .sidebtn.on:disabled::before { filter: grayscale(1) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
   .sidebtn #autoN {
     position: absolute; right: -3px; top: -3px; font-size: 10px; line-height: 1;
     font-family: var(--mono); font-weight: 700; color: #16130f; background: var(--gold);
@@ -1666,7 +1672,14 @@ async function renderReveal(ev) {
     state.anticipated = true;
     charReact("anticipation");
   }
+  // the spin's whoosh runs under the whole reveal: the last reel's wait, its column dropping
+  // out, any near-miss beat, and its seven icons falling in. It rises and eases on the old
+  // spin curve, and a skip cuts it the moment the board is in.
+  const maxExtra = Math.max(0, ...(ev.anticipation || [0]).map(a => (a || 0) * anticExtra));
+  const revealMs = (REELS - 1) * stagger + (340 + (ROWS - 1) * 28) * t + maxExtra + (ROWS - 1) * 95 * t + 300 * t;
+  const hushReels = (!state.skip && !REDUCED_MOTION) ? reelSfx(revealMs) : () => {};
   await Promise.all(reelEls.map((_, r) => dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra)));
+  hushReels();   // a skipped reveal cuts it short; a full one has already faded out
   document.getElementById("skipBtn").classList.remove("show");   // the board is in — skip is done
   document.getElementById("spinBtn").classList.remove("arrows-away");   // arrows pop back as skip leaves
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
@@ -1862,6 +1875,10 @@ function startMusic() {
   }).catch(() => {});
 }
 const sfxBuf = {};
+// Fetched as soon as the page loads, so the first press after the intro has its note ready;
+// only the decode waits for the context, which the browser will not open before a gesture.
+const sfxRaw = {}, sfxDecoding = {};
+for (const [name, url] of Object.entries(SFX)) sfxRaw[name] = fetch(url).then(r => r.arrayBuffer()).catch(() => null);
 
 function bezierY(x1, y1, x2, y2) {          // CSS cubic-bezier as a function of progress
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
@@ -1915,10 +1932,9 @@ function audio() {
     sfxBus = actx.createGain(); sfxBus.connect(actx.destination);
     musicBus = actx.createGain(); musicBus.connect(actx.destination);
     applyVolumes();
-    for (const [name, url] of Object.entries(SFX)) {
-      fetch(url).then(r => r.arrayBuffer())
-        .then(b => actx.decodeAudioData(b))
-        .then(buf => { sfxBuf[name] = buf; })
+    for (const name of Object.keys(SFX)) {
+      sfxDecoding[name] = sfxRaw[name].then(b => b && actx.decodeAudioData(b))
+        .then(buf => { if (buf) sfxBuf[name] = buf; })
         .catch(() => {});   // a missing clip just means silence, never a broken round
     }
   }
@@ -1931,7 +1947,14 @@ addEventListener("pointerdown", () => { audio(); startMusic(); }, { once: true }
 function sfx(name, rate = 1) {
   if (vol.sfx <= 0) return;   // the bar is at the bottom: don't even open the context
   const ctx = audio();
-  if (!ctx || !sfxBuf[name]) return;
+  if (!ctx) return;
+  if (!sfxBuf[name]) {
+    // asked for before the clip has decoded (the first press after the page opens): play it
+    // the moment it has, as long as that is still the same beat, otherwise let it go
+    const at = performance.now(), pending = sfxDecoding[name];
+    if (pending) pending.then(() => { if (sfxBuf[name] && performance.now() - at < 600) sfx(name, rate); });
+    return;
+  }
   const src = ctx.createBufferSource();
   src.buffer = sfxBuf[name];
   src.playbackRate.value = rate;           // resampled, so the pitch shifts with it
@@ -2602,6 +2625,13 @@ function setButtons(on) {
   $("bonusBtn").disabled = !on;   // the panel itself gates what is affordable
   $("betUp").disabled = !on || state.betIdx >= state.bets.length - 1;
   $("betDown").disabled = !on || state.betIdx <= 0;
+  // Rapid and the three-line menu grey out for the length of a round, like the stepper.
+  // Keyed on the round itself, not on `on`: a replay never turns the bar back on, and its
+  // viewer still needs the sound and the rules between plays.
+  const busy = !on && state.playing;
+  $("rapidBtn").disabled = busy;
+  $("menuBtn").disabled = busy;
+  if (busy) showMenu(false);   // the round closes the menu and any volume bar it holds
 }
 const betKey = () => "smukiez.bet." + RGS.state.currency;
 function rememberBet() { try { localStorage.setItem(betKey(), String(bet())); } catch (e) { /* ignore */ } }
@@ -2891,6 +2921,8 @@ document.addEventListener("keydown", e => {
   if (RGS.jurisdiction().disabledSpacebar) return;
   if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden]), .vpop:not([hidden])")) return;   // a dialog has the keyboard
   e.preventDefault();
+  if (state.playing && state.noSkip) return;   // the same rule as the button
+  sfx(state.playing ? "skip" : "spin");
   playRound("base");
 });
 
@@ -3218,6 +3250,7 @@ async function bootReplay(p) {
     setButtons(false);
     try { await presentRound(round, { settle: false }); } catch (e) { /* shown in the ticker */ }
     state.playing = false;
+    setButtons(false);   // the viewer's bar stays off, but Rapid and the menu come back
     result.innerHTML = T(`Bet cost ${fmt(cost)}<br>Payout ${fmt(payout)} \u00b7 ${round.payoutMultiplier.toFixed(2)}x the bet`);
     result.hidden = false;
     play.textContent = T("Play again");
