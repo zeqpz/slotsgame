@@ -179,7 +179,7 @@
   /* the balance figure is set in Timegoing, which does not need the graffiti face's tracking */
   #balance { font-family: var(--num); font-size: 19px; letter-spacing: .04em; font-weight: 400; }
   /* the win only exists while there is one, and it announces itself when it arrives */
-  .chip.winchip { border: 2px solid var(--gold); animation: winchip .52s cubic-bezier(.2,.9,.3,1.45); }
+  .chip.winchip { display: none !important; }   /* the popup over the icons is the only win text now */
   .chip.winchip .val { color: var(--gold); font-family: var(--num); font-size: 19px; letter-spacing: .04em; font-weight: 400; }
   @keyframes winchip {
     0%   { transform: scale(.35); opacity: 0; }
@@ -420,8 +420,8 @@
   .banner.epic .big { color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 40px rgba(240,86,139,1), 0 0 70px rgba(240,86,139,.8); }
 
   /* main — slots front and center, info cards beneath */
-  .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 76px 20px 22px; align-items: center; }
-  .stage { position: relative; padding-bottom: 140px; }   /* room for the frame's bottom overhang */
+  .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 112px 20px 22px; align-items: center; }
+  .stage { position: relative; padding-bottom: 104px; }   /* the frame's bottom drips hang a little past this */
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
@@ -1822,7 +1822,7 @@ function setRoundWin(v) {
   // the chip is not a permanent readout any more: it arrives with the win and leaves with it
   if (chip) {
     if (v > 0) {
-      if (chip.hidden) { chip.hidden = false; void chip.offsetWidth; sfx("winText"); }   // flush so it re-pops
+      chip.hidden = false;
     } else {
       chip.hidden = true;
     }
@@ -2398,6 +2398,7 @@ function placeWinChip(positions, amount, mult) {
   }
   const chip = document.createElement("div");
   chip.className = "winpop";
+  sfx("winText");   // the win amount popping is this note's cue
   chip.textContent = fmt(amount);
   if (mult > 1) {   // 1x clusters carry no multiplier, so they get no second line
     const tag = document.createElement("small");
