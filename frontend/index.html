@@ -220,6 +220,61 @@
     transition: opacity .6s ease;
   }
   .intro.gone { opacity: 0; pointer-events: none; }
+  /* ---------- bonus intro ---------- */
+  /* The bonus lands: the game fades to black, the wall fades up with the BONUS lettering,
+     the spins won and how the Multi works in here, and a click takes the player in the
+     same way, black and then the bonus. Fixed and outside #app, so it is never scaled. */
+  .bonusintro {
+    position: fixed; inset: 0; z-index: 55; background: #000; opacity: 0;
+    transition: opacity .48s ease; cursor: pointer; user-select: none;
+  }
+  .bonusintro.black { opacity: 1; }
+  .bonusintro .wall {
+    position: absolute; inset: 0; background: #2b2b2b url("assets/bonus_wall.jpg") center / cover no-repeat;
+    opacity: 0; transition: opacity .65s ease;
+  }
+  .bonusintro .wall::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .4); }
+  .bonusintro .inner {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 3vh 8vw 10vh; text-align: center; gap: .6vh;
+    opacity: 0; transform: translateY(16px); transition: opacity .65s ease .2s, transform .65s ease .2s;
+  }
+  .bonusintro.up .wall, .bonusintro.up .inner { opacity: 1; transform: none; }
+  .bonusintro .blogo { width: min(50vw, 400px, 30vh); height: auto; filter: drop-shadow(0 8px 16px rgba(0,0,0,.7)); }
+  .bonusintro .bkind {
+    font-family: var(--disp); font-size: clamp(16px, 2.8vh, 28px); letter-spacing: .08em; text-transform: uppercase;
+    color: #4fe8ff; text-shadow: 0 3px 0 rgba(0,0,0,.8), 0 0 18px rgba(79,232,255,.6);
+  }
+  .bonusintro .byou, .bonusintro .bfs {
+    font-family: var(--disp); font-size: clamp(24px, 4.8vh, 44px); text-transform: uppercase; line-height: 1;
+    color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.8), 0 0 24px rgba(240,86,139,.8);
+  }
+  .bonusintro .byou { margin-top: 1.2vh; }
+  .bonusintro .bfs { color: var(--fs-green); text-shadow: 0 4px 0 rgba(0,0,0,.8), 0 0 24px rgba(168,240,0,.6); }
+  /* the figure: the number font, like every amount in the game */
+  .bonusintro .bnum {
+    font-family: var(--num); font-size: clamp(64px, 15vh, 136px); line-height: .95; color: var(--gold);
+    text-shadow: 0 6px 0 rgba(0,0,0,.8), 0 0 34px rgba(245,197,24,.55);
+  }
+  .bonusintro .bhow {
+    max-width: min(780px, 86vw); margin-top: 2.4vh; padding: 1.6vh 2.4vw;
+    background: rgba(10, 8, 14, .78); border: 2px solid var(--spray); border-radius: 12px;
+    font-family: var(--legible); font-size: clamp(14px, 2.05vh, 19px); line-height: 1.45; color: var(--ink);
+  }
+  .bonusintro .bhow p { margin: 0 0 .7em; } .bonusintro .bhow p:last-child { margin-bottom: 0; }
+  .bonusintro .bhow b { font-family: var(--num); color: var(--gold); font-size: 1.12em; }
+  .bonusintro .bhow strong { color: var(--fs-green); }
+  .bonusintro .bcont {
+    position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
+    font-family: var(--disp); font-size: clamp(16px, 2.6vh, 24px); letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.8); opacity: 0; transition: opacity .35s ease;
+    animation: bcont 1.5s ease-in-out infinite;
+  }
+  .bonusintro.up .bcont { opacity: 1; transition-delay: .6s; }   /* arrives a beat after the words, leaves with them */
+  @keyframes bcont { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) {
+    .bonusintro, .bonusintro .wall, .bonusintro .inner, .bonusintro .bcont { transition: none !important; animation: none !important; }
+  }
   .intrologo {
     max-width: min(620px, 74vw); width: 100%; height: auto;
     opacity: 0; transition: opacity .9s ease, transform .9s ease; transform: scale(.94);
@@ -2265,10 +2320,9 @@ const handlers = {
     state.bonusHit = true;
     charReact("big_win");   // the characters blow up the moment the bonus lands
     sfx("bonusStart");
-    await banner(`${ev.totalFs} FREE SPINS`, "Crew Leader trigger", 1300, "gold");
-    $("fsCard").classList.add("on");
-    fitToScreen();   // the counter just grew the page; re-fit or the bottom bar falls off it
     state.fsTotal = ev.totalFs;
+    if (state.peek && state.peek.type === "extremeTrigger") return;   // an upgrade: the Extreme screen follows, one screen not two
+    await bonusIntro(ev.totalFs, false, "Crew Leader trigger");
   },
 
   async extremeTrigger(ev) {
@@ -2276,7 +2330,10 @@ const handlers = {
     state.bonusHit = true;
     charReact("big_win");   // extreme is a bonus too — 2 scatters straight in, or an upgrade
     const why = ev.reason === "extreme_upgrade" ? "Bonus upgraded by The Phantom" : "The Phantom appears";
-    await banner("EXTREME BONUS", why, 1500, "purple");
+    if (ev.reason !== "extreme_upgrade") sfx("bonusStart");   // an upgrade's note already played with its trigger
+    const spins = ev.totalFs ?? (ev.reason === "extreme_upgrade" ? state.fsTotal : EXTREME_DIRECT_SPINS);
+    state.fsTotal = spins;
+    await bonusIntro(spins, true, why);
   },
 
   async enterBonus(ev) {
@@ -2440,7 +2497,10 @@ async function presentRound(round, { settle = true } = {}) {
   // `payoutMultiplier` as a plain multiple (0.7 == 0.7x). Read it straight or it lands 100x low.
   const mult = round.payoutMultiplier || 0;
   console.debug(`round ${round.betID ?? round.id} pays ${mult.toFixed(2)}x bet`);
-  for (const ev of round.events || []) {
+  const evs = round.events || [];
+  for (let i = 0; i < evs.length; i++) {
+    const ev = evs[i];
+    state.peek = evs[i + 1] || null;   // a handler can look one event ahead (the bonus upgrade shows one screen, not two)
     const fn = handlers[ev.type];
     if (fn) await fn(ev);
   }
@@ -3004,6 +3064,69 @@ function runIntro() {
   after(10000, finish);
 }
 runIntro();
+
+/* ---------- bonus intro ---------- */
+// The bonus lands: the game fades to black, the wall comes up with the BONUS lettering, the
+// spins won and how the Multi works in here, and the player's click takes them in: black
+// again, then the bonus board with its spin counter. It waits for the click - Rapid and
+// Skip quicken animations, they never skip a screen - though Space and Enter count as one.
+const MULTI_RANGE = ["x1.25", "x1000"];   // the Multi's values, as rules.js states them
+const EXTREME_DIRECT_SPINS = 17;          // two Phantoms, straight in (DESIGN.md, bonus rounds)
+function bonusIntroHow(extreme) {
+  const tags = extreme ? 3 : 4;
+  return `<p><strong>${T("How the Multi works in here")}</strong></p>` +
+    `<p>${T(`A Multi lands with a value from <b>${MULTI_RANGE[0]}</b> to <b>${MULTI_RANGE[1]}</b>. Every winning cluster is paid first; then it blows out, clearing itself and the four symbols beside it, and each of those five cells keeps its value. A cluster that lands on those cells is multiplied by the <strong>sum</strong> of the values it covers, and values that meet add together.`)}</p>` +
+    `<p>${T(extreme
+      ? `In the Extreme Bonus every value stays on the board for the whole feature, Multis land more often, and every value is <b>x2</b> or more.`
+      : `In the bonus every value stays on the board for the whole feature: nothing is wiped between spins, so the board only gets richer.`)}</p>` +
+    `<p>${T(`Every winning spin adds a tag to the Tag Meter. Fill it, <b>${tags}</b> tags, for <b>+3</b> free spins.`)}</p>`;
+}
+function bonusIntro(spins, extreme, why) {
+  return new Promise(resolve => {
+    const wrap = document.createElement("div");
+    wrap.className = "bonusintro";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-label", T(extreme ? "Extreme Bonus" : "Bonus"));
+    const kind = extreme ? T("Extreme Bonus") + (why ? " \u00b7 " + T(why) : "") : (why ? T(why) : "");
+    wrap.innerHTML =
+      `<div class="wall"></div>` +
+      `<div class="inner">` +
+        `<img class="blogo" src="assets/bonus_btn_text.png" alt="${T("Bonus")}" draggable="false">` +
+        (kind ? `<div class="bkind">${kind}</div>` : "") +
+        `<div class="byou">${T("You won")}</div>` +
+        `<div class="bnum">${spins}</div>` +
+        `<div class="bfs">${T("Free spins")}</div>` +
+        `<div class="bhow">${bonusIntroHow(extreme)}</div>` +
+      `</div>` +
+      `<div class="bcont">${T("Click to continue")}</div>`;
+    document.body.appendChild(wrap);
+    const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
+    let phase = 0;   // 0 fading to black, 1 up and waiting, 2 leaving
+    const onKey = e => {
+      if (e.code !== "Space" && e.code !== "Enter") return;
+      e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
+      go();
+    };
+    const go = () => {
+      if (phase !== 1) return;
+      phase = 2;
+      sfx("bet", 1.1);
+      document.removeEventListener("keydown", onKey, true);
+      wrap.classList.remove("up");             // the wall and the words fade to black
+      step(700, () => {
+        $("fsCard").classList.add("on");        // the bonus board is ready under the black: counter on
+        fitToScreen();                          // the counter grew the page; re-fit before it shows
+        wrap.classList.remove("black");         // and the black lifts off it
+        step(520, () => { wrap.remove(); resolve(); });
+      });
+    };
+    wrap.addEventListener("click", go);
+    document.addEventListener("keydown", onKey, true);
+    void wrap.offsetWidth;                      // flush, so the first change transitions
+    wrap.classList.add("black");                // the game fades to black
+    step(560, () => { wrap.classList.add("up"); phase = 1; });   // then the wall comes up
+  });
+}
 
 // One pop-up open at a time; its button reads as pressed while it is up.
 const POPS = { autoPop: "autoBtn" };
