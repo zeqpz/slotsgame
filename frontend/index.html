@@ -664,6 +664,15 @@
        orange, to red for the big ones */
     color: var(--heat, var(--fs-green)); opacity: .42; text-shadow: 0 0 14px var(--heat, var(--fs-green));
     transition: opacity .18s linear;
+    isolation: isolate;   /* the box below sits under the figure, inside this slot */
+  }
+  /* the value's box: rounded, edged and lit from the inside in its own heat colour, so a
+     x5 sits in a yellow glow and a x100 in a red one */
+  .multlayer .gmult::before {
+    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px;   /* the whole cell */
+    border: 2px solid color-mix(in srgb, var(--heat, var(--fs-green)) 80%, transparent);
+    background: color-mix(in srgb, var(--heat, var(--fs-green)) 12%, rgba(8, 6, 12, .7));
+    box-shadow: inset 0 0 14px color-mix(in srgb, var(--heat, var(--fs-green)) 32%, transparent);   /* a mild inner light, nothing more */
   }
   .multlayer .gmult.bare { opacity: .95; }
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
