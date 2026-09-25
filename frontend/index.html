@@ -1226,7 +1226,6 @@
   .spinbtn:hover:not(:disabled)::after { scale: 1.13; }
   /* the plate lifts under the pointer whichever button is showing on it, spin or skip */
   .spinwrap:hover .spinbtn::before { scale: 1.04; }
-  .spinbtn.spun::after { animation: btnFloat 3.8s ease-in-out infinite, spin360 .8s cubic-bezier(.55,.05,.15,1); }
 
 
   .bonusbtn {
@@ -3222,10 +3221,10 @@ document.addEventListener("keydown", e => {
   if (e.code !== "Space" || e.repeat || REPLAY) return;
   if (RGS.jurisdiction().disabledSpacebar) return;
   if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden]), .vpop:not([hidden])")) return;   // a dialog has the keyboard
-  e.preventDefault();
-  if (state.playing && state.noSkip) return;   // the same rule as the button
-  sfx(state.playing ? "skip" : "spin");
-  playRound("base");
+  e.preventDefault();   // ... which also stops the focused button activating itself on the key
+  // the key IS a press of the button, so it carries the same note, the same kick and the
+  // same turn of the arrows rather than quietly starting a round behind them
+  $("spinBtn").click();
 });
 
 /* ---------- opening sequence ---------- */
