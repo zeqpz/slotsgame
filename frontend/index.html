@@ -1269,8 +1269,8 @@
   .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: 1060px; }
   .hud .bonusbtn { margin-right: 10px; }
   .hudstack { display: flex; flex-direction: column; gap: 0; }
-  .hudstack.left { align-items: flex-end; margin-right: -6px; position: relative; z-index: 1; }
-  .hudstack.right { align-items: flex-start; margin-left: -8px; }
+  .hudstack.left { align-items: flex-end; margin-right: -46px; position: relative; z-index: 1; }   /* over the plate's left end */
+  .hudstack.right { align-items: flex-start; margin-left: -26px; }   /* its notch on the hexagon's point */
   /* the outer plates are slanted: stacked, the two on each side make a chevron - the point
      outward, the notch nesting against the long plate or the hexagon */
   .hudbtn, .sidebtn {
@@ -1300,7 +1300,7 @@
   .hudbar {
     position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px;
     height: 74px; flex: 1 1 440px; min-width: 440px; max-width: 640px; box-sizing: border-box;
-    padding: 10px 44px 10px 24px;   /* the right end is under the spin hexagon */
+    padding: 10px 44px 10px 72px;   /* the left end is under the chevron, the right end under the hexagon */
     border: 0 solid transparent; border-width: 0 20px;
     border-image: url("assets/hud_bar.png") 0 6% 0 6% fill / 0 20px stretch;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
