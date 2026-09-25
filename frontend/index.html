@@ -1363,10 +1363,14 @@
   .spinbtn::after {
     inset: 26% 27%;
     background: url("assets/spin_btn_arrows.png") center / contain no-repeat;
-    /* blue, always; and still - no idle drift, only the turn on the press */
-    filter: hue-rotate(140deg) saturate(1.5) brightness(1.1) drop-shadow(0 0 8px rgba(79,232,255,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    /* black while the game waits, blue while a round is running; still either way - no idle
+       drift, only the turn on the press */
+    filter: brightness(0) drop-shadow(0 2px 3px rgba(255,255,255,.25));
     animation: none;
-    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3), filter .2s ease;
+  }
+  .spinbtn.armed::after {
+    filter: hue-rotate(140deg) saturate(1.5) brightness(1.1) drop-shadow(0 0 8px rgba(79,232,255,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.45));
   }
   .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55,.05,.15,1); }
   /* the two volume bars sit side by side over the speaker, each with its name under it */
@@ -2811,6 +2815,7 @@ async function playRound(mode) {
   state.lastPlayAt = performance.now();
 
   state.playing = true; state.skip = false; state.mode = mode;
+  $("spinBtn").classList.add("armed");   // the arrows go blue for the length of the round
   setButtons(false);
   bounceFx();
   tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
@@ -2835,6 +2840,7 @@ async function playRound(mode) {
   if (left > 0) await new Promise(r => setTimeout(r, left));   // real time: Rapid and Skip do not shorten a legal floor
 
   state.playing = false; state.skip = false;
+  $("spinBtn").classList.remove("armed");   // back to black, the game is waiting again
   setButtons(true);
   return ok;
 }
@@ -3784,7 +3790,7 @@ boot();
   try {
     if (typeof setButtons === "function") {
       var _orig = setButtons;
-      setButtons = function(on){ _orig(on); };
+      setButtons = function(on){ _orig(on); if (on && spin) spin.classList.remove("armed"); };   // a round that never ran leaves them black
     }
   } catch(_){}
 })();
