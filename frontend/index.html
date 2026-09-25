@@ -2873,6 +2873,7 @@ const CHARACTERS = [
     el: "charfx", base: "assets/spine/smoke-skull", name: "smoke-skull",
     ambient: ["smoke_loop", "ember_loop"],
     flavour: [["ash_break"]],
+    swap: { big_win: "win" },   // the skull's big-win clip is retired: its normal win plays for both
   },
   {
     el: "charfx2", base: "assets/spine/smukiez", name: "smukiez",
@@ -2915,7 +2916,7 @@ async function loadSpine(base, name) {
   return new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
 }
 
-async function makeCharacter({ el, base, name, ambient, flavour }) {
+async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
   const root = document.getElementById(el);
   if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
 
@@ -2990,7 +2991,8 @@ async function makeCharacter({ el, base, name, ambient, flavour }) {
     if (REDUCED_MOTION || away) return;
     const want = CHAR_RANK[kind];
     if (want === undefined) return;
-    if (oneShot(kind, want)) armFlavour();   // push the next break out past the reaction
+    const clip = swap[kind] || kind;   // a rig may play another clip for a moment, at that moment's rank
+    if (oneShot(clip, want)) armFlavour();   // push the next break out past the reaction
   };
 
   const enter = () => {
