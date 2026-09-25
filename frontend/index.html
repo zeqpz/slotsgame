@@ -396,6 +396,22 @@
   }
   .popover.right::after { left: auto; right: 10px; margin-left: 0; }
   .popover[hidden] { display: none; }
+  /* the autoplay picker stands on its own sprayed plate: the art's blue band is the border,
+     cut at the 9% it occupies, and the grey middle stretches to whatever the picker needs */
+  #autoPop {
+    background: none; box-shadow: none;
+    border: 0 solid transparent; border-width: 22px;
+    border-image: url("assets/auto_box.png") 9% fill / 22px stretch;
+    padding: 4px 8px 8px;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.6));
+  }
+  #autoPop::after { border-top-color: #1f8fff; }   /* the little arrow, in the plate's blue */
+  #autoPop .poptitle { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.8), 0 0 8px rgba(0,0,0,.7); }
+  #autoPop .popsub { color: #e8e4de; text-shadow: 0 1px 0 rgba(0,0,0,.8); }
+  #autoPop .popsub b { color: var(--gold); }
+  #autoPop .autoopts button { background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.35); color: #fff; }
+  #autoPop .autoopts button.on { border-color: #4fe8ff; color: #4fe8ff; }
+  #autoPop .infoclose { background: #1f8fff; border-color: #1f8fff; color: #fff; }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .popover .autoopts { margin: 0 0 10px; }
