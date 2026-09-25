@@ -1299,6 +1299,11 @@
      the more specific of the two and sets the same property - lights the plate back up */
   .hudbtn.off, .hudbtn.off:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }
   .sidebtn.on, .sidebtn.on:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
+  /* Rapid has a lit plate of its own - the bolt in yellow - so it swaps the art rather than
+     tinting the one it has; same box, so nothing shifts as it changes */
+  .sidebtn.rapid.on, .sidebtn.rapid.on:hover { background-image: url("assets/hud_rapid_on.png"); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+  .sidebtn.rapid.on:hover:not(:disabled) { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
+  .sidebtn.rapid.on:disabled { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
   /* nothing greys during a round: a button that cannot act simply does not act */
   .hudbtn:disabled, .sidebtn:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
   .sidebtn.on:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
