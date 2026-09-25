@@ -1220,20 +1220,8 @@
   .spinbtn:hover:not(:disabled)::after { scale: 1.13; }
   /* the plate lifts under the pointer whichever button is showing on it, spin or skip */
   .spinwrap:hover .spinbtn::before { scale: 1.04; }
-  .spinwrap:hover .skipbtn.show { filter: brightness(1.15) drop-shadow(0 0 8px rgba(255,255,255,.35)); }
   .spinbtn.spun::after { animation: btnFloat 3.8s ease-in-out infinite, spin360 .8s cubic-bezier(.55,.05,.15,1); }
-  /* arrows shrink away as the skip pops in (.4s delay to match the skip), pop back when it leaves */
-  .spinbtn.arrows-away::after { scale: 0 !important; transition-delay: .4s; }
 
-  .skipbtn {
-    position: absolute; inset: 26% 38%;      /* square-ish, centred on the wide plate */
-    background: url("assets/skip_btn.png") center/contain no-repeat;
-    border: none; padding: 0; cursor: pointer; font-size: 0;   /* image only, no "SKIP" text */
-    opacity: 0; scale: .6; pointer-events: none;
-    animation: btnFloat 4.2s ease-in-out infinite;   /* gentle drift, like the spin arrows */
-    transition: opacity .2s ease, scale .25s cubic-bezier(.3,.7,.4,1.5), filter .15s ease;
-  }
-  .skipbtn.show { opacity: 1; scale: 1; pointer-events: auto; transition-delay: .4s, .4s, 0s; }
 
   .bonusbtn {
     position: relative; width: 146px; height: 74px;
@@ -1269,6 +1257,100 @@
     .spinbtn::after, .bonusbtn::after { animation: none !important; }
     .skipbtn { transition: opacity .12s ease !important; }
   }
+  /* ---------- the bar ---------- */
+  /* One row, as the reference: info and audio stacked on the far left, the Bonus button, the
+     long plate carrying the balance and the bet with its stepper, the spin hexagon, and Rapid
+     and Auto stacked on the far right. Every piece is its own sprayed plate; the glyphs are
+     painted in the art, so the buttons carry no glyph of their own any more. */
+  .bottom { justify-content: center; padding: 10px 16px 16px; }
+  /* the pieces touch: the two left plates sit on each other and on the long plate, the spin
+     hexagon rides over the plate's right end, and Rapid and Auto sit on each other against it;
+     only the Bonus button, first on the row, keeps a little air */
+  .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: 1060px; }
+  .hud .bonusbtn { margin-right: 10px; }
+  .hudstack { display: flex; flex-direction: column; gap: 0; }
+  .hudstack.left { align-items: flex-end; margin-right: -3px; position: relative; z-index: 1; }
+  .hudstack.right { align-items: flex-start; margin-left: -5px; }
+  .hudbtn, .sidebtn {
+    position: relative; width: 60px; height: 46px; padding: 0; border: 0; font-size: 0; color: transparent;
+    background: none; background-size: contain; background-repeat: no-repeat; background-position: center;
+    cursor: pointer; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5));
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  }
+  .hudbtn.menu   { background-image: url("assets/hud_menu.png");  background-position: right center; }
+  .hudbtn.audio  { background-image: url("assets/hud_audio.png"); background-position: right center; }
+  .sidebtn.rapid { background-image: url("assets/hud_rapid.png"); background-position: left center; }
+  .sidebtn.auto  { background-image: url("assets/hud_auto.png");  background-position: left center; }
+  .sidebtn::before { content: none; }   /* the bolt and the play arrow are in the art */
+  .hudbtn:hover:not(:disabled), .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
+  .hudbtn:active:not(:disabled), .sidebtn:active:not(:disabled) { transform: scale(.93); }
+  .hudbtn.open { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
+  .hudbtn.off  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }   /* sound and music both at zero */
+  .sidebtn.on  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
+  .hudbtn:disabled, .sidebtn:disabled, .sidebtn.on:disabled { filter: grayscale(.95) brightness(.7); opacity: .6; cursor: default; }
+  .sidebtn #autoN { right: -3px; top: -5px; }
+  /* the long plate: its rounded ends are cut from the art and kept at their own width, the
+     middle stretches to whatever the figures need */
+  .hudbar {
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px;
+    height: 74px; flex: 1 1 440px; min-width: 440px; max-width: 640px; box-sizing: border-box;
+    padding: 10px 44px 10px 24px;   /* the right end is under the spin hexagon */
+    border: 0 solid transparent; border-width: 0 20px;
+    border-image: url("assets/hud_bar.png") 0 6% 0 6% fill / 0 20px stretch;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
+  }
+  .hudstat { display: flex; flex-direction: column; justify-content: center; gap: 3px; line-height: 1; }
+  .hudstat .lbl {
+    font-family: var(--label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: #e6e2dc; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
+  }
+  .hudstat .val, #balance, #betVal {
+    font-family: var(--num) !important; font-size: 24px; font-weight: 400; letter-spacing: .03em; text-indent: 0;
+    min-width: 0; text-align: left; color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px rgba(0,0,0,.85);
+    font-variant-numeric: tabular-nums;
+  }
+  .hudstat.bet { align-items: flex-end; }
+  .hudstat.bet .val, #betVal { text-align: right; }
+  .stat .val.up { color: var(--fs-green); } .stat .val.down { color: var(--spray); }   /* the flash on a change keeps its colours */
+  .hudbar .chip.juris { background: rgba(0,0,0,.35); padding: 4px 9px; }
+  .hudbet { display: flex; align-items: center; gap: 8px; }
+  .betstep { display: flex; flex-direction: column; gap: 3px; }
+  .betstep button {
+    width: 31px; height: 31px; padding: 0; border: 0; font-size: 0; color: transparent;
+    background: center / contain no-repeat; cursor: pointer;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  }
+  #betUp   { background-image: url("assets/hud_plus.png"); }
+  #betDown { background-image: url("assets/hud_minus.png"); }
+  .betstep button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
+  .betstep button:active:not(:disabled) { transform: scale(.9); }
+  .betstep button:disabled { filter: grayscale(.9) brightness(.7); opacity: .6; cursor: default; }
+  /* the spin hexagon, our arrows inside it; while the reels are in the air the arrows turn
+     blue, because the press is a skip until the board is in */
+  .spinwrap { margin-left: -40px; position: relative; z-index: 2; }   /* over the plate's right end */
+  .spinbtn { width: 108px; height: 94px; }
+  .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .spinbtn::after {
+    inset: 26% 27%;
+    background: url("assets/spin_btn_arrows.png") center / contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3), filter .25s ease;
+  }
+  .spinbtn.armed::after {
+    filter: hue-rotate(140deg) saturate(1.5) brightness(1.1) drop-shadow(0 0 8px rgba(79,232,255,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.45));
+  }
+  /* the two volume bars sit side by side over the speaker, each with its name under it */
+  .vpop .vlbl {
+    display: block; margin-top: 6px; text-align: center;
+    font-family: var(--label); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
+  }
+  body.replay .betstep { display: none; }
+  @media (max-width: 640px) {
+    .hudbar { min-width: 0; width: 100%; }
+    .hudstat .val, #balance, #betVal { font-size: 20px; }
+  }
 </style>
 </head>
 <body>
@@ -1291,32 +1373,32 @@
 </div>
 
 <div class="bottom">
-  <div class="bside left">
-    <div class="brow">
-      <div class="menuslot">
-        <button class="uibtn menu" id="menuBtn" aria-label="Settings" aria-haspopup="true" aria-expanded="false">Settings</button>
-        <div class="menupop" id="menuPop" hidden>
-          <button class="uibtn snd" id="soundBtn" aria-label="Sound effects volume" aria-expanded="false">Sound</button>
-          <button class="uibtn mus" id="musicBtn" aria-label="Music volume" aria-expanded="false">Music</button>
-          <button class="uibtn nfo" id="infoBtn" aria-label="Game information">Info</button>
+  <!-- The bar, as the reference: info and audio stacked on the far left, the Bonus button,
+       the long plate carrying the balance and the bet with its stepper, the spin hexagon,
+       and Rapid and Auto stacked on the far right. Every piece is its own sprayed plate. -->
+  <div class="hud">
+    <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
+    <div class="hudstack left">
+      <button class="hudbtn menu" id="menuBtn" aria-label="Game information">Info</button>
+      <button class="hudbtn audio" id="audioBtn" aria-label="Sound and music volume" aria-expanded="false">Audio</button>
+    </div>
+    <div class="hudbar">
+      <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">$0.00</span></div>
+      <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
+      <div class="hudbet">
+        <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">$1.00</span></div>
+        <div class="betstep">
+          <button id="betUp" aria-label="Raise bet">+</button>
+          <button id="betDown" aria-label="Lower bet">−</button>
         </div>
       </div>
-      <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
     </div>
-    <div class="chip stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">$0.00</span></div>
-    <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
-  </div>
-
-  <div class="bside mid">
-    <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">$0.00</span></div>
-  </div>
-
-  <div class="bside right">
-    <div class="brow">
-      <div class="sidestack">
-        <div class="popanchor">
-          <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
-          <div class="popover right" id="autoPop" hidden role="dialog" aria-label="Auto play">
+    <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button></span>
+    <div class="hudstack right">
+      <button class="sidebtn rapid" id="rapidBtn" type="button" aria-pressed="false" aria-label="Rapid spins" title="Rapid spins">Rapid</button>
+      <div class="popanchor">
+        <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
+        <div class="popover right" id="autoPop" hidden role="dialog" aria-label="Auto play">
             <div class="poptitle">Auto play</div>
             <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
             <div class="autoopts" id="autoOpts">
@@ -1327,27 +1409,23 @@
             </div>
             <button class="infoclose" id="autoYes">Start</button>
           </div>
-        </div>
-        <button class="sidebtn rapid" id="rapidBtn" type="button" aria-pressed="false" aria-label="Rapid spins" title="Rapid spins">Rapid</button>
       </div>
-      <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button><button class="skipbtn" id="skipBtn" type="button" aria-label="Skip"></button></span>
-    </div>
-    <div class="betbox">
-      <button id="betDown" aria-label="Lower bet">−</button>
-      <div id="betVal">$1.00</div>
-      <button id="betUp" aria-label="Raise bet">+</button>
     </div>
   </div>
+  <!-- the round total still counts here, unseen: the popup over the icons is the win text -->
+  <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">$0.00</span></div>
 
-  <!-- The drag bars hang off the bar itself, not off their buttons: their buttons live in a
-       pop-up that is itself positioned, and nesting one inside the other would re-anchor them. -->
+  <!-- The drag bars hang off the bar itself, not off the speaker button: both open together
+       over it, sound to the left and music to the right, and are placed from JS. -->
   <div class="vpop" id="sfxPop" hidden>
     <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
          aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vfill"></i></div>
+    <span class="vlbl">Sound</span>
   </div>
   <div class="vpop" id="musicPop" hidden>
     <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
          aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vfill"></i></div>
+    <span class="vlbl">Music</span>
   </div>
 
   <!-- Rapid is a button now, but half the timing code still reads this checkbox, so it stays
@@ -1836,11 +1914,10 @@ function dropReel(r, ev, wait, inExtra = 0) {
 async function renderReveal(ev) {
   clearFx();
   bounceFx();   // background bounce + board pop on every reveal, free spins included
-  // show the skip only while the reels are actually spinning — it disappears the moment
-  // they land (a beat before the win tally finishes), and re-appears for each free spin.
+  // the arrows are blue only while the reels are actually in the air - back to normal the
+  // moment they land (a beat before the win tally finishes), and blue again for each free spin.
   if (state.playing && !state.noSkip && !state.skip) {
-    document.getElementById("skipBtn").classList.add("show");
-    document.getElementById("spinBtn").classList.add("arrows-away");   // arrows shrink out as skip pops in
+    document.getElementById("spinBtn").classList.add("armed");   // the arrows turn blue: the press is a skip now
   }
   for (let r = 0; r < REELS; r++) state.pad[r] = ev.board[r][0];   // the row above the board: first to fall in on a tumble
   shownStop = ev.paddingPositions ? ev.paddingPositions.slice() : null;
@@ -1860,8 +1937,7 @@ async function renderReveal(ev) {
   const hushReels = (!state.skip && !REDUCED_MOTION) ? reelSfx(revealMs) : () => {};
   await Promise.all(reelEls.map((_, r) => dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra)));
   hushReels();   // a skipped reveal cuts it short; a full one has already faded out
-  document.getElementById("skipBtn").classList.remove("show");   // the board is in — skip is done
-  document.getElementById("spinBtn").classList.remove("arrows-away");   // arrows pop back as skip leaves
+  document.getElementById("spinBtn").classList.remove("armed");   // the board is in: the press is a spin again
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
@@ -2819,7 +2895,7 @@ function setButtons(on) {
   const busy = !on && state.playing;
   $("rapidBtn").disabled = busy;
   $("menuBtn").disabled = busy;
-  if (busy) showMenu(false);   // the round closes the menu and any volume bar it holds
+  if (busy) closeBars();       // a round closes the volume bars
 }
 const betKey = () => "smukiez.bet." + RGS.state.currency;
 function rememberBet() { try { localStorage.setItem(betKey(), String(bet())); } catch (e) { /* ignore */ } }
@@ -3299,9 +3375,9 @@ function closePops() { openPop(null); }
 // One bar per bus, each popping up over its own icon and filling from the bottom. Zero is
 // the mute: there is no separate switch, which is why the icon greys out at the bottom of
 // the travel. Values save as the bar moves, so a drag that is never released still sticks.
-const BUSES = [
-  { key: "sfx",   btn: "soundBtn", pop: "sfxPop",   bar: "sfxBar"   },
-  { key: "music", btn: "musicBtn", pop: "musicPop", bar: "musicBar" },
+const BUSES = [   // both hang off the one speaker button, sound to its left and music to its right
+  { key: "sfx",   btn: "audioBtn", pop: "sfxPop",   bar: "sfxBar",   dx: -30 },
+  { key: "music", btn: "audioBtn", pop: "musicPop", bar: "musicBar", dx:  30 },
 ];
 function saveVol() { try { localStorage.setItem("smukiez.vol", JSON.stringify(vol)); } catch (e) { /* ignore */ } }
 function paintVol() {
@@ -3311,8 +3387,8 @@ function paintVol() {
     bar.querySelector(".vfill").style.height = v + "%";
     bar.setAttribute("aria-valuenow", v);
     bar.setAttribute("aria-valuetext", v + "%");
-    $(b.btn).classList.toggle("off", v === 0);
   }
+  $("audioBtn").classList.toggle("off", BUSES.every(b => vol[b.key] === 0));   // greyed only when everything is at zero
 }
 function setVol(key, v) {
   vol[key] = Math.max(0, Math.min(100, Math.round(v)));
@@ -3326,7 +3402,7 @@ function setVol(key, v) {
 // controls it would actually land on, so on one row it still hugs the icon.
 // Every measurement is a rect divided back out by the page's fit-to-screen scale, since
 // `left` and `bottom` are layout lengths and rects are not.
-function placePop(pop, btn) {
+function placePop(pop, btn, dx = 0) {   // dx: a layout-px nudge sideways, for two pops over one button
   const row = document.querySelector(".bottom");
   if (!row || !pop || !btn) return;
   const rr = row.getBoundingClientRect(), br = btn.getBoundingClientRect();
@@ -3337,7 +3413,7 @@ function placePop(pop, btn) {
   // off the side of the screen.
   const margin = 10 * k;
   const lo = rr.left + half + margin, hi = rr.right - half - margin;
-  let cx = br.left + br.width / 2;
+  let cx = br.left + br.width / 2 + dx * k;
   if (lo <= hi) cx = Math.max(lo, Math.min(hi, cx));
   const left = ((cx - rr.left) / k) + "px";
   // Rise clear of the button, and of anything stacked over it that the pop would land on.
@@ -3360,7 +3436,7 @@ function placePop(pop, btn) {
   if (pop.style.left !== left) pop.style.left = left;        // only write on a real move, so
   if (pop.style.bottom !== bottom) pop.style.bottom = bottom;  // the tracker costs reads only
 }
-const placeBar = b => placePop($(b.pop), $(b.btn));
+const placeBar = b => placePop($(b.pop), $(b.btn), b.dx || 0);
 
 // The row reflows for reasons no resize event reports: the bet figure gets wider, the
 // autoplay counter appears, the spin button swaps for skip. Any of those slides the cluster
@@ -3370,8 +3446,6 @@ let barTrack = 0;
 function trackBars() {
   barTrack = 0;
   let any = false;
-  const menu = $("menuPop");
-  if (menu && !menu.hidden) { placePop(menu, $("menuBtn")); any = true; }
   for (const b of BUSES) {
     if ($(b.pop).hidden) continue;
     placeBar(b);
@@ -3440,44 +3514,25 @@ for (const b of BUSES) {
     else return;
     e.preventDefault();
   });
-  $(b.btn).addEventListener("click", () => {
-    const on = $(b.pop).hidden;
-    showBar(b, on);
-    sfx("toggle");
-    if (on) $(b.bar).focus({ preventScroll: true });
-  });
 }
 // pressing away from the cluster puts every bar back. A pointerdown can be retargeted at a
 // node with no closest() - the document itself, a text node - and that is still "away".
 document.addEventListener("pointerdown", e => {
-  if (barsOpen() && !e.target.closest?.(".vpop, #soundBtn, #musicBtn")) closeBars();
+  if (barsOpen() && !e.target.closest?.(".vpop, #audioBtn")) closeBars();
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
 paintVol();
 
-/* ---------- the three-line button ---------- */
-// Sound, music and information hide behind it rather than sitting on the bar. Closing it
-// takes any open volume bar with it, or a bar would be left floating over nothing.
-function showMenu(on) {
-  const pop = $("menuPop"), btn = $("menuBtn");
-  if (!pop || !btn) return;
-  if (pop.hidden === !on) return;   // already there: no sound, no work
+/* ---------- the speaker button: both volume bars, together ---------- */
+// The three-line button opens the rules (wired with the information panel below). The
+// speaker opens sound and music side by side over itself, and closes them again.
+$("audioBtn").addEventListener("click", () => {
+  const on = !barsOpen();
   sfx(on ? "menuOpen" : "menuClose");
-  pop.hidden = !on;
-  if (on) {
-    placePop(pop, btn);
-    if (!barTrack) barTrack = requestAnimationFrame(trackBars);
-  } else {
-    closeBars();
-  }
-  btn.classList.toggle("open", on);
-  btn.setAttribute("aria-expanded", on ? "true" : "false");
-}
-$("menuBtn").addEventListener("click", () => showMenu($("menuPop").hidden));
-document.addEventListener("pointerdown", e => {
-  if (!$("menuPop").hidden && !e.target.closest?.(".menuslot, .vpop")) showMenu(false);
-}, true);
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("menuPop").hidden) showMenu(false); });
+  for (const b of BUSES) showBar(b, on);
+  if (on) $(BUSES[0].bar).focus({ preventScroll: true });   // the keyboard lands on the first bar
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
 
 /* ---------- rapid ---------- */
 // The lightning bolt is the old TURBO switch. Every piece of timing code still asks the
@@ -3519,7 +3574,7 @@ document.addEventListener("visibilitychange", async () => {
 
 /* ---------- game information ---------- */
 (function info() {
-  const wrap = $("infoWrap"), open = $("infoBtn"), close = $("infoClose");
+  const wrap = $("infoWrap"), open = $("menuBtn"), close = $("infoClose");   // the three-line button
   if (!wrap || !open) return;
   const show = on => {
     if (wrap.hidden === !on) return;
@@ -3680,8 +3735,7 @@ boot();
 /* 2026-09-17 art-button behaviour — additive; wraps setButtons for the skip overlay */
 (function(){
   var spin = document.getElementById("spinBtn"),
-      bonus = document.getElementById("bonusBtn"),
-      skip = document.getElementById("skipBtn");
+      bonus = document.getElementById("bonusBtn");
   if (spin) {
     spin.addEventListener("click", function(){ spin.classList.remove("spun"); void spin.offsetWidth; spin.classList.add("spun"); });
     spin.addEventListener("animationend", function(e){ if (e.animationName === "spin360") spin.classList.remove("spun"); });
@@ -3690,16 +3744,12 @@ boot();
     bonus.addEventListener("click", function(){ bonus.classList.remove("clicked"); void bonus.offsetWidth; bonus.classList.add("clicked"); });
     bonus.addEventListener("animationend", function(e){ if (e.animationName === "btnBounce2") bonus.classList.remove("clicked"); });
   }
-  if (skip) {
-    skip.addEventListener("click", function(ev){ ev.stopPropagation();
-      try { if (state.playing && !state.noSkip) { try { sfx("skip"); } catch(_){} state.skip = true; } } catch(_){} });
-  }
   try {
     if (typeof setButtons === "function") {
       var _orig = setButtons;
-      // skip visibility now tracks the reel spin (shown/hidden in renderReveal); here we only
-      // guarantee it is gone once the round ends.
-      setButtons = function(on){ _orig(on); if (on) { if (skip) skip.classList.remove("show"); if (spin) spin.classList.remove("arrows-away"); } };
+      // the blue arrows track the reel spin (set/cleared in renderReveal); here we only
+      // guarantee they are back to normal once the round ends.
+      setButtons = function(on){ _orig(on); if (on && spin) spin.classList.remove("armed"); };
     }
   } catch(_){}
 })();
