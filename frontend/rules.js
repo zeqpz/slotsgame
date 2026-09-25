@@ -36,7 +36,7 @@ const RULES = (() => {
     H1: "Bag of Cash", H2: "Cartoon Glock", H3: "Gold Chain", H4: "Fresh Kicks", H5: "Boombox",
     H6: "Skateboard", H7: "Limited Drop Box",
     L1: "Spray Can", L2: "Graffiti Markers", L3: "Smukiez Beanie", L4: "Custom Hangtag", L5: "Dice",
-    L6: "Smukiez Shirt", L7: "Hoodie", L8: "Bag of Weed", L9: "Freight Train", L10: "Brick Wall Chunk",
+    L6: "Smukiez Shirt", L7: "Hoodie", L8: "Bag of Weed", L9: "Freight Train", L10: "Lowrider",
   };
   const ORDER = ["H1", "H2", "H3", "H4", "H5", "H6", "H7",
                  "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"];

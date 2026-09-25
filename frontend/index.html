@@ -422,6 +422,8 @@
   .prow .ptext { grid-column: 1 / -1; color: var(--ink); line-height: 1.55; }
   .ptile { width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); background: var(--panel2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--disp); box-sizing: border-box; }
   .ptile.wild { color: var(--spray); }  .ptile.char { color: var(--teal); }
+  .ptile.multi { background: var(--panel2) url("assets/M.png") center / 86% no-repeat; color: var(--fs-green); text-shadow: 0 1px 0 #000, 0 0 4px #000; }
+  .ptile.multi small { color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 3px #000; }
   .ptile span { font-size: 14px; }  .ptile small { font-size: 8px; letter-spacing: .14em; color: var(--ink-soft); }
   .pname { font-weight: 600; }  .pname small { display: block; color: var(--ink-soft); font-weight: 400; font-size: 10px; letter-spacing: .12em; }
   /* six cluster-size tiers per symbol, laid out as two rows of three so the columns line up */
@@ -561,10 +563,13 @@
   }
   /* The Multi. Until its art lands it is the sprayed box with its value set into it; the
      value is the whole point of the symbol, so it is the tile. */
-  .cell.booster { background: url("assets/ui_box.png") center / 100% 100% no-repeat; border-color: transparent; }
+  /* the Multi is the brick chunk with its value painted over the bricks */
+  .cell.booster { background: transparent; border-color: transparent; }
   .cell.booster .multface {
-    position: relative; z-index: 1; font-family: var(--num); font-size: 26px; line-height: 1;
-    color: var(--heat, var(--fs-green)); text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 10px var(--heat, var(--fs-green));
+    position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center;
+    font-family: var(--num); font-size: 30px; line-height: 1;
+    color: var(--heat, var(--fs-green));
+    text-shadow: 0 2px 0 rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.9), 0 0 12px var(--heat, var(--fs-green));
   }
   /* it blows out: the Multi itself, then the four cells it hits */
   .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
@@ -1350,7 +1355,7 @@
 // a multiplier as the player should read it: 1.25, 5, 1000 - never 5.00
 const fmtMult = v => String(+(+v).toFixed(2));
 const SYM = {
-  M:  { label: "MULTI", sub: "",           cls: "booster" },
+  M:  { label: "MULTI", sub: "",           cls: "booster", img: "assets/M.png" },   // the brick chunk, its value over it
   BS: { label: "CREW",  sub: "BONUS",      cls: "scat",  img: "assets/BS.png" },
   ES: { label: "PHNTM", sub: "EXTREME",    cls: "escat", img: "assets/ES.png" },
   H1: { label: "CASH",  sub: "BAG",        cls: "high", img: "assets/H1.png" },
@@ -1369,7 +1374,7 @@ const SYM = {
   L7: { label: "HOODIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/L7.png" },
   L8: { label: "WEED",  sub: "BAG",        cls: "low",  img: "assets/L8.png" },
   L9: { label: "TRAIN", sub: "FREIGHT",    cls: "low",  img: "assets/L9.png" },
-  L10:{ label: "BRICK", sub: "WALL",       cls: "low",  img: "assets/L10.png" },
+  L10:{ label: "LOW",   sub: "RIDER",      cls: "low",  img: "assets/L10.png" },
 };
 for (const def of Object.values(SYM)) {   // pre-warm icon cache
   if (def.img) { const i = new Image(); i.src = def.img; }
@@ -1460,6 +1465,11 @@ function fillCell(el, sym) {
   el.innerHTML = "";
   // the Multi shows its value as the tile itself - that number is what the player cares about
   if (def.cls === "booster") {
+    if (def.img) {   // the brick chunk; the value is painted over it
+      const im = document.createElement("img");
+      im.src = def.img; im.alt = def.label; im.draggable = false;
+      el.append(im);
+    }
     const m = document.createElement("div");
     m.className = "multface";
     m.textContent = sym.multiplier ? "x" + fmtMult(sym.multiplier) : def.label;

@@ -67,7 +67,7 @@ Pays are total-bet multiples per cluster, by cluster size, verbatim from `game_c
 | L4 | Hangtag | 0.4 | 1.2 | 2.4 | 6 | 16 | 48 |
 | L5, L6 | Dice, Shirt | 0.4 | 0.8 | 2 | 4.8 | 12 | 40 |
 | L7, L8 | Hoodie, Weed Bag | 0.4 | 0.8 | 1.6 | 4 | 10 | 32 |
-| L9, L10 | Freight Train, Brick Wall | 0.4 | 0.8 | 1.2 | 3.2 | 8 | 24 |
+| L9, L10 | Freight Train, Lowrider | 0.4 | 0.8 | 1.2 | 3.2 | 8 | 24 |
 
 Non-paying: **M** Multi (booster), **BS** Crew Leader (bonus scatter), **ES** The Phantom
 (extreme scatter). **There is no wild.** Every pay is a multiple of 0.4, and every cluster
