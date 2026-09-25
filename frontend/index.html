@@ -410,22 +410,27 @@
      centred on the plate, the words in grey, Start in black */
   #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: var(--plain); }
   #autoPop { text-align: center; }
-  /* black on the plate's grey, lifted off the mottling by a pale halo rather than a shadow */
+  /* black on the plate's grey, and heavy: the stone is mottled, so thin strokes get lost in it */
   #autoPop .poptitle {
-    font-size: 13px; letter-spacing: .12em; color: #0b0a0e; text-transform: uppercase;
+    font-size: 14px; font-weight: 800; letter-spacing: .12em; color: #0b0a0e; text-transform: uppercase;
+    -webkit-text-stroke: .6px #0b0a0e;   /* thicker than the face goes on its own */
+    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  }
+  #autoPop .popsub {
+    font-size: 12px; font-weight: 700; line-height: 1.55; color: #0b0a0e;
+    -webkit-text-stroke: .45px #0b0a0e;
     text-shadow: 0 1px 0 rgba(255,255,255,.45);
   }
-  #autoPop .popsub { font-size: 11px; line-height: 1.55; color: #0b0a0e; text-shadow: 0 1px 0 rgba(255,255,255,.4); }
-  #autoPop .popsub b { color: #000; }
+  #autoPop .popsub b { color: #000; font-weight: 800; }
   #autoPop .autoopts button {
-    background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.3); color: #d6d6d6;
-    font-size: 12px; letter-spacing: .04em;
+    background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.3); color: #fff;
+    font-size: 13px; font-weight: 700; letter-spacing: .04em;
   }
   #autoPop .autoopts button.on { border-color: #fff; color: #fff; }
   #autoPop .infoclose {
     display: inline-block; margin: 0 auto;
     background: #0b0a0e; border-color: #0b0a0e; color: #fff;
-    font-size: 12px; letter-spacing: .14em;
+    font-size: 13px; font-weight: 700; letter-spacing: .14em;
   }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
