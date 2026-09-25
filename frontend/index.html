@@ -406,12 +406,26 @@
     filter: drop-shadow(0 10px 22px rgba(0,0,0,.6));
   }
   #autoPop::after { border-top-color: #1f8fff; }   /* the little arrow, in the plate's blue */
-  #autoPop .poptitle { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.8), 0 0 8px rgba(0,0,0,.7); }
-  #autoPop .popsub { color: #e8e4de; text-shadow: 0 1px 0 rgba(0,0,0,.8); }
-  #autoPop .popsub b { color: var(--gold); }
-  #autoPop .autoopts button { background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.35); color: #fff; }
-  #autoPop .autoopts button.on { border-color: #4fe8ff; color: #4fe8ff; }
-  #autoPop .infoclose { background: #1f8fff; border-color: #1f8fff; color: #fff; }
+  /* a plain face here, not the graffiti one: this panel is read, not admired. Everything
+     centred on the plate, the words in grey, Start in black */
+  #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: var(--plain); }
+  #autoPop { text-align: center; }
+  #autoPop .poptitle {
+    font-size: 13px; letter-spacing: .12em; color: #d6d6d6; text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(0,0,0,.75);
+  }
+  #autoPop .popsub { font-size: 11px; line-height: 1.55; color: #cfcfcf; text-shadow: 0 1px 0 rgba(0,0,0,.7); }
+  #autoPop .popsub b { color: #f0f0f0; }
+  #autoPop .autoopts button {
+    background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.3); color: #d6d6d6;
+    font-size: 12px; letter-spacing: .04em;
+  }
+  #autoPop .autoopts button.on { border-color: #fff; color: #fff; }
+  #autoPop .infoclose {
+    display: inline-block; margin: 0 auto;
+    background: #0b0a0e; border-color: #0b0a0e; color: #fff;
+    font-size: 12px; letter-spacing: .14em;
+  }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .popover .autoopts { margin: 0 0 10px; }
