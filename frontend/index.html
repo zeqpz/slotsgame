@@ -1269,10 +1269,12 @@
   .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: 1060px; }
   .hud .bonusbtn { margin-right: 10px; }
   .hudstack { display: flex; flex-direction: column; gap: 0; }
-  .hudstack.left { align-items: flex-end; margin-right: -3px; position: relative; z-index: 1; }
-  .hudstack.right { align-items: flex-start; margin-left: -5px; }
+  .hudstack.left { align-items: flex-end; margin-right: -6px; position: relative; z-index: 1; }
+  .hudstack.right { align-items: flex-start; margin-left: -8px; }
+  /* the outer plates are slanted: stacked, the two on each side make a chevron - the point
+     outward, the notch nesting against the long plate or the hexagon */
   .hudbtn, .sidebtn {
-    position: relative; width: 60px; height: 46px; padding: 0; border: 0; font-size: 0; color: transparent;
+    position: relative; width: 82px; height: 37px; padding: 0; border: 0; font-size: 0; color: transparent;
     background: none; background-size: contain; background-repeat: no-repeat; background-position: center;
     cursor: pointer; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
