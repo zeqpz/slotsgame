@@ -1287,7 +1287,11 @@
   .hudbtn.open { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
   .hudbtn.off  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }   /* sound and music both at zero */
   .sidebtn.on  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
-  .hudbtn:disabled, .sidebtn:disabled, .sidebtn.on:disabled { filter: grayscale(.95) brightness(.7); opacity: .6; cursor: default; }
+  /* nothing greys during a round: a button that cannot act simply does not act */
+  .hudbtn:disabled, .sidebtn:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+  .sidebtn.on:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
+  .bonusbtn:disabled { opacity: 1; }
+  .bonusbtn:disabled::after { animation-play-state: running; }
   .sidebtn #autoN { right: -3px; top: -5px; }
   /* the long plate: its rounded ends are cut from the art and kept at their own width, the
      middle stretches to whatever the figures need */
@@ -1325,7 +1329,7 @@
   #betDown { background-image: url("assets/hud_minus.png"); }
   .betstep button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
   .betstep button:active:not(:disabled) { transform: scale(.9); }
-  .betstep button:disabled { filter: grayscale(.9) brightness(.7); opacity: .6; cursor: default; }
+  .betstep button:disabled { cursor: default; opacity: 1; }   /* the page-wide disabled dimming does not apply here */
   /* the spin hexagon, our arrows inside it; while the reels are in the air the arrows turn
      blue, because the press is a skip until the board is in */
   .spinwrap { margin-left: -40px; position: relative; z-index: 2; }   /* over the plate's right end */
@@ -1334,12 +1338,12 @@
   .spinbtn::after {
     inset: 26% 27%;
     background: url("assets/spin_btn_arrows.png") center / contain no-repeat;
-    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
-    transition: scale .18s cubic-bezier(.3,.9,.4,1.3), filter .25s ease;
-  }
-  .spinbtn.armed::after {
+    /* blue, always; and still - no idle drift, only the turn on the press */
     filter: hue-rotate(140deg) saturate(1.5) brightness(1.1) drop-shadow(0 0 8px rgba(79,232,255,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    animation: none;
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
   }
+  .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55,.05,.15,1); }
   /* the two volume bars sit side by side over the speaker, each with its name under it */
   .vpop .vlbl {
     display: block; margin-top: 6px; text-align: center;
@@ -1914,11 +1918,6 @@ function dropReel(r, ev, wait, inExtra = 0) {
 async function renderReveal(ev) {
   clearFx();
   bounceFx();   // background bounce + board pop on every reveal, free spins included
-  // the arrows are blue only while the reels are actually in the air - back to normal the
-  // moment they land (a beat before the win tally finishes), and blue again for each free spin.
-  if (state.playing && !state.noSkip && !state.skip) {
-    document.getElementById("spinBtn").classList.add("armed");   // the arrows turn blue: the press is a skip now
-  }
   for (let r = 0; r < REELS; r++) state.pad[r] = ev.board[r][0];   // the row above the board: first to fall in on a tumble
   shownStop = ev.paddingPositions ? ev.paddingPositions.slice() : null;
 
@@ -1937,7 +1936,6 @@ async function renderReveal(ev) {
   const hushReels = (!state.skip && !REDUCED_MOTION) ? reelSfx(revealMs) : () => {};
   await Promise.all(reelEls.map((_, r) => dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra)));
   hushReels();   // a skipped reveal cuts it short; a full one has already faded out
-  document.getElementById("spinBtn").classList.remove("armed");   // the board is in: the press is a spin again
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
@@ -3747,9 +3745,7 @@ boot();
   try {
     if (typeof setButtons === "function") {
       var _orig = setButtons;
-      // the blue arrows track the reel spin (set/cleared in renderReveal); here we only
-      // guarantee they are back to normal once the round ends.
-      setButtons = function(on){ _orig(on); if (on && spin) spin.classList.remove("armed"); };
+      setButtons = function(on){ _orig(on); };
     }
   } catch(_){}
 })();
