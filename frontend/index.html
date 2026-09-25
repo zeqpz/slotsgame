@@ -275,6 +275,72 @@
   @media (prefers-reduced-motion: reduce) {
     .bonusintro, .bonusintro .wall, .bonusintro .inner, .bonusintro .bcont { transition: none !important; animation: none !important; }
   }
+  /* ---------- features screen ---------- */
+  /* Before the game shows: three plates over the wall and nothing else - no board, no
+     characters, no bar. The Multi with its value climbing and warming, the Crew Leader and
+     the Phantom, and what each one does. They drift; the one under the mouse comes forward.
+     The wall is the real one behind the game: the game itself is faded out beneath. */
+  body.features-fade #app, body.features-fade .charfx { transition: opacity .7s ease; }
+  body.features-up #app, body.features-up .charfx { opacity: 0; }
+  .features {
+    position: fixed; inset: 0; z-index: 58; overflow: auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4vh;
+    padding: 4vh 4vw 11vh; cursor: pointer; user-select: none;
+    opacity: 0; transition: opacity .6s ease;
+  }
+  .features.up { opacity: 1; }
+  .features.gone { opacity: 0; pointer-events: none; }
+  .fboxes { display: flex; gap: 2.4vw; align-items: stretch; justify-content: center; flex-wrap: wrap; }
+  .fbox {
+    position: relative; width: clamp(210px, 26vw, 340px); aspect-ratio: 560 / 716; flex: none; container-type: inline-size;
+    background: url("assets/feature_box.png") center / 100% 100% no-repeat;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,.65));
+    transition: scale .25s cubic-bezier(.2,.9,.3,1.3), filter .25s ease;
+    animation: fdrift 4.6s ease-in-out infinite;
+  }
+  .fbox:nth-child(2) { animation-delay: -1.5s; }
+  .fbox:nth-child(3) { animation-delay: -3s; }
+  .fbox:hover {
+    scale: 1.09; z-index: 2; animation-play-state: paused;
+    filter: drop-shadow(0 16px 26px rgba(0,0,0,.75)) drop-shadow(0 0 22px rgba(79,232,255,.55));
+  }
+  @keyframes fdrift { 0%, 100% { translate: 0 0; rotate: -1.2deg; } 50% { translate: 0 -12px; rotate: 1.2deg; } }
+  /* percentages here are of the plate itself, so the band and the frayed edge stay clear */
+  .fbox .fin {
+    position: absolute; left: 13%; right: 13%; top: 10%; bottom: 10%; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center;
+  }
+  .fbox .ficon { position: relative; width: 46%; aspect-ratio: 1; flex: none; display: flex; align-items: center; justify-content: center; }
+  .fbox .ficon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,.6)); }
+  /* the Multi's value over the bricks: the number font, the heat colour, a pop at each step */
+  .fbox .fmult {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: var(--num); font-size: 13cqw; line-height: 1;
+    color: var(--heat, var(--fs-green));
+    text-shadow: 0 2px 0 rgba(0,0,0,.9), 0 0 5px rgba(0,0,0,.9), 0 0 14px var(--heat, var(--fs-green));
+    transition: color .35s ease, text-shadow .35s ease;
+  }
+  .fbox .fmult.tick { animation: fmultpop .38s cubic-bezier(.2,.9,.3,1.3); }
+  @keyframes fmultpop { 0% { scale: .7; } 55% { scale: 1.22; } 100% { scale: 1; } }
+  .fbox h3 {
+    margin: 2.5cqw 0 1.5cqw; font-family: var(--disp); font-size: 6cqw; letter-spacing: .04em; text-transform: uppercase; line-height: 1.1;
+    color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.8), 0 0 10px rgba(0,0,0,.6);
+  }
+  .fbox p {
+    margin: 0; font-family: var(--legible); font-size: 4.3cqw; line-height: 1.35;
+    color: #f4f0ea; text-shadow: 0 1px 0 rgba(0,0,0,.85), 0 0 5px rgba(0,0,0,.75);
+  }
+  .fbox p b { font-family: var(--num); color: var(--gold); font-size: 1.12em; }
+  .features .fcont {
+    position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
+    font-family: var(--disp); font-size: clamp(16px, 2.6vh, 24px); letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.8);
+    animation: bcont 1.5s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fbox, .fbox .fmult, .features .fcont { animation: none !important; }
+    body.features-fade #app, body.features-fade .charfx, .features { transition: none !important; }
+  }
   .intrologo {
     max-width: min(620px, 74vw); width: 100%; height: auto;
     opacity: 0; transition: opacity .9s ease, transform .9s ease; transform: scale(.94);
@@ -3074,6 +3140,78 @@ function runIntro() {
   after(10000, finish);
 }
 runIntro();
+
+/* ---------- features screen ---------- */
+// Before the game shows: three plates over the wall and nothing else - no board, no
+// characters, no bar. The Multi with its value climbing the table and warming with it, the
+// Crew Leader and the Phantom, and what each one does. They drift; the one under the mouse
+// comes forward. It fades up as the opening screen goes, and a click (or Space / Enter)
+// fades the plates out and the game in. A replay is a viewer, so it never shows this.
+const FEATURE_VALUES = [1.25, 2, 3, 5, 10, 20, 50, 100, 250, 500, 1000];
+let featuresDone = Promise.resolve();
+function runFeatures() {
+  if (RGS.replayParams().replay) return;
+  let settle;
+  featuresDone = new Promise(r => { settle = r; });
+  document.body.classList.add("features-up", "features-fade");   // the game waits, faded out, beneath
+  const wrap = document.createElement("div");
+  wrap.className = "features";
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-label", T("How the game works"));
+  const box = (icon, title, text) => `<div class="fbox"><div class="fin"><div class="ficon">${icon}</div><h3>${title}</h3><p>${text}</p></div></div>`;
+  wrap.innerHTML =
+    `<div class="fboxes">` +
+      box(`<img src="${SYM.M.img}" alt="${T("Multi")}" draggable="false"><div class="fmult" id="featMult">x${fmtMult(FEATURE_VALUES[0])}</div>`,
+        T("Multi"),
+        T(`Lands with a value from <b>x1.25</b> to <b>x1000</b>. Every winning cluster is paid first; then it blows out and leaves its value on five cells. A cluster on those cells is multiplied by the <b>sum</b> it covers, and values that meet add up. In a bonus they stay for the whole feature.`)) +
+      box(`<img src="${SYM.BS.img}" alt="${T("Crew Leader")}" draggable="false">`,
+        T("Crew Leader \u00b7 Bonus"),
+        T(`<b>3</b>, <b>4</b> or <b>5</b> anywhere award <b>10</b>, <b>12</b> or <b>15</b> free spins. Multis land more often, and every value one leaves stays on the board for the whole bonus. Every winning spin adds a tag to the Tag Meter: <b>4</b> tags pay <b>+3</b> spins.`)) +
+      box(`<img src="${SYM.ES.img}" alt="${T("The Phantom")}" draggable="false">`,
+        T("The Phantom \u00b7 Extreme"),
+        T(`<b>2</b> anywhere award <b>17</b> free spins under Extreme rules: Multis land more often still and every value is <b>x2</b> or more. A Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme. Tag Meter: <b>3</b> tags pay <b>+3</b> spins.`)) +
+    `</div>` +
+    `<div class="fcont">${T("Click to play")}</div>`;
+  document.body.appendChild(wrap);
+  // the Multi's value climbs the table and warms with it, round and round
+  const face = wrap.querySelector("#featMult");
+  let vi = 0;
+  face.style.setProperty("--heat", heatColour(FEATURE_VALUES[0]));
+  const multTimer = setInterval(() => {
+    vi = (vi + 1) % FEATURE_VALUES.length;
+    const v = FEATURE_VALUES[vi];
+    face.textContent = "x" + fmtMult(v);
+    face.style.setProperty("--heat", heatColour(v));
+    face.classList.remove("tick"); void face.offsetWidth; face.classList.add("tick");
+  }, REDUCED_MOTION ? 1400 : 720);
+  introDone.then(() => requestAnimationFrame(() => wrap.classList.add("up")));   // it fades up as the opening screen goes
+  let done = false;
+  const finish = () => {
+    if (done || !wrap.classList.contains("up")) return;   // not before it has shown
+    done = true;
+    clearInterval(multTimer);
+    document.removeEventListener("keydown", onKey, true);
+    sfx("bet", 1.1);
+    wrap.classList.add("gone");                        // the plates fade out
+    document.body.classList.remove("features-up");    // and the game fades in beneath them
+    setTimeout(() => {
+      wrap.remove();
+      document.body.classList.remove("features-fade");
+      fitToScreen();
+      settle();
+    }, 800);
+  };
+  const onKey = e => {
+    if (e.code !== "Space" && e.code !== "Enter") return;
+    if (!wrap.classList.contains("up")) return;
+    e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
+    finish();
+  };
+  wrap.addEventListener("click", finish);
+  document.addEventListener("keydown", onKey, true);
+}
+runFeatures();
+introDone = introDone.then(() => featuresDone);   // a resumed round waits for this screen too
 
 /* ---------- bonus intro ---------- */
 // The bonus lands: the game fades to black, the wall comes up with the BONUS lettering, the
