@@ -283,16 +283,22 @@
   body.features-fade #app, body.features-fade .charfx { transition: opacity .7s ease; }
   body.features-up #app, body.features-up .charfx { opacity: 0; }
   .features {
-    position: fixed; inset: 0; z-index: 58; overflow: auto;
+    position: fixed; inset: 0; z-index: 58;
+    /* never sideways: a plate's drift tilts it a degree past its box, and that alone would
+       put a scrollbar along the bottom. Down the page only, and only if it is ever needed */
+    overflow-x: hidden; overflow-y: auto;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4vh;
+    justify-content: safe center;   /* tall content grows downward, where it can be reached */
     padding: 4vh 4vw 11vh; cursor: pointer; user-select: none;
     opacity: 0; transition: opacity .6s ease;
   }
   .features.up { opacity: 1; }
   .features.gone { opacity: 0; pointer-events: none; }
-  .fboxes { display: flex; gap: 2.4vw; align-items: stretch; justify-content: center; flex-wrap: wrap; }
+  /* the row is as wide as the screen gives it, so the plates wrap when they must rather than
+     running off the side (a centred flex item is otherwise as wide as its contents) */
+  .fboxes { display: flex; gap: 2.4vw; align-items: stretch; justify-content: center; flex-wrap: wrap; width: 100%; }
   .fbox {
-    position: relative; width: clamp(210px, 26vw, 340px); aspect-ratio: 560 / 716; flex: none; container-type: inline-size;
+    position: relative; width: clamp(150px, 26vw, 340px); aspect-ratio: 560 / 716; flex: none; container-type: inline-size;
     background: url("assets/feature_box.png") center / 100% 100% no-repeat;
     filter: drop-shadow(0 10px 18px rgba(0,0,0,.65));
     transition: scale .25s cubic-bezier(.2,.9,.3,1.3), filter .25s ease;
@@ -1267,7 +1273,9 @@
      hexagon rides over the plate's right end, and Rapid and Auto sit on each other against it;
      only the Bonus button, first on the row, keeps a little air */
   .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: 1060px; }
-  .hud .bonusbtn { margin-right: 10px; }
+  /* the Bonus button sits in the corner, out of the row, so the bar itself is what is
+     centred on the screen rather than the row plus a button on one side of it */
+  .hud .bonusbtn { position: absolute; left: 16px; bottom: 14px; margin: 0; }
   .hudstack { display: flex; flex-direction: column; gap: 0; }
   .hudstack.left { align-items: flex-end; margin-right: -46px; position: relative; z-index: 1; }   /* over the plate's left end */
   .hudstack.right { align-items: flex-start; margin-left: -26px; }   /* its notch on the hexagon's point */
