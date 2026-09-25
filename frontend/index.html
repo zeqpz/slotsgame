@@ -1315,7 +1315,10 @@
   }
   .hudstat.bet { align-items: flex-end; }
   .hudstat.bet .val, #betVal { text-align: right; }
-  .stat .val.up { color: var(--fs-green); } .stat .val.down { color: var(--spray); }   /* the flash on a change keeps its colours */
+  /* the balance flashes green on the way up and red on the way down; the id rule above sets
+     the figure white, so these outrank it by id too */
+  #balance.up   { color: var(--fs-green); text-shadow: 0 2px 0 #000, 0 0 10px rgba(168,240,0,.7); }
+  #balance.down { color: #ff3b3b;         text-shadow: 0 2px 0 #000, 0 0 10px rgba(255,59,59,.7); }
   .hudbar .chip.juris { background: rgba(0,0,0,.35); padding: 4px 9px; }
   .hudbet { display: flex; align-items: center; gap: 8px; }
   .betstep { display: flex; flex-direction: column; gap: 3px; }
