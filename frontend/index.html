@@ -169,7 +169,7 @@
   }
   .chip[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
   .chip .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .2em; color: var(--ink-soft); text-transform: uppercase; }
-  #balanceLbl { font-family: var(--label); font-size: 12px; letter-spacing: .1em; }
+  #balanceLbl { font-family: var(--label); }   /* size and tracking come from .hudstat .lbl, as Bet's does */
   /* the graffiti face sets numerals tight enough that they read as one blob — tracking
      them apart is what makes the figures legible at this size */
   .stat .val {
@@ -1286,9 +1286,11 @@
   .sidebtn::before { content: none; }   /* the bolt and the play arrow are in the art */
   .hudbtn:hover:not(:disabled), .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
   .hudbtn:active:not(:disabled), .sidebtn:active:not(:disabled) { transform: scale(.93); }
-  .hudbtn.open { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
-  .hudbtn.off  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }   /* sound and music both at zero */
-  .sidebtn.on  { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
+  .hudbtn.open, .hudbtn.open:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
+  /* sound and music both at zero. Named with :hover too, or the plainer hover rule - which is
+     the more specific of the two and sets the same property - lights the plate back up */
+  .hudbtn.off, .hudbtn.off:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }
+  .sidebtn.on, .sidebtn.on:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
   /* nothing greys during a round: a button that cannot act simply does not act */
   .hudbtn:disabled, .sidebtn:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
   .sidebtn.on:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
@@ -1337,9 +1339,19 @@
   .betstep button:disabled { cursor: default; opacity: 1; }   /* the page-wide disabled dimming does not apply here */
   /* the spin hexagon, our arrows inside it; while the reels are in the air the arrows turn
      blue, because the press is a skip until the board is in */
-  .spinwrap { margin-left: -40px; position: relative; z-index: 2; }   /* over the plate's right end */
-  .spinbtn { width: 108px; height: 94px; }
-  .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5)); }
+  .spinwrap {
+    margin-left: -40px; position: relative; z-index: 2;   /* over the plate's right end */
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));        /* outside the clip, so the plate keeps its shadow */
+    pointer-events: none;   /* the wrapper's corners are over the chevrons: only the hexagon catches a press */
+  }
+  .spinwrap .spinbtn { pointer-events: auto; }
+  /* the corners of this box lie over the Rapid and Auto plates: clip the button to the
+     hexagon so a press on their art is theirs, not a spin */
+  .spinbtn {
+    width: 108px; height: 94px;
+    clip-path: polygon(24.4% 0, 75.6% 0, 100% 50%, 75.6% 100%, 24.4% 100%, 0 50%);
+  }
+  .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; }
   .spinbtn::after {
     inset: 26% 27%;
     background: url("assets/spin_btn_arrows.png") center / contain no-repeat;
@@ -1355,11 +1367,11 @@
     font-family: var(--label); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
     color: #fff; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
   }
-  body.replay .betstep { display: none; }
-  @media (max-width: 640px) {
-    .hudbar { min-width: 0; width: 100%; }
-    .hudstat .val, #balance, #betVal { font-size: 20px; }
-  }
+  /* the viewer has no spin button, so the wrapper goes with it - its pull would drag the
+     Rapid plate over the bar's end - and the right stack sits against the bar instead */
+  body.replay .betstep, body.replay .spinwrap { display: none; }
+  body.replay .hudstack.right { margin-left: 0; }
+  body.replay .hudbar { padding-right: 24px; }
 </style>
 </head>
 <body>
@@ -2740,6 +2752,7 @@ function closeBonus() {
 function openBonus() {
   if (REPLAY || !RGS.state.authenticated || state.playing) return;
   if (!$("bonusWrap").hidden) { closeBonus(); return; }   // the same button closes it
+  closeBars();   // the panel covers the bar: the volume bars go with it
   $("bonusWrap").hidden = false;
   $("bonusBtn").classList.add("open");
   sfx("menuOpen");
@@ -2828,6 +2841,7 @@ function confirmAuto() {
     let n = Number(opts.querySelector(".on").dataset.n);
     $("autoBet").textContent = fmt(bet());
     $("autoText").firstChild.textContent = T("Rounds at ");
+    closeBars();   // the picker opens over the bar: the volume bars go with it
     openPop("autoPop");
     sfx("menuOpen");
     $("autoYes").focus();
@@ -3465,7 +3479,13 @@ function showBar(b, on) {
   $(b.btn).classList.toggle("open", on);
   $(b.btn).setAttribute("aria-expanded", on ? "true" : "false");
 }
-function closeBars() { for (const b of BUSES) showBar(b, false); }
+// `restore` hands focus back to the speaker: closing the bars puts the slider that had it
+// into display:none, and the browser would otherwise drop focus on the body.
+function closeBars(restore) {
+  const had = barsOpen() && document.activeElement && document.activeElement.closest?.(".vpop");
+  for (const b of BUSES) showBar(b, false);
+  if (restore && had) $("audioBtn").focus({ preventScroll: true });
+}
 function barsOpen() { return BUSES.some(b => !$(b.pop).hidden); }
 
 for (const b of BUSES) {
@@ -3523,7 +3543,7 @@ for (const b of BUSES) {
 document.addEventListener("pointerdown", e => {
   if (barsOpen() && !e.target.closest?.(".vpop, #audioBtn")) closeBars();
 }, true);
-document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(true); });
 paintVol();
 
 /* ---------- the speaker button: both volume bars, together ---------- */
@@ -3532,10 +3552,9 @@ paintVol();
 $("audioBtn").addEventListener("click", () => {
   const on = !barsOpen();
   sfx(on ? "menuOpen" : "menuClose");
-  for (const b of BUSES) showBar(b, on);
-  if (on) $(BUSES[0].bar).focus({ preventScroll: true });   // the keyboard lands on the first bar
+  if (on) { for (const b of BUSES) showBar(b, true); $(BUSES[0].bar).focus({ preventScroll: true }); }   // the keyboard lands on the first bar
+  else closeBars(true);
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && barsOpen()) closeBars(); });
 
 /* ---------- rapid ---------- */
 // The lightning bolt is the old TURBO switch. Every piece of timing code still asks the
@@ -3581,9 +3600,16 @@ document.addEventListener("visibilitychange", async () => {
   if (!wrap || !open) return;
   const show = on => {
     if (wrap.hidden === !on) return;
-    if (on) $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
+    if (on) {
+      closeBars();   // the panel covers the bar: the volume bars go with it
+      $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
+    }
     wrap.hidden = !on;
     sfx(on ? "menuOpen" : "menuClose");
+    // the panel is modal: the keyboard belongs inside it while it is up, and back on the
+    // button that opened it once it is gone
+    if (on) close.focus({ preventScroll: true });
+    else if (!open.disabled) open.focus({ preventScroll: true });
   };
   open.addEventListener("click", () => show(true));
   close.addEventListener("click", () => show(false));
