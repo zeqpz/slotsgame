@@ -410,18 +410,19 @@
      centred on the plate, the words in grey, Start in black */
   #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: var(--plain); }
   #autoPop { text-align: center; }
-  /* black on the plate's grey, and heavy: the stone is mottled, so thin strokes get lost in it */
+  /* white cut out of a black outline: the stone is mottled, and an outline holds the letters
+     apart from it wherever the grey runs light or dark */
   #autoPop .poptitle {
-    font-size: 14px; font-weight: 800; letter-spacing: .12em; color: #0b0a0e; text-transform: uppercase;
-    -webkit-text-stroke: .6px #0b0a0e;   /* thicker than the face goes on its own */
-    text-shadow: 0 1px 0 rgba(255,255,255,.5);
+    font-size: 14px; font-weight: 800; letter-spacing: .12em; color: #fff; text-transform: uppercase;
+    -webkit-text-stroke: 2.4px #000; paint-order: stroke fill;   /* the stroke is painted under the letter */
+    text-shadow: 0 2px 0 rgba(0,0,0,.6);
   }
   #autoPop .popsub {
-    font-size: 12px; font-weight: 700; line-height: 1.55; color: #0b0a0e;
-    -webkit-text-stroke: .45px #0b0a0e;
-    text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    font-size: 12px; font-weight: 700; line-height: 1.55; color: #fff;
+    -webkit-text-stroke: 1.8px #000; paint-order: stroke fill;
+    text-shadow: 0 1px 0 rgba(0,0,0,.6);
   }
-  #autoPop .popsub b { color: #000; font-weight: 800; }
+  #autoPop .popsub b { color: #fff; font-weight: 800; }
   #autoPop .autoopts button {
     background: rgba(12, 10, 16, .72); border-color: rgba(255,255,255,.3); color: #fff;
     font-size: 13px; font-weight: 700; letter-spacing: .04em;
