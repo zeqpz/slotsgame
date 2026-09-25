@@ -543,21 +543,18 @@
   .banner.epic .big { color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.75), 0 0 22px rgba(0,0,0,.9), 0 0 40px rgba(240,86,139,1), 0 0 70px rgba(240,86,139,.8); }
 
   /* main — slots front and center, info cards beneath */
-  .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 112px 20px 22px; align-items: center; }
-  .stage { position: relative; padding-bottom: 104px; }   /* the frame's bottom drips hang a little past this */
+  .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 64px 20px 22px; align-items: center; }
+  .stage { position: relative; padding-bottom: 44px; }   /* a breath under the outline before the rail */
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
     position: relative; display: flex; gap: var(--cell-gap); padding: 30px 34px;   /* the frame's bands never touch an icon */
   }
-  /* top/height are independent: the overall size stays, the frame just sits higher so its
-     bottom drips don't hang low under the board. The art's opening runs from 13% to 81% of
-     its height, so the box is tall enough for seven rows to sit inside it and the top offset
-     puts the opening's edge just above the first row, the way the band used to touch the
-     old top row. */
+  /* the sprayed outline: a thin band that runs 1% to 4% in from the art's edge, so a 10px
+     overhang lands it in the board's own padding, just outside the icons, on every side */
   #paintframe {
-    position: absolute; left: -76px; top: -96px;
-    width: calc(100% + 152px); height: calc(100% + 240px);
+    position: absolute; left: -10px; top: -10px;
+    width: calc(100% + 20px); height: calc(100% + 20px);
     z-index: 3; pointer-events: none; user-select: none;
   }
   .board.pop { animation: boardpop .38s cubic-bezier(.2,.9,.3,1.35); }
