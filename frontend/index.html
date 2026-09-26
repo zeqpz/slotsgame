@@ -478,20 +478,69 @@
     60%  { transform: translateX(-50%) scaleY(1.07); opacity: 1; }
     100% { transform: translateX(-50%) scaleY(1); }
   }
+  /* The bar is the hollow of the sprayed capsule: the box the drag measures and the box the
+     liquid lives in, so the level always sits under the finger. The frame hangs outside it,
+     wider and taller by exactly the band the art carries (17% across, 6% down), which keeps
+     the capsule at its own proportions instead of stretching it. */
   .vbar {
-    position: relative; width: 34px; height: 118px; border-radius: 13px;
-    background: #17161a; overflow: hidden;
-    /* the ring is an outset shadow rather than a border, so the box the fill lives in is
-       exactly the box the drag maths measures - no border to correct for */
-    box-shadow: 0 0 0 2px rgba(0,0,0,.7), 0 12px 28px rgba(0,0,0,.6), inset 0 2px 9px rgba(0,0,0,.75);
+    position: relative; width: 26px; height: 112px;
     cursor: pointer;
     touch-action: none;   /* a vertical drag is the control, not a page scroll */
+    --vdur: .46s;         /* set per change: a rush up takes longer than a drain down */
   }
-  .vbar:focus-visible { outline: 2px solid var(--spray); outline-offset: 4px; }
+  .vbar:focus-visible { outline: none; }
+  .vbar:focus-visible .vframe { filter: drop-shadow(0 0 6px rgba(79,232,255,.9)); }
+  .vwell {
+    position: absolute; inset: 0; border-radius: 999px; overflow: hidden;
+    background: rgba(6, 9, 16, .85);
+    box-shadow: inset 0 3px 8px rgba(0,0,0,.8);
+  }
+  .vframe {
+    position: absolute; inset: -6.6% -26.7%; pointer-events: none;
+    background: url("assets/vol_frame.png") center / 100% 100% no-repeat;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,.6));
+    transform-origin: 50% 90%;   /* it rocks about its foot, the way a filled tube would */
+  }
+  /* the liquid. The texture is pinned to the bottom of the well, so raising the level uncovers
+     more of it rather than stretching what is already there */
   .vfill {
     position: absolute; left: 0; right: 0; bottom: 0; height: 0;
-    border-radius: 11px; background: linear-gradient(180deg, #f7e9c6, #ecd49c);
+    background: url("assets/vol_fill.png") center bottom / 100% 150px no-repeat;
     pointer-events: none;   /* every pointer event belongs to the bar itself */
+    transition: height var(--vdur) cubic-bezier(.18, 1.3, .32, 1);
+  }
+  /* its surface: a bright meniscus that swells as the level moves and settles flat after */
+  .vfill::after {
+    content: ""; position: absolute; left: -10%; right: -10%; top: -5px; height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 60%, rgba(190, 245, 255, .95), rgba(120, 200, 255, .5) 60%, transparent 72%);
+  }
+  .vfill::before {   /* a sheen down one side, so the tube reads as glass with something in it */
+    content: ""; position: absolute; left: 14%; top: 0; bottom: 0; width: 22%;
+    background: linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,0));
+    border-radius: 999px;
+  }
+  /* a drag tracks the finger: no spring while it is held, the spring comes back on release */
+  .vbar.dragging .vfill { transition: height .07s linear; }
+  /* the slosh: the surface swells and rocks, and the capsule rocks a little with it */
+  .vbar.slosh .vfill::after { animation: vmeniscus calc(var(--vdur) * 1.5) cubic-bezier(.2,.8,.3,1); }
+  .vbar.slosh .vframe { animation: vrock calc(var(--vdur) * 1.5) cubic-bezier(.2,.8,.3,1); }
+  @keyframes vmeniscus {
+    0%   { transform: scaleY(2.2) scaleX(1.06); opacity: 1; }
+    40%  { transform: scaleY(.55) scaleX(1.02); }
+    70%  { transform: scaleY(1.35) scaleX(1); }
+    100% { transform: none; }
+  }
+  @keyframes vrock {
+    0%   { transform: rotate(0deg) translateY(0); }
+    25%  { transform: rotate(1.6deg) translateY(-1.5px); }
+    55%  { transform: rotate(-1.1deg) translateY(.5px); }
+    80%  { transform: rotate(.5deg) translateY(0); }
+    100% { transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vfill { transition: none; }
+    .vbar.slosh .vfill::after, .vbar.slosh .vframe { animation: none; }
   }
   @media (max-width: 620px) {
     .bottom { gap: 10px; padding: 12px 12px; }
@@ -1422,8 +1471,8 @@
   .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55,.05,.15,1); }
   /* the two volume bars sit side by side over the speaker, each with its name under it */
   .vpop .vlbl {
-    display: block; margin-top: 6px; text-align: center;
-    font-family: var(--label); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    display: block; margin-top: 8px; text-align: center; white-space: nowrap;
+    font-family: var(--label); font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
     color: #fff; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
   }
   /* the viewer has no spin button, so the wrapper goes with it - its pull would drag the
@@ -1499,12 +1548,12 @@
        over it, sound to the left and music to the right, and are placed from JS. -->
   <div class="vpop" id="sfxPop" hidden>
     <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
-         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vfill"></i></div>
+         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vwell"><i class="vfill"></i></i><i class="vframe"></i></div>
     <span class="vlbl">Sound</span>
   </div>
   <div class="vpop" id="musicPop" hidden>
     <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
-         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vfill"></i></div>
+         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vwell"><i class="vfill"></i></i><i class="vframe"></i></div>
     <span class="vlbl">Music</span>
   </div>
 
@@ -3454,14 +3503,27 @@ function closePops() { openPop(null); }
 // the mute: there is no separate switch, which is why the icon greys out at the bottom of
 // the travel. Values save as the bar moves, so a drag that is never released still sticks.
 const BUSES = [   // both hang off the one speaker button, sound to its left and music to its right
-  { key: "sfx",   btn: "audioBtn", pop: "sfxPop",   bar: "sfxBar",   dx: -30 },
-  { key: "music", btn: "audioBtn", pop: "musicPop", bar: "musicBar", dx:  30 },
+  { key: "sfx",   btn: "audioBtn", pop: "sfxPop",   bar: "sfxBar",   dx: -36 },
+  { key: "music", btn: "audioBtn", pop: "musicPop", bar: "musicBar", dx:  36 },
 ];
 function saveVol() { try { localStorage.setItem("smukiez.vol", JSON.stringify(vol)); } catch (e) { /* ignore */ } }
+// The liquid rushes up over a longer beat than it drains, and a change big enough to see
+// sets the surface swelling and the capsule rocking. A drag is exempt: it tracks the finger.
+const volShown = {};
 function paintVol() {
   for (const b of BUSES) {
     const v = Math.round(vol[b.key]);
     const bar = $(b.bar);
+    const was = volShown[b.key];
+    volShown[b.key] = v;
+    if (was !== undefined && was !== v && !bar.classList.contains("dragging")) {
+      bar.style.setProperty("--vdur", v > was ? ".5s" : ".26s");   // up is a rush, down is a drain
+      if (Math.abs(v - was) >= 4 && !REDUCED_MOTION) {
+        bar.classList.remove("slosh"); void bar.offsetWidth; bar.classList.add("slosh");
+        clearTimeout(bar._sloshT);
+        bar._sloshT = setTimeout(() => bar.classList.remove("slosh"), 900);
+      }
+    }
     bar.querySelector(".vfill").style.height = v + "%";
     bar.setAttribute("aria-valuenow", v);
     bar.setAttribute("aria-valuetext", v + "%");
@@ -3564,12 +3626,14 @@ for (const b of BUSES) {
     if (dragId === null) return;
     try { bar.releasePointerCapture(dragId); } catch (err) { /* already gone */ }
     dragId = null;
+    bar.classList.remove("dragging");   // the spring is back for whatever moves it next
   };
   bar.addEventListener("pointerdown", e => {
     // primary press only - a right-, middle- or thumb-button press would otherwise write the
     // bus gain and localStorage, and swallow the context menu with it
     if (dragId !== null || !e.isPrimary || e.button !== 0) return;
     dragId = e.pointerId;
+    bar.classList.add("dragging");   // the level tracks the finger, no spring in the way
     try { bar.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
     setVol(b.key, fromY(e));
     e.preventDefault();   // no text selection, no page scroll behind the drag
