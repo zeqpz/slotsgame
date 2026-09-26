@@ -2631,6 +2631,10 @@ const handlers = {
   async updateFreeSpin(ev) {
     state.skip = false;     // skip covers ONE spin: every free spin offers the button again
     state.multiCount = 0;   // each free spin is its own crescendo: the ramp and the alert count start over
+    // nobody presses the button in a bonus, so the spin would otherwise start silently with
+    // the arrows still black: give every free spin the note and the blue a press would give
+    sfx("spin");
+    $("spinBtn").classList.add("armed");
     $("fsNow").textContent = `${ev.amount + 1} / ${ev.total}`;
     state.fsTotal = ev.total;
     await delay(160);
@@ -2769,6 +2773,7 @@ for (const k of Object.keys(RGS_MESSAGE)) RGS_MESSAGE[k] = T(RGS_MESSAGE[k]);
 /** Animate a round's event stream, then settle it. Shared by play, resume and replay —
  *  a replay is watched, not played, so it never touches the wallet (settle: false). */
 async function presentRound(round, { settle = true } = {}) {
+  $("spinBtn").classList.add("armed");   // blue for as long as the round is playing out
   state.totalWin = 0;
   state.tallied = false;
   setRoundWin(0);
@@ -2796,6 +2801,7 @@ async function presentRound(round, { settle = true } = {}) {
 
   const win = typeof round.payout === "number" ? round.payout : Math.round(mult * bet());
   state.skip = false;
+  $("spinBtn").classList.remove("armed");   // the reels are done: back to black
   setRoundWin(win);
 
   // Settle before celebrating: end-round is what actually pays, and its response
@@ -2916,7 +2922,6 @@ async function playRound(mode) {
   state.lastPlayAt = performance.now();
 
   state.playing = true; state.skip = false; state.mode = mode;
-  $("spinBtn").classList.add("armed");   // the arrows go blue for the length of the round
   setButtons(false);
   bounceFx();
   tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
@@ -2941,7 +2946,6 @@ async function playRound(mode) {
   if (left > 0) await new Promise(r => setTimeout(r, left));   // real time: Rapid and Skip do not shorten a legal floor
 
   state.playing = false; state.skip = false;
-  $("spinBtn").classList.remove("armed");   // back to black, the game is waiting again
   setButtons(true);
   return ok;
 }
