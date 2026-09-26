@@ -1153,10 +1153,16 @@
   }
   /* the heading is the painted BONUS lettering. The word stays in the markup at font-size 0
      so a screen reader still announces the dialog; only the eye gets the art. */
+  /* the heading wears the Bonus button's pink box, the lettering sitting on it the same way */
   .bonuspanel h3 {
-    height: 52px; margin: 0 0 18px; font-size: 0; color: transparent;
-    background: url("assets/bonus_btn_text.png") center / contain no-repeat;
+    position: relative; width: 186px; height: 120px; margin: -6px auto 10px;
+    font-size: 0; color: transparent;
+    background: url("assets/bonus_btn_bg.png") center / contain no-repeat;
     filter: drop-shadow(0 4px 7px rgba(0,0,0,.55));
+  }
+  .bonuspanel h3::after {
+    content: ""; position: absolute; inset: 5% 6%;
+    background: url("assets/bonus_btn_text.png") center / contain no-repeat;
   }
   .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   /* Each card is just its scatter: FS for the standard feature, XXFS for extreme. The
