@@ -659,7 +659,8 @@
   .reel.spinning { overflow: hidden; }
   .reel.spinning > .cell { visibility: hidden; }  /* result stays hidden until the overlay lands */
   .reel.tumbling { overflow: hidden; }            /* clip tiles dropping in from above the top row */
-  .reel.antic { border-color: var(--gold); box-shadow: 0 0 16px rgba(245,197,24,.5); }
+  /* the near-miss column: the same rounded corner the multiplier boxes carry */
+  .reel.antic { border-color: var(--gold); border-radius: 14px; box-shadow: 0 0 16px rgba(245,197,24,.5); }
   .spincol {
     position: absolute; top: 3px; left: 3px; width: calc(100% - 6px); z-index: 2;
     display: flex; flex-direction: column; gap: var(--cell-gap); will-change: transform, filter;
