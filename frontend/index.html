@@ -2634,6 +2634,7 @@ const handlers = {
     // nobody presses the button in a bonus, so the spin would otherwise start silently with
     // the arrows still black: give every free spin the note and the blue a press would give
     sfx("spin");
+    turnSpinArrows();
     $("spinBtn").classList.add("armed");
     $("fsNow").textContent = `${ev.amount + 1} / ${ev.total}`;
     state.fsTotal = ev.total;
@@ -2995,6 +2996,13 @@ function setAutoBtn() {
   b.title = b.getAttribute("aria-label");
 }
 let autoStopped = false;   // the press already played the stop; runAuto's exit must not repeat it
+// The arrows turn once at the top of every spin. A press does it in the button's own
+// handler; a spin nobody pressed - a free spin, an autoplay round - asks for it here.
+function turnSpinArrows() {
+  const b = $("spinBtn");
+  if (!b || REDUCED_MOTION) return;
+  b.classList.remove("spun"); void b.offsetWidth; b.classList.add("spun");
+}
 async function runAuto(n) {
   state.auto = n; autoStopped = false; setAutoBtn();
   sfx("autoStart");
@@ -3004,6 +3012,7 @@ async function runAuto(n) {
                                                           // round and this would spin the page frozen)
     if (bet() > state.balance) break;
     state.auto--; setAutoBtn();
+    turnSpinArrows();   // the round is starting; nobody pressed the button for it
     if (!(await playRound("base"))) break;
     if (state.auto > 0) await delay(450);   // a breath between rounds, so each result can be read
   }
