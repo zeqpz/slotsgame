@@ -1254,21 +1254,19 @@
     color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55);
   }
   .bonusbet .amt { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
+  /* the same two the bar's stepper uses, a size up for the panel */
   .bonusbet button {
-    position: relative; width: 40px; height: 40px; padding: 0; border: 0; font-size: 0;
-    background: url("assets/bet_box.png") center / 100% 100% no-repeat;
+    position: relative; width: 38px; height: 38px; padding: 0; border: 0; font-size: 0; color: transparent;
+    background: center / contain no-repeat; cursor: pointer;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
-  .bonusbet button::before {
-    content: ""; position: absolute; left: 50.4%; top: 47.7%; transform: translate(-50%, -50%);
-    background: center / contain no-repeat;
-    filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
-  }
-  #bonusBetDown::before { width: 43%; height: 24%; background-image: url("assets/bet_minus.png"); }
-  #bonusBetUp::before   { width: 37%; height: 37%; background-image: url("assets/bet_plus.png"); }
-  .bonusbet button:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
-  .bonusbet button:active:not(:disabled) { transform: scale(.93); }
-  .bonusbet button:disabled { filter: grayscale(.7); }
+  .bonusbet button::before { content: none; }   /* the glyph is in the art */
+  #bonusBetUp   { background-image: url("assets/hud_plus.png"); }
+  #bonusBetDown { background-image: url("assets/hud_minus.png"); }
+  .bonusbet button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
+  .bonusbet button:active:not(:disabled) { transform: scale(.9); }
+  .bonusbet button:disabled { filter: grayscale(.9) brightness(.7); opacity: .6; cursor: default; }
   .bonusbet .amt {
     font-family: var(--num); font-size: 19px; font-weight: 400; min-width: 132px; text-align: center;
     letter-spacing: .06em; font-variant-numeric: tabular-nums;
