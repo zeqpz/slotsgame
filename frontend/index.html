@@ -276,15 +276,18 @@
     .bonusintro, .bonusintro .wall, .bonusintro .inner, .bonusintro .bcont { transition: none !important; animation: none !important; }
   }
   /* ---------- total win ---------- */
-  /* The bonus is over: everything the player was looking at goes to black in a blink, and
-     the payout stands on its own. Fixed and outside #app, so it is never scaled with it. */
+  /* The bonus is over: the board and the characters step aside in a blink, leaving the same
+     wall the opening screens stand on, and the payout on top of it. Fixed and outside #app,
+     so it is never scaled with it. */
+  body.towin-fade #app, body.towin-fade .charfx { transition: opacity .3s ease; }
+  body.towin-up #app, body.towin-up .charfx { opacity: 0; }
   .totalwin {
-    position: fixed; inset: 0; z-index: 56; background: #000; opacity: 0;
+    position: fixed; inset: 0; z-index: 56; opacity: 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1vh;
     padding: 4vh 4vw; cursor: pointer; user-select: none;
     transition: opacity .28s ease;   /* quick: the tally has just landed */
   }
-  .totalwin.black { opacity: 1; }
+  .totalwin.on { opacity: 1; }
   .totalwin .twin {
     display: flex; flex-direction: column; align-items: center; gap: 0;
     opacity: 0; transform: scale(.82);
@@ -3445,7 +3448,7 @@ function totalWinScreen(amount) {
       `<div class="twcont">${T("Click to continue")}</div>`;
     document.body.appendChild(wrap);
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
-    let phase = 0;   // 0 going to black, 1 up and holding, 2 leaving
+    let phase = 0;   // 0 the game stepping aside, 1 up and holding, 2 leaving
     let autoT = 0;
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
@@ -3459,17 +3462,24 @@ function totalWinScreen(amount) {
       document.removeEventListener("keydown", onKey, true);
       wrap.classList.remove("up");             // the lettering and the sweep fade out
       step(420, () => {
-        $("fsCard").classList.remove("on");     // the counter goes while the black still covers it
+        $("fsCard").classList.remove("on");     // the counter goes while the screen still covers it
         fitToScreen();
         $("fsNow").textContent = "\u2014";
-        wrap.classList.remove("black");
-        step(320, () => { wrap.remove(); resolve(); });
+        wrap.classList.remove("on");
+        document.body.classList.remove("towin-up");   // the game comes back up behind it
+        step(340, () => {
+          wrap.remove();
+          document.body.classList.remove("towin-fade");
+          resolve();
+        });
       });
     };
     wrap.addEventListener("click", go);
     document.addEventListener("keydown", onKey, true);
+    document.body.classList.add("towin-fade");
     void wrap.offsetWidth;                      // flush, so the first change transitions
-    wrap.classList.add("black");
+    document.body.classList.add("towin-up");    // the board and the characters step aside
+    wrap.classList.add("on");
     step(300, () => {
       wrap.classList.add("up");
       phase = 1;
