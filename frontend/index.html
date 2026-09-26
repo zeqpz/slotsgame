@@ -294,7 +294,21 @@
     transition: opacity .4s ease, transform .55s cubic-bezier(.2, 1.25, .3, 1);
   }
   .totalwin.up .twin { opacity: 1; transform: none; }
-  .totalwin .twlogo { width: min(78vw, 720px); height: auto; filter: drop-shadow(0 10px 22px rgba(0,0,0,.75)); }
+  .totalwin .twlogo {
+    width: min(78vw, 720px); height: auto; filter: drop-shadow(0 10px 22px rgba(0,0,0,.75));
+    transition: width .3s ease;
+  }
+  /* each tier lands with a thump rather than a cross-fade */
+  .totalwin .twlogo.hit { animation: twhit .5s cubic-bezier(.2, 1.4, .3, 1); }
+  @keyframes twhit {
+    0%   { transform: scale(.55) rotate(-4deg); opacity: .2; }
+    45%  { transform: scale(1.16) rotate(2deg); opacity: 1; }
+    72%  { transform: scale(.96) rotate(-1deg); }
+    100% { transform: none; }
+  }
+  /* the sweep the figure stands on: purple for a plain total, the bright one once a tier
+     has been reached */
+  .totalwin .twamount.tier { background-image: url("assets/tier_bg.png"); }
   /* the purple sweep, with the figure standing on it */
   .totalwin .twamount {
     position: relative; margin-top: -2vh; padding: 4.5vh 7vw 5vh;
@@ -307,9 +321,9 @@
   .totalwin .twamount img { height: clamp(46px, 13vh, 132px); width: auto; display: block; }
   /* a currency mark the numerals do not carry, set to match them */
   .totalwin .twamount .sym {
-    font-family: var(--num); font-size: clamp(34px, 9.5vh, 96px); line-height: 1; color: #ff2d4f;
-    align-self: center; text-shadow: 0 3px 0 #000, 0 0 3px #000;
-    -webkit-text-stroke: 3px #000; paint-order: stroke fill;
+    font-family: var(--num); font-size: clamp(34px, 9.5vh, 96px); line-height: 1; color: #fff;
+    align-self: center; text-shadow: 0 3px 0 #000;
+    -webkit-text-stroke: 5px #000; paint-order: stroke fill;   /* the numerals wear the same heavy outline */
   }
   .totalwin .twcont {
     position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
@@ -2701,10 +2715,11 @@ const handlers = {
     // profit is measured against what the round cost: a bought bonus that pays less than
     // its price is a loss, and a 40x base trigger is not
     if (cents(ev.amount) <= (MODE_COST[state.mode] || 1) * bet()) charReact("lose");
-    await tallyUp(cents(ev.amount));   // count the payout up before announcing the end
-    state.tallied = true;
+    state.tallied = true;       // the screen does the counting now, so the round must not repeat it
+    state.totalShown = true;
     sfx("bonusEnd");
-    // the total win screen takes it from here: it clears the counter itself, behind the black
+    // the total win screen takes it from here: it counts the payout up and clears the
+    // counter itself, behind its own cover
     await totalWinScreen(cents(ev.amount));
   },
 
@@ -2820,6 +2835,7 @@ async function presentRound(round, { settle = true } = {}) {
   $("spinBtn").classList.add("armed");   // blue for as long as the round is playing out
   state.totalWin = 0;
   state.tallied = false;
+  state.totalShown = false;
   setRoundWin(0);
   state.grid = emptyGrid();
   state.anticipated = false;
@@ -2867,7 +2883,7 @@ async function presentRound(round, { settle = true } = {}) {
     // Tiered celebrations: the moment should scale with the win, and a base-game hit that
     // was never tallied on the board gets its count-up here (bonus rounds tally in freeSpinEnd).
     const tier = mult >= 100 ? ["EPIC WIN", "epic", 2200] : mult >= 40 ? ["MEGA WIN", "mega", 1800] : mult >= 15 ? ["BIG WIN", "gold", 1400] : null;
-    if (tier) {
+    if (tier && !state.totalShown) {   // a bonus has just shown its own, larger, version of this
       charReact("big_win");
       sfx(pickSfx(["jackpotA", "jackpotB"], jackpotMemo));   // alternate alerts at random
       if (!state.tallied) await tallyUp(win);
@@ -3434,6 +3450,14 @@ function numeralRow(text) {
 // The bonus is over and the tally has landed: black takes the board and the characters, the
 // lettering and the sweep come up with the total on them, and a click - or a few seconds -
 // puts the game back.
+// The marks the headline climbs through, in multiples of the bet - the same three the base
+// game has always used, wearing their own lettering here.
+const WIN_TIERS = [
+  { at: 15,  art: "big_win.png",    label: "Big win",    sfx: "alertA" },
+  { at: 40,  art: "mega_win.png",   label: "Mega win",   sfx: "alertB" },
+  { at: 100, art: "xtreme_win.png", label: "Xtreme win", sfx: "jackpotA" },
+];
+for (const t of WIN_TIERS) { const i = new Image(); i.src = "assets/" + t.art; }   // ready before it is wanted
 function totalWinScreen(amount) {
   return new Promise(resolve => {
     const wrap = document.createElement("div");
@@ -3443,13 +3467,13 @@ function totalWinScreen(amount) {
     wrap.innerHTML =
       `<div class="twin">` +
         `<img class="twlogo" src="assets/total_win.png" alt="${T("Total win")}" draggable="false">` +
-        `<div class="twamount">${numeralRow(fmt(amount))}</div>` +
+        `<div class="twamount">${numeralRow(fmt(0))}</div>` +
       `</div>` +
       `<div class="twcont">${T("Click to continue")}</div>`;
     document.body.appendChild(wrap);
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 the game stepping aside, 1 up and holding, 2 leaving
-    let autoT = 0;
+    let autoT = 0, settled = REDUCED_MOTION;   // the count has landed and a press now dismisses
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
       e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
@@ -3457,6 +3481,7 @@ function totalWinScreen(amount) {
     };
     const go = () => {
       if (phase !== 1) return;
+      if (!settled) { settled = true; paint(amount); return; }   // first press lands the figure
       phase = 2;
       clearTimeout(autoT);
       document.removeEventListener("keydown", onKey, true);
@@ -3476,6 +3501,43 @@ function totalWinScreen(amount) {
     };
     wrap.addEventListener("click", go);
     document.addEventListener("keydown", onKey, true);
+    // The figure counts itself up from nothing, slowly at first and gathering pace, and the
+    // headline climbs with it: every mark the running figure passes swaps the lettering and
+    // lands it with a thump. The sweep brightens the first time a mark is reached.
+    const amountEl = wrap.querySelector(".twamount");
+    const logo = wrap.querySelector(".twlogo");
+    const perBet = bet() > 0 ? amount / bet() : 0;
+    const tiers = WIN_TIERS.filter(t => perBet >= t.at);
+    const runMs = REDUCED_MOTION ? 0 : 2200 + tiers.length * 700;
+    let shown = -1;
+    const paint = v => {
+      amountEl.innerHTML = numeralRow(fmt(Math.round(v)));
+      let idx = -1;
+      for (let i = 0; i < tiers.length; i++) if ((bet() > 0 ? v / bet() : 0) >= tiers[i].at) idx = i;
+      if (idx === shown) return;
+      shown = idx;
+      if (idx < 0) return;
+      const t = tiers[idx];
+      logo.src = "assets/" + t.art;
+      logo.alt = T(t.label);
+      wrap.setAttribute("aria-label", T(t.label) + " " + fmt(amount));
+      amountEl.classList.add("tier");
+      logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
+      sfx(t.sfx);
+    };
+    const countUp = () => new Promise(done => {
+      if (!runMs) { paint(amount); done(); return; }
+      const hush = loopSfx("coins", runMs, TALLY_CURVE);   // the rush follows the count
+      const t0 = performance.now();
+      const tick = () => {
+        const p = Math.min(1, (performance.now() - t0) / runMs);
+        paint(amount * p * p);            // slow to start, quick by the end
+        if (p < 1 && !settled) requestAnimationFrame(tick);
+        else { settled = true; paint(amount); hush(); sfx("bell"); done(); }
+      };
+      requestAnimationFrame(tick);
+    });
+
     document.body.classList.add("towin-fade");
     void wrap.offsetWidth;                      // flush, so the first change transitions
     document.body.classList.add("towin-up");    // the board and the characters step aside
@@ -3483,7 +3545,10 @@ function totalWinScreen(amount) {
     step(300, () => {
       wrap.classList.add("up");
       phase = 1;
-      autoT = setTimeout(go, REDUCED_MOTION ? 600 : 4200);   // autoplay never stalls on it
+      countUp().then(() => {
+        if (phase !== 1) return;                // dismissed while it was counting
+        autoT = setTimeout(go, REDUCED_MOTION ? 600 : 3000);   // autoplay never stalls on it
+      });
     });
   });
 }
