@@ -275,6 +275,50 @@
   @media (prefers-reduced-motion: reduce) {
     .bonusintro, .bonusintro .wall, .bonusintro .inner, .bonusintro .bcont { transition: none !important; animation: none !important; }
   }
+  /* ---------- total win ---------- */
+  /* The bonus is over: everything the player was looking at goes to black in a blink, and
+     the payout stands on its own. Fixed and outside #app, so it is never scaled with it. */
+  .totalwin {
+    position: fixed; inset: 0; z-index: 56; background: #000; opacity: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1vh;
+    padding: 4vh 4vw; cursor: pointer; user-select: none;
+    transition: opacity .28s ease;   /* quick: the tally has just landed */
+  }
+  .totalwin.black { opacity: 1; }
+  .totalwin .twin {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    opacity: 0; transform: scale(.82);
+    transition: opacity .4s ease, transform .55s cubic-bezier(.2, 1.25, .3, 1);
+  }
+  .totalwin.up .twin { opacity: 1; transform: none; }
+  .totalwin .twlogo { width: min(78vw, 720px); height: auto; filter: drop-shadow(0 10px 22px rgba(0,0,0,.75)); }
+  /* the purple sweep, with the figure standing on it */
+  .totalwin .twamount {
+    position: relative; margin-top: -2vh; padding: 4.5vh 7vw 5vh;
+    display: flex; align-items: flex-end; justify-content: center; gap: .4vw;
+    background: url("assets/total_bg.png") center / 100% 100% no-repeat;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,.6));
+  }
+  /* every glyph is drawn on the same canvas at the same baseline, so one height keeps them
+     in proportion and standing on the same line */
+  .totalwin .twamount img { height: clamp(46px, 13vh, 132px); width: auto; display: block; }
+  /* a currency mark the numerals do not carry, set to match them */
+  .totalwin .twamount .sym {
+    font-family: var(--num); font-size: clamp(34px, 9.5vh, 96px); line-height: 1; color: #ff2d4f;
+    align-self: center; text-shadow: 0 3px 0 #000, 0 0 3px #000;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill;
+  }
+  .totalwin .twcont {
+    position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
+    font-family: var(--disp); font-size: clamp(15px, 2.4vh, 22px); letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.8); opacity: 0; transition: opacity .35s ease;
+    animation: bcont 1.5s ease-in-out infinite;
+  }
+  .totalwin.up .twcont { opacity: 1; transition-delay: .5s; }
+  @media (prefers-reduced-motion: reduce) {
+    .totalwin, .totalwin .twin, .totalwin .twcont { transition: none !important; animation: none !important; }
+  }
+
   /* ---------- features screen ---------- */
   /* Before the game shows: three plates over the wall and nothing else - no board, no
      characters, no bar. The Multi with its value climbing and warming, the Crew Leader and
@@ -2655,12 +2699,10 @@ const handlers = {
     // its price is a loss, and a 40x base trigger is not
     if (cents(ev.amount) <= (MODE_COST[state.mode] || 1) * bet()) charReact("lose");
     await tallyUp(cents(ev.amount));   // count the payout up before announcing the end
-  state.tallied = true;
+    state.tallied = true;
     sfx("bonusEnd");
-    await banner("BONUS COMPLETE", `Free spins paid ${fmt(cents(ev.amount))}`, 1500, "gold");
-    $("fsCard").classList.remove("on");
-    fitToScreen();   // and give the space back
-    $("fsNow").textContent = "—";
+    // the total win screen takes it from here: it clears the counter itself, behind the black
+    await totalWinScreen(cents(ev.amount));
   },
 
   async finalWin() { /* credited by playRound */ },
@@ -3367,6 +3409,74 @@ function runIntro() {
   after(10000, finish);
 }
 runIntro();
+
+/* ---------- total win ---------- */
+// The amount is set in the sprayed numerals the art carries: one image per glyph, all drawn
+// on a common baseline, so a row of them stands on one line. Anything the sheet has no glyph
+// for - a currency mark, a letter - is set beside them in the number font instead of being
+// dropped, so the figure still reads in every currency.
+const NUMERAL = { ".": "dot", ",": "comma" };
+function numeralRow(text) {
+  let html = "", sym = "";
+  const flush = () => { if (sym) { html += `<span class="sym">${sym.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</span>`; sym = ""; } };
+  for (const ch of String(text)) {
+    const name = /[0-9]/.test(ch) ? ch : NUMERAL[ch];
+    if (name) { flush(); html += `<img src="assets/num/${name}.png" alt="${ch}" draggable="false">`; }
+    else if (ch === " ") { flush(); }
+    else sym += ch;
+  }
+  flush();
+  return html;
+}
+// The bonus is over and the tally has landed: black takes the board and the characters, the
+// lettering and the sweep come up with the total on them, and a click - or a few seconds -
+// puts the game back.
+function totalWinScreen(amount) {
+  return new Promise(resolve => {
+    const wrap = document.createElement("div");
+    wrap.className = "totalwin";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
+    wrap.innerHTML =
+      `<div class="twin">` +
+        `<img class="twlogo" src="assets/total_win.png" alt="${T("Total win")}" draggable="false">` +
+        `<div class="twamount">${numeralRow(fmt(amount))}</div>` +
+      `</div>` +
+      `<div class="twcont">${T("Click to continue")}</div>`;
+    document.body.appendChild(wrap);
+    const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
+    let phase = 0;   // 0 going to black, 1 up and holding, 2 leaving
+    let autoT = 0;
+    const onKey = e => {
+      if (e.code !== "Space" && e.code !== "Enter") return;
+      e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
+      go();
+    };
+    const go = () => {
+      if (phase !== 1) return;
+      phase = 2;
+      clearTimeout(autoT);
+      document.removeEventListener("keydown", onKey, true);
+      wrap.classList.remove("up");             // the lettering and the sweep fade out
+      step(420, () => {
+        $("fsCard").classList.remove("on");     // the counter goes while the black still covers it
+        fitToScreen();
+        $("fsNow").textContent = "\u2014";
+        wrap.classList.remove("black");
+        step(320, () => { wrap.remove(); resolve(); });
+      });
+    };
+    wrap.addEventListener("click", go);
+    document.addEventListener("keydown", onKey, true);
+    void wrap.offsetWidth;                      // flush, so the first change transitions
+    wrap.classList.add("black");
+    step(300, () => {
+      wrap.classList.add("up");
+      phase = 1;
+      autoT = setTimeout(go, REDUCED_MOTION ? 600 : 4200);   // autoplay never stalls on it
+    });
+  });
+}
 
 /* ---------- features screen ---------- */
 // Before the game shows: three plates over the wall and nothing else - no board, no
