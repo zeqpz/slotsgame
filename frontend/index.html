@@ -638,10 +638,31 @@
     background: rgba(8, 6, 10, .78); padding: 20px;
   }
   .infowrap[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
+  /* The panel stands on the sprayed plate: its thin blue band is the art's own, held at its
+     proportions by the border-image while the grey ground stretches to whatever height the
+     rules run to. The game's light ink would vanish on that grey, so the panel redefines the
+     palette for itself - every rule below reads the variables, so the paytable, the tables and
+     the buttons follow without one of them being restated. */
   .infopanel {
     max-width: 780px; width: 100%; max-height: 86vh; overflow: auto;
-    background: var(--panel); border: 2px solid var(--line); padding: 22px 24px;
+    padding: 24px 28px; background: none; border: 20px solid transparent;
+    border-image: url("assets/info_panel.png") 4.9% 6.25% fill / 20px stretch;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, .6);
+    color: var(--ink);                  /* whatever has no colour of its own inherits from here,
+                                           not from the dark game underneath */
+    --ink: #17161c;                     /* body copy, dark now the ground is light */
+    --ink-soft: #46434f;
+    --line: rgba(18, 16, 24, .34);
+    --panel: rgba(255, 255, 255, .16);
+    --panel2: rgba(255, 255, 255, .26);
+    --gold: #6d4600;                    /* the accents, taken down to where they read on grey */
+    --spray: #0b2f6b;                   /* the deep blue the plate's own border is painted in */
+    --green: #11642f;
+    --teal: #0f5f58;
+    --purple: #46308c;
   }
+  .infopanel::-webkit-scrollbar { width: 8px; }
+  .infopanel::-webkit-scrollbar-thumb { background: rgba(18, 16, 24, .4); border-radius: 99px; }
   /* rules page — everything in the legible face; the graffiti font is for the game, not the fine print */
   .infopanel section { margin-bottom: 20px; }
   .infopanel h4 { font-family: var(--disp); font-size: 17px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 0 0 8px; }
