@@ -2939,14 +2939,15 @@ async function presentRound(round, { settle = true } = {}) {
 
   if (win > 0) {
     tick(T(`Round paid <b>${fmt(win)}</b> (${mult.toFixed(2)}x bet)`));
-    // Tiered celebrations: the moment should scale with the win, and a base-game hit that
-    // was never tallied on the board gets its count-up here (bonus rounds tally in freeSpinEnd).
-    const tier = mult >= 100 ? ["EPIC WIN", "epic", 2200] : mult >= 40 ? ["MEGA WIN", "mega", 1800] : mult >= 15 ? ["BIG WIN", "gold", 1400] : null;
-    if (tier && !state.totalShown) {   // a bonus has just shown its own, larger, version of this
+    // A hit big enough to carry lettering gets the screen the end of a bonus gets: the board
+    // and the characters step aside, the figure counts itself up from nothing and the headline
+    // climbs BIG -> MEGA -> XTREME with it. The first mark is the screen's own, so the base
+    // game and the bonus can never disagree about what counts as big.
+    if (mult >= WIN_TIERS[0].at && !state.totalShown) {   // a bonus has already shown its own
       charReact("big_win");
-      sfx(pickSfx(["jackpotA", "jackpotB"], jackpotMemo));   // alternate alerts at random
-      if (!state.tallied) await tallyUp(win);
-      await banner(tier[0], `${fmt(win)} \u00b7 ${mult.toFixed(0)}x`, tier[2], tier[1]);
+      state.tallied = true;     // the screen does the counting now, behind its own cover
+      state.totalShown = true;
+      await totalWinScreen(win);
     }
   } else {
     // no "lose" here: a spin that pays nothing is most spins. The characters only sulk when
