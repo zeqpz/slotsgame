@@ -2243,6 +2243,8 @@ const SFX = {
   skip: "assets/sfx_skip.wav", line: "assets/sfx_line.wav",
   bonusStart: "assets/sfx_bonus_start.wav", bonusEnd: "assets/sfx_bonus_end.wav",
   coins: "assets/sfx_coins.wav", bell: "assets/sfx_bell.wav",
+  // the total win screen: the counter ticks under the figure and each mark rings higher
+  moneyTick: "assets/sfx_money_tick.wav", mediumWin: "assets/sfx_medium_win.wav",
   dripA: "assets/sfx_drip_a.wav", dripB: "assets/sfx_drip_b.wav", dripC: "assets/sfx_drip_c.wav",
   dripD: "assets/sfx_drip_d.wav", dripE: "assets/sfx_drip_e.wav", dripF: "assets/sfx_drip_f.wav",
   // Casino Machines pack: each one is named for the moment it belongs to
@@ -2274,6 +2276,7 @@ const SFX_VOL = {
   scatterLand: .55, pop: .42, multiHit: .55, alertA: .55, alertB: .55, bustA: .5, bustB: .5,
   winText: .5, hoverLoop: .28, autoStart: .45, autoStop: .45, menuOpen: .4, menuClose: .4, toggle: .4,
   dripLand: .3,
+  moneyTick: .4, mediumWin: .55,
 };
 const bustMemo = { last: null };
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
@@ -2368,6 +2371,9 @@ const spinPos = (() => {
   };
 })();
 const REEL_CURVE = rateCurve(spinPos, REEL_RATE.min, REEL_RATE.max);
+// the total win count climbs as p squared, so its pace rises straight to the end and the
+// counter's tick rises with it
+const COUNT_CURVE = rateCurve(p => p * p, .72, 1.95);
 // the payout tally accelerates then eases out; the coin rush is pitched to follow it
 const tallyPos = p => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 const TALLY_CURVE = rateCurve(tallyPos, .75, 1.55, 64);
@@ -2412,6 +2418,7 @@ function sfx(name, rate = 1) {
   g.gain.value = SFX_VOL[name] ?? .4;
   src.connect(g).connect(sfxBus);
   src.start();
+  return src;   // the caller can stop it: some of these clips run for ten seconds
 }
 
 // The same clip can't be allowed to fire seven times in one frame (seven reels landing on a
@@ -3457,9 +3464,9 @@ function numeralRow(text) {
 // The marks the headline climbs through, in multiples of the bet - the same three the base
 // game has always used, wearing their own lettering here.
 const WIN_TIERS = [
-  { at: 15,  art: "big_win.png",    label: "Big win",    sfx: "alertA" },
-  { at: 40,  art: "mega_win.png",   label: "Mega win",   sfx: "alertB" },
-  { at: 100, art: "xtreme_win.png", label: "Xtreme win", sfx: "jackpotA" },
+  { at: 15,  art: "big_win.png",    label: "Big win",    rate: 1 },
+  { at: 40,  art: "mega_win.png",   label: "Mega win",   rate: 1.22 },
+  { at: 100, art: "xtreme_win.png", label: "Xtreme win", rate: 1.5 },
 ];
 for (const t of WIN_TIERS) { const i = new Image(); i.src = "assets/" + t.art; }   // ready before it is wanted
 function totalWinScreen(amount) {
@@ -3478,6 +3485,14 @@ function totalWinScreen(amount) {
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 the game stepping aside, 1 up and holding, 2 leaving
     let settled = REDUCED_MOTION, done2 = false;   // the count has landed; the second screen is up
+    // the win ring runs for ten seconds, far longer than the gap between two marks: each one
+    // cuts the one before it, so they ring in turn rather than piling up
+    let ringing = null;
+    const ring = rate => {
+      if (ringing) { try { ringing.stop(); } catch (err) { /* already done */ } }
+      ringing = sfx("mediumWin", rate) || null;
+    };
+    const hushRing = () => { if (ringing) { try { ringing.stop(); } catch (err) { /* already done */ } ringing = null; } };
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
       e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
@@ -3488,6 +3503,7 @@ function totalWinScreen(amount) {
       if (!settled) { settled = true; paint(amount); return; }   // first press lands the figure
       if (!done2) return;                                        // the total has not been shown yet
       phase = 2;
+      hushRing();   // nothing rings on into the game behind it
       document.removeEventListener("keydown", onKey, true);
       wrap.classList.remove("up");             // the lettering and the sweep fade out
       step(420, () => {
@@ -3528,17 +3544,17 @@ function totalWinScreen(amount) {
       wrap.setAttribute("aria-label", T(t.label) + " " + fmt(amount));
       amountEl.classList.add("tier");
       logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
-      sfx(t.sfx);
+      ring(t.rate);   // the same ring, a step higher at every mark
     };
     const countUp = () => new Promise(done => {
       if (!runMs) { paint(amount); done(); return; }
-      const hush = loopSfx("coins", runMs, TALLY_CURVE);   // the rush follows the count
+      const hush = loopSfx("moneyTick", runMs, COUNT_CURVE);   // the counter keeps the figure's pace
       const t0 = performance.now();
       const tick = () => {
         const p = Math.min(1, (performance.now() - t0) / runMs);
         paint(amount * p * p);            // slow to start, quick by the end
         if (p < 1 && !settled) requestAnimationFrame(tick);
-        else { settled = true; paint(amount); hush(); sfx("bell"); done(); }
+        else { settled = true; paint(amount); hush(); hushRing(); sfx("bell"); done(); }
       };
       requestAnimationFrame(tick);
     });
