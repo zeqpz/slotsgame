@@ -2717,7 +2717,6 @@ const handlers = {
     if (cents(ev.amount) <= (MODE_COST[state.mode] || 1) * bet()) charReact("lose");
     state.tallied = true;       // the screen does the counting now, so the round must not repeat it
     state.totalShown = true;
-    sfx("bonusEnd");
     // the total win screen takes it from here: it counts the payout up and clears the
     // counter itself, behind its own cover
     await totalWinScreen(cents(ev.amount));
@@ -3547,7 +3546,18 @@ function totalWinScreen(amount) {
       phase = 1;
       countUp().then(() => {
         if (phase !== 1) return;                // dismissed while it was counting
-        autoT = setTimeout(go, REDUCED_MOTION ? 600 : 3000);   // autoplay never stalls on it
+        const wait = () => { autoT = setTimeout(go, REDUCED_MOTION ? 600 : 3000); };   // autoplay never stalls on it
+        if (shown < 0) return wait();           // nothing climbed, so nothing to come back from
+        // the climb is over: the screen settles back onto the plain statement of the total
+        step(800, () => {
+          if (phase !== 1) return;
+          logo.src = "assets/total_win.png";
+          logo.alt = T("Total win");
+          wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
+          amountEl.classList.remove("tier");
+          logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
+          wait();
+        });
       });
     });
   });
