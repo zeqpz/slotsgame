@@ -2245,6 +2245,7 @@ const SFX = {
   coins: "assets/sfx_coins.wav", bell: "assets/sfx_bell.wav",
   // the total win screen: the counter ticks under the figure and each mark rings higher
   moneyTick: "assets/sfx_money_tick.wav", mediumWin: "assets/sfx_medium_win.wav",
+  trophy: "assets/sfx_trophy.wav", coinsRain: "assets/sfx_coins_rain.wav",   // the total's own arrival
   dripA: "assets/sfx_drip_a.wav", dripB: "assets/sfx_drip_b.wav", dripC: "assets/sfx_drip_c.wav",
   dripD: "assets/sfx_drip_d.wav", dripE: "assets/sfx_drip_e.wav", dripF: "assets/sfx_drip_f.wav",
   // Casino Machines pack: each one is named for the moment it belongs to
@@ -2276,7 +2277,7 @@ const SFX_VOL = {
   scatterLand: .55, pop: .42, multiHit: .55, alertA: .55, alertB: .55, bustA: .5, bustB: .5,
   winText: .5, hoverLoop: .28, autoStart: .45, autoStop: .45, menuOpen: .4, menuClose: .4, toggle: .4,
   dripLand: .3,
-  moneyTick: .4, mediumWin: .55,
+  moneyTick: .4, mediumWin: .55, trophy: .6, coinsRain: .45,
 };
 const bustMemo = { last: null };
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
@@ -3493,6 +3494,8 @@ function totalWinScreen(amount) {
       ringing = sfx("mediumWin", rate) || null;
     };
     const hushRing = () => { if (ringing) { try { ringing.stop(); } catch (err) { /* already done */ } ringing = null; } };
+    let arrival = [];   // the total's own sounds, cut when the screen goes
+    const hushArrival = () => { for (const v of arrival) { try { v.stop(); } catch (err) { /* already done */ } } arrival = []; };
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
       e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
@@ -3503,7 +3506,7 @@ function totalWinScreen(amount) {
       if (!settled) { settled = true; paint(amount); return; }   // first press lands the figure
       if (!done2) return;                                        // the total has not been shown yet
       phase = 2;
-      hushRing();   // nothing rings on into the game behind it
+      hushRing(); hushArrival();   // nothing rings on into the game behind it
       document.removeEventListener("keydown", onKey, true);
       wrap.classList.remove("up");             // the lettering and the sweep fade out
       step(420, () => {
@@ -3554,7 +3557,7 @@ function totalWinScreen(amount) {
         const p = Math.min(1, (performance.now() - t0) / runMs);
         paint(amount * p * p);            // slow to start, quick by the end
         if (p < 1 && !settled) requestAnimationFrame(tick);
-        else { settled = true; paint(amount); hush(); hushRing(); sfx("bell"); done(); }
+        else { settled = true; paint(amount); hush(); done(); }
       };
       requestAnimationFrame(tick);
     });
@@ -3584,6 +3587,8 @@ function totalWinScreen(amount) {
             logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
             wrap.classList.add("done");         // now the prompt shows, and a press is a dismissal
             done2 = true;
+            hushRing();                         // the last mark gives way to the total's own arrival
+            arrival = [sfx("trophy"), sfx("coinsRain")].filter(Boolean);
           });
         });
       });
