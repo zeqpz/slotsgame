@@ -300,6 +300,11 @@
   }
   /* each tier lands with a thump rather than a cross-fade */
   .totalwin .twlogo.hit { animation: twhit .5s cubic-bezier(.2, 1.4, .3, 1); }
+  /* nothing is announced until the figure earns it, so the headline starts with nothing
+     in its place - the space is held, or the sweep would jump when one arrives */
+  .totalwin .twlogo.blank { visibility: hidden; }
+  /* the swap between the two screens: the first fades out, the second fades in */
+  .totalwin.swap .twin { opacity: 0; transform: scale(.9); }
   @keyframes twhit {
     0%   { transform: scale(.55) rotate(-4deg); opacity: .2; }
     45%  { transform: scale(1.16) rotate(2deg); opacity: 1; }
@@ -331,7 +336,7 @@
     color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.8); opacity: 0; transition: opacity .35s ease;
     animation: bcont 1.5s ease-in-out infinite;
   }
-  .totalwin.up .twcont { opacity: 1; transition-delay: .5s; }
+  .totalwin.done .twcont { opacity: 1; transition-delay: .25s; }   /* only on the screen that waits */
   @media (prefers-reduced-motion: reduce) {
     .totalwin, .totalwin .twin, .totalwin .twcont { transition: none !important; animation: none !important; }
   }
@@ -3462,17 +3467,17 @@ function totalWinScreen(amount) {
     const wrap = document.createElement("div");
     wrap.className = "totalwin";
     wrap.setAttribute("role", "dialog");
-    wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
+    wrap.setAttribute("aria-label", T("Win") + " " + fmt(amount));
     wrap.innerHTML =
       `<div class="twin">` +
-        `<img class="twlogo" src="assets/total_win.png" alt="${T("Total win")}" draggable="false">` +
+        `<img class="twlogo blank" src="assets/total_win.png" alt="" draggable="false">` +
         `<div class="twamount">${numeralRow(fmt(0))}</div>` +
       `</div>` +
       `<div class="twcont">${T("Click to continue")}</div>`;
     document.body.appendChild(wrap);
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 the game stepping aside, 1 up and holding, 2 leaving
-    let autoT = 0, settled = REDUCED_MOTION;   // the count has landed and a press now dismisses
+    let settled = REDUCED_MOTION, done2 = false;   // the count has landed; the second screen is up
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
       e.preventDefault(); e.stopPropagation();   // the spin key must not reach the game underneath
@@ -3481,8 +3486,8 @@ function totalWinScreen(amount) {
     const go = () => {
       if (phase !== 1) return;
       if (!settled) { settled = true; paint(amount); return; }   // first press lands the figure
+      if (!done2) return;                                        // the total has not been shown yet
       phase = 2;
-      clearTimeout(autoT);
       document.removeEventListener("keydown", onKey, true);
       wrap.classList.remove("up");             // the lettering and the sweep fade out
       step(420, () => {
@@ -3519,6 +3524,7 @@ function totalWinScreen(amount) {
       const t = tiers[idx];
       logo.src = "assets/" + t.art;
       logo.alt = T(t.label);
+      logo.classList.remove("blank");
       wrap.setAttribute("aria-label", T(t.label) + " " + fmt(amount));
       amountEl.classList.add("tier");
       logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
@@ -3546,17 +3552,23 @@ function totalWinScreen(amount) {
       phase = 1;
       countUp().then(() => {
         if (phase !== 1) return;                // dismissed while it was counting
-        const wait = () => { autoT = setTimeout(go, REDUCED_MOTION ? 600 : 3000); };   // autoplay never stalls on it
-        if (shown < 0) return wait();           // nothing climbed, so nothing to come back from
-        // the climb is over: the screen settles back onto the plain statement of the total
-        step(800, () => {
+        // the count is done; the total gets a screen of its own, and it stays until pressed
+        step(700, () => {
           if (phase !== 1) return;
-          logo.src = "assets/total_win.png";
-          logo.alt = T("Total win");
-          wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
-          amountEl.classList.remove("tier");
-          logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
-          wait();
+          wrap.classList.add("swap");           // the counting screen fades out
+          step(REDUCED_MOTION ? 0 : 360, () => {
+            if (phase !== 1) return;
+            logo.src = "assets/total_win.png";
+            logo.alt = T("Total win");
+            logo.classList.remove("blank");
+            wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
+            amountEl.classList.remove("tier");
+            amountEl.innerHTML = numeralRow(fmt(amount));
+            wrap.classList.remove("swap");      // and the total's screen fades in
+            logo.classList.remove("hit"); void logo.offsetWidth; logo.classList.add("hit");
+            wrap.classList.add("done");         // now the prompt shows, and a press is a dismissal
+            done2 = true;
+          });
         });
       });
     });
