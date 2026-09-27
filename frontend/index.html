@@ -2065,7 +2065,7 @@ function boardThud(r) {
 // one before it with the same bounce a tumble uses. Reels go left to right; a reel held
 // back for a near miss waits its extra beat before its first icon falls. Skip lands the
 // whole column at once.
-function dropReel(r, ev, wait, inExtra = 0) {
+function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null) {
   return new Promise(resolve => {
     const reel = reelEls[r], cells = cellEls[r], t = tempo();
     reel.style.setProperty("--tempo", String(t));   // this column's animations keep the clock its schedule was planned on
@@ -2108,13 +2108,17 @@ function dropReel(r, ev, wait, inExtra = 0) {
       void c.offsetWidth;
       c.classList.add("tdrop");
       later(275 * t, () => sfx("dripLand", dropPitch(y)));   // the note lands with the tile (55% of the drop)
-      if (c.classList.contains("scat") || c.classList.contains("escat")) {
+      const crew = c.classList.contains("scat");
+      if (crew || c.classList.contains("escat")) {
         c.classList.add("scatland");
         sfxGap("scatterLand", 140, 1 + r * .02);
         later(800 * t, () => c.classList.remove("scatland"));
+        // only the Crew Leader counts towards the gold. The hold is set by two of those and
+        // never by a Phantom, so counting a Phantom would light the frame for a symbol that
+        // is not on the board yet - the very thing the gold is waiting for
+        if (crew && onCrewLeader) onCrewLeader();
       }
     };
-    if ((ev.anticipation?.[r] || 0) > 0) reel.classList.add("antic");
     reel.classList.add("tumbling");   // clip: icons leave through the floor and enter from above
     later(wait, () => {
       // 1. the old column drops out, bottom tiles first
@@ -2154,13 +2158,24 @@ async function renderReveal(ev) {
     state.anticipated = true;
     charReact("anticipation");
   }
+  // The gold column is a tell, and lit at the top of the reveal it gives the near miss away
+  // before a single symbol has landed - the frame announcing a bonus over an empty board. It
+  // waits for the second Crew Leader instead, the pair that holds the reel in the first place,
+  // so the player reads the near miss off the board and the gold only confirms what is already
+  // there. A held reel always lands after the two that hold it, so the gold is never late.
+  const goldReels = reelEls.filter((_, r) => (ev.anticipation?.[r] || 0) > 0);
+  let crewDown = 0;
+  const onCrewLeader = () => {
+    if (++crewDown === 2) goldReels.forEach(el => el.classList.add("antic"));
+  };
   // the spin's whoosh runs under the whole reveal: the last reel's wait, its column dropping
   // out, any near-miss beat, and its seven icons falling in. It rises and eases on the old
   // spin curve, and a skip cuts it the moment the board is in.
   const maxExtra = Math.max(0, ...(ev.anticipation || [0]).map(a => (a || 0) * anticExtra));
   const revealMs = (REELS - 1) * stagger + (340 + (ROWS - 1) * 28) * t + maxExtra + (ROWS - 1) * 95 * t + 300 * t;
   const hushReels = (!state.skip && !REDUCED_MOTION) ? reelSfx(revealMs) : () => {};
-  await Promise.all(reelEls.map((_, r) => dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra)));
+  await Promise.all(reelEls.map((_, r) =>
+    dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra, onCrewLeader)));
   hushReels();   // a skipped reveal cuts it short; a full one has already faded out
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
@@ -2747,11 +2762,11 @@ const handlers = {
 
   async tagMeter(ev) { setTags(ev.tags, ev.target); tick(`Tag Meter <b>${ev.tags} / ${ev.target}</b>`); await delay(200); },
 
-  async tagMeterFull(ev) {
+  async tagMeterFull() {
+    // no banner: the meter pays without stopping the bonus to announce it. The free-spin
+    // counter climbing is the award, and the meter resets under it
     setTags(0, state.tagTarget || 4);
-    const bits = [];
-    if (ev.extraSpins > 0) bits.push(`+${ev.extraSpins} SPINS`);
-    await banner("TAG METER FULL", bits.join(" \u00b7 ") || "METER RESET", 1100, "gold");
+    await delay(200);
   },
 
   async wincap(ev) { charReact("big_win"); await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
