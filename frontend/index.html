@@ -418,20 +418,30 @@
     opacity: 0; transition: opacity .9s ease, transform .9s ease; transform: scale(.94);
   }
   .intrologo.in { opacity: 1; transform: none; }
+  /* the loading bar: a white line that fills as the game's pieces arrive, lit from within */
+  .introbar {
+    position: relative; width: min(460px, 68vw); height: 6px; margin-top: 5vh;
+    border-radius: 999px; overflow: hidden;
+    background: rgba(255, 255, 255, .13);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12);
+    opacity: 0; transition: opacity .5s ease;
+  }
+  .introbar.in { opacity: 1; }
+  .introfill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,.95), 0 0 26px rgba(255,255,255,.7), 0 0 46px rgba(255,255,255,.35);
+    transition: width .25s ease-out;
+  }
+  /* the disclosure sits under the bar in small type, where it can be read and ignored */
   .intromsg {
-    position: absolute; max-width: 680px; margin: 0;
-    font-family: var(--plain); font-size: 13px; line-height: 1.75; color: var(--ink-soft);
+    max-width: 620px; margin: 2.4vh 0 0;
+    font-family: var(--plain); font-size: 9.5px; line-height: 1.7; color: #6b6577;
     opacity: 0; transition: opacity .8s ease;
   }
   .intromsg.in { opacity: 1; }
-  .introskip {
-    position: absolute; bottom: 5vh; font-family: var(--legible); font-size: 10.5px;
-    letter-spacing: .2em; text-transform: uppercase; color: #4a4453;
-    opacity: 0; transition: opacity .5s ease;
-  }
-  .introskip.in { opacity: 1; }
   @media (prefers-reduced-motion: reduce) {
-    .intro, .intrologo, .intromsg, .introskip { transition: none !important; }
+    .intro, .intrologo, .intromsg, .introbar, .introfill { transition: none !important; }
     .popover { animation: none !important; }
   }
 
@@ -1665,13 +1675,14 @@
 
 <div class="intro" id="intro">
   <img class="intrologo" id="introLogo" src="assets/logo.png" alt="Smukiez">
+  <div class="introbar" id="introBar"><i class="introfill" id="introFill"></i></div>
   <p class="intromsg" id="introMsg">Malfunction voids all wins and plays. A consistent internet
   connection is required. In the event of a disconnection, reload the game to finish any
   uncompleted rounds. The expected return is calculated over many plays. The game display is not
   representative of any physical device and is for illustrative purposes only. Winnings are
   settled according to the amount received from the Remote Game Server and not from events within
   the web browser. TM and &copy; 2026 Engine.</p>
-  <div class="introskip" id="introSkip">tap to skip</div>
+
 </div>
 
 <div class="infowrap" id="replayWrap" hidden>
@@ -3412,8 +3423,56 @@ document.addEventListener("keydown", e => {
 // Logo fades up on black, fades out, the required disclosure fades in, then the whole
 // screen lifts. Skippable at any point; boot() is already running underneath.
 let introDone = Promise.resolve();
+// Everything the game draws, fetched before it is needed. The picture list is read off the
+// stylesheet itself, so a piece of art added to a rule is preloaded without being listed
+// twice; the numerals and the symbols are named here because nothing in the CSS mentions
+// them. The sounds are already in flight from page load, and the fonts report their own.
+function assetUrls() {
+  const urls = new Set();
+  const fromText = text => {
+    for (const m of text.matchAll(/url\((['"]?)([^'")]+)\1\)/g)) {
+      const u = m[2].trim();
+      if (u && !u.startsWith("data:")) urls.add(u);
+    }
+  };
+  const walk = rules => {
+    for (const r of rules) {
+      if (r.style) fromText(r.style.cssText || "");
+      if (r.cssRules) walk(r.cssRules);
+    }
+  };
+  for (const sheet of document.styleSheets) {
+    try { walk(sheet.cssRules); } catch (err) { /* a sheet from elsewhere: nothing to read */ }
+  }
+  for (const def of Object.values(SYM)) if (def.img) urls.add(def.img);
+  for (const n of ["0","1","2","3","4","5","6","7","8","9","dot","comma"]) urls.add("assets/num/" + n + ".png");
+  // the win screen's lettering, named rather than read off WIN_TIERS: that list is declared
+  // further down the file than this screen runs
+  for (const n of ["total_win", "big_win", "mega_win", "xtreme_win"]) urls.add("assets/" + n + ".png");
+  return [...urls];
+}
+// Reports how far along it is, from 0 to 1, and settles once everything has either arrived
+// or failed - a missing piece must never hold the game shut.
+function preloadAll(onProgress) {
+  const pics = assetUrls();
+  const sounds = Object.values(sfxRaw || {});
+  const jobs = pics.length + sounds.length + 1;   // + the fonts
+  let done = 0;
+  const tick = () => onProgress(jobs ? done / jobs : 1);
+  const one = pr => pr.then(() => { done++; tick(); }, () => { done++; tick(); });
+  const waits = pics.map(u => one(new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = res; img.onerror = rej;
+    img.src = u;
+  })));
+  waits.push(...sounds.map(one));
+  waits.push(one(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()));
+  tick();
+  return Promise.all(waits);
+}
 function runIntro() {
-  const wrap = $("intro"), logo = $("introLogo"), msg = $("introMsg"), skip = $("introSkip");
+  const wrap = $("intro"), logo = $("introLogo"), msg = $("introMsg");
+  const barEl = $("introBar"), fill = $("introFill");
   if (!wrap) return;
   let done = false, settle;
   introDone = new Promise(r => { settle = r; });
@@ -3428,16 +3487,21 @@ function runIntro() {
     setTimeout(() => wrap.remove(), 700);
     settle();
   };
-  wrap.addEventListener("click", finish);
 
-  if (REDUCED_MOTION) { after(1200, finish); return; }
+  // the bar reports the loading, and the loading is what ends the screen: pressing through
+  // it would only put the player into a game whose pieces have not arrived
+  const started = performance.now();
+  const loaded = preloadAll(p => { if (fill) fill.style.width = (p * 100).toFixed(1) + "%"; });
+  const openFor = REDUCED_MOTION ? 600 : 2600;   // the logo is worth a moment either way
+  loaded.then(() => {
+    if (fill) fill.style.width = "100%";
+    after(Math.max(0, openFor - (performance.now() - started)) + (REDUCED_MOTION ? 0 : 450), finish);
+  });
 
+  if (REDUCED_MOTION) { logo.classList.add("in"); barEl && barEl.classList.add("in"); msg.classList.add("in"); return; }
   after(120, () => logo.classList.add("in"));
-  after(700, () => skip.classList.add("in"));
-  after(2300, () => logo.classList.remove("in"));      // logo fades away
-  after(3100, () => msg.classList.add("in"));          // then the disclosure fades in
-  after(9200, () => { msg.classList.remove("in"); skip.classList.remove("in"); });
-  after(10000, finish);
+  after(500, () => { barEl && barEl.classList.add("in"); msg.classList.add("in"); });
+  after(20000, finish);   // a piece that never answers must not hold the game shut for ever
 }
 runIntro();
 
