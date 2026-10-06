@@ -54,9 +54,9 @@
        numbers — hardcoding it separately means the reels mis-align the moment a cell resizes.
        Sized for the 7x7 cluster board: seven of these, gaps included, take about the room
        the old 5x4 board did. */
-    --cell-w: 96px;
-    --cell-h: 82px;
-    --cell-gap: 6px;
+    --cell-w: 115px;   /* 20% up from 96 / 82 / 6 on 2026-10-06: the board fills more of the middle */
+    --cell-h: 98px;
+    --cell-gap: 7px;
   }
   @font-face {
     font-family: "Jraot Hollow";
@@ -173,7 +173,9 @@
      shrunk and pushed outward — they frame the reels from the edges rather than sitting
      under them. Mobile keeps its characters; it just sees less of each one. */
   @media (max-width: 1080px) {
-    :root { --char-height: 42.5vh; --char-inset: -8vw; }
+    /* a 1024x576 laptop: the pair stands just inside the edges, a little behind the board's
+       sides, rather than 8vw off-screen (the user lost them off the sides at that size) */
+    :root { --char-height: 42.5vh; --char-inset: -1vw; }
     .charfx { opacity: .5; }
   }
   @media (max-width: 760px) {
@@ -815,17 +817,18 @@
   @media (max-width: 640px) { .paytable, .kvgrid { grid-template-columns: 1fr; } }
   /* autoplay count picker */
   .autoopts { display: flex; gap: 8px; margin: 8px 0 16px; }
-  /* the count picks: the magenta box, dulled until picked */
+  /* the count picks: the grey plate with the blue sprayed frame (the panel's own art), dimmed
+     until picked - the pick comes up to full brightness with a cyan glow */
   .autoopts button {
-    flex: 1; padding: 8px 0; border: 12px solid transparent; background: none;
-    border-image: url("assets/ui_box.png") 16% fill / 12px stretch;
+    flex: 1; padding: 6px 0; border: 10px solid transparent; background: none;
+    border-image: url("assets/auto_box.png") 9% fill / 10px stretch;
     color: #fff; -webkit-text-stroke: 1.6px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.6);
     font-family: var(--mono); font-size: 15px; font-weight: 700;
-    filter: grayscale(.55) brightness(.8);
-    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+    filter: brightness(.72);
+    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear, box-shadow .12s linear;
   }
-  .autoopts button:hover:not(:disabled) { filter: grayscale(.2) brightness(.95); }
-  .autoopts button.on { filter: none; transform: scale(1.06); }
+  .autoopts button:hover:not(:disabled) { filter: brightness(.9); }
+  .autoopts button.on { filter: brightness(1.08); transform: scale(1.06); box-shadow: 0 0 12px rgba(79, 232, 255, .65); }
   /* autoplay: the twin-arrow icon button; while running it shows the rounds left and turns */
   .info.auto { width: auto; min-width: 34px; height: 34px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; }
   .info.auto svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; stroke-width: 2.6; stroke-linecap: butt; }
@@ -887,7 +890,7 @@
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
-    position: relative; display: flex; gap: var(--cell-gap); padding: 30px 34px;   /* the frame's bands never touch an icon */
+    position: relative; display: flex; gap: var(--cell-gap); padding: 36px 41px;   /* the frame's bands never touch an icon */
   }
   /* the sprayed outline: a thin band that runs 1% to 4% in from the art's edge, so a 10px
      overhang lands it in the board's own padding, just outside the icons, on every side */
@@ -895,6 +898,8 @@
     position: absolute; left: -10px; top: -10px;
     width: calc(100% + 20px); height: calc(100% + 20px);
     z-index: 3; pointer-events: none; user-select: none;
+    /* it idles like the icons do - a slight drift, lean and stretch on a random path (frameIdle) */
+    translate: var(--fx, 0px) var(--fy, 0px); rotate: var(--fr, 0deg); scale: var(--fsx, 1) var(--fsy, 1);
   }
   .board.pop { animation: boardpop .38s cubic-bezier(.2,.9,.3,1.35); }
   @keyframes boardpop {
@@ -938,32 +943,24 @@
      the graffiti face runs much wider than the UI font it replaced */
   .cell > div { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cell img { width: 88%; height: 88%; object-fit: contain; pointer-events: none; }
-  /* Everything on the board slowly stretches a little on its own clock (--idle-dur /
-     --idle-delay, set per board position in buildBoard), so the wall never looks frozen and
-     never pulses in step: the paying icons, the Multi with its value, the value boxes Multis
-     leave behind, and the bonus-spin scatters (their rules are below, alongside the glow). It
-     keeps going through spins and bonuses: it moves the individual scale/rotate properties,
-     while the drops, landings, pops and blow-outs animate the tile around it, so the two layer
-     instead of fighting. */
+  /* Everything on the board idles with a slight stretch of its own: a slow random wander in
+     width, height and lean that never repeats (idleStretch writes --sx / --sy / --sr per board
+     position; the multiplier slot under a cell takes its cell's), so the wall never looks
+     frozen, never pulses in step and never loops: the paying icons, the Multi with its value,
+     the value boxes Multis leave behind, and the bonus-spin scatters (their rules are below,
+     alongside the glow). It keeps going through spins and bonuses: it moves the individual
+     scale/rotate properties, while the drops, landings, pops and blow-outs animate the tile
+     around it, so the two layer instead of fighting. */
   .cell.low img, .cell.high img, .cell.booster img {
     transform-origin: 50% 90%;
-    animation: iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite;
+    scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg);
   }
-  /* the Multi's value moves with its brick: the same clock, pivoting at the brick's base */
+  /* the Multi's value moves with its brick: the same stretch, pivoting at the brick's base */
   .cell.booster .multface {
     transform-origin: 50% 85%;
-    animation: iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite;
+    scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg);
   }
-  .multlayer .gmult { animation: iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite; }
-  @keyframes iconIdle {
-    0%, 100% { scale: 1 1;        rotate: 0deg; }
-    25%      { scale: 1.04 .96;   rotate: -1.5deg; }
-    50%      { scale: .97 1.035;  rotate: 0deg; }
-    75%      { scale: 1.025 .975; rotate: 1.5deg; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .cell.low img, .cell.high img, .cell.booster img, .cell.booster .multface, .multlayer .gmult { animation: none; }
-  }
+  .multlayer .gmult { scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg); }
   .cell.low   { color: var(--ink-soft); }
   .cell.high  { color: var(--ink); }
   .cell.char  { color: var(--teal); }
@@ -981,16 +978,17 @@
   .cell.wild  { background: var(--spray-deep); border-color: var(--spray); color: #fff; }
   /* The two scatters are hand-painted FS and XXFS. They glow in their own colour and the
      glow breathes, so a landed scatter reads as live even before anything happens to it; they
-     also take the board's slow stretch (iconIdle, above), pivoting on their centre. */
+     also take the board's slow stretch (idleStretch, above), pivoting on their centre. */
   .cell.scat  { color: var(--fs-green); }
   .cell.escat { color: var(--fs-purple); }
-  .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite, iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite; }
-  .cell.escat img { animation: escatglow 1.7s ease-in-out infinite, iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite; }
+  .cell.scat img, .cell.escat img { scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg); }
+  .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite; }
+  .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
   /* a bonus symbol announces itself the moment its reel lands: punches up, shakes it off,
      settles - on top of its glow, which keeps breathing underneath. The stretch stays in the
      list so it carries straight on rather than restarting when the landing class comes off. */
-  .cell.scat.scatland img  { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite, iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite; }
-  .cell.escat.scatland img { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite, iconIdle var(--idle-dur, 5.5s) ease-in-out var(--idle-delay, 0s) infinite; }
+  .cell.scat.scatland img  { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
+  .cell.escat.scatland img { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
   .cell.scatland { z-index: 2; }
   @keyframes scatland {
     0%   { transform: scale(1); }
@@ -1150,22 +1148,23 @@
   /* A winning tile POPS. There used to be a sprayed frame drawn around it as well; the
      frame read as a box sitting on top of the art rather than as the art reacting, so the
      symbol itself does the work now - it punches up, shakes the hit off and settles a
-     little proud of the others, lit from behind so the cluster reads at a glance. */
+     fifth larger than the others for as long as it is lit, lit from behind so the cluster
+     reads at a glance. */
   .cell.winhit {
     /* above its neighbours so the pop is never clipped by the next tile, but below the
        win chip (z-index 4) so the cluster's amount still reads on top */
-    transform: scale(1.06); z-index: 1;
+    transform: scale(1.2); z-index: 1;
     animation: winpop calc(.52s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1);
   }
   .cell.winhit img { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
   @keyframes winpop {
     0%   { transform: scale(1); }
-    18%  { transform: scale(1.3) rotate(-2.4deg); }    /* punched up, hard and fast */
-    34%  { transform: scale(.97) rotate(1.6deg); }
-    50%  { transform: scale(1.15) rotate(-1deg); }
-    68%  { transform: scale(1.02) rotate(.5deg); }
-    84%  { transform: scale(1.08) rotate(-.2deg); }
-    100% { transform: scale(1.06); }                   /* lands where the base rule leaves it */
+    18%  { transform: scale(1.45) rotate(-2.4deg); }   /* punched up, hard and fast */
+    34%  { transform: scale(1.1) rotate(1.6deg); }
+    50%  { transform: scale(1.3) rotate(-1deg); }
+    68%  { transform: scale(1.16) rotate(.5deg); }
+    84%  { transform: scale(1.23) rotate(-.2deg); }
+    100% { transform: scale(1.2); }                    /* lands where the base rule leaves it */
   }
   @media (prefers-reduced-motion: reduce) {
     .cell.winhit { animation: none; }
@@ -2043,18 +2042,8 @@ const reelEls = [];
 const multEls = [];   // multEls[r][y]: the number slot under cell (r, y)
 function buildBoard() {
   const board = $("board");
-  // One idle clock per board position (CSS iconIdle): a slow 4.8-6.4s stretch started
-  // part-way through, so the icons move out of step. The cell and the multiplier slot under
-  // it share the clock, so a value box breathes with the tile above it, and every icon later
-  // dropped into the cell inherits it.
-  const clock = Array.from({ length: REELS }, () => Array.from({ length: ROWS }, () => {
-    const dur = 4.8 + Math.random() * 1.6;
-    return { dur: dur.toFixed(2) + "s", delay: (-Math.random() * dur).toFixed(2) + "s" };
-  }));
-  const setClock = (el, r, y) => {
-    el.style.setProperty("--idle-dur", clock[r][y].dur);
-    el.style.setProperty("--idle-delay", clock[r][y].delay);
-  };
+  // the idle stretch of every cell (and of the multiplier slot under it) is driven by
+  // idleStretch(), started once the board is built
   const layer = document.createElement("div");
   layer.className = "multlayer"; layer.id = "multLayer";
   board.appendChild(layer);
@@ -2063,7 +2052,6 @@ function buildBoard() {
     for (let y = 0; y < ROWS; y++) {
       const g = document.createElement("div");
       g.className = "gmult"; g.hidden = true;
-      setClock(g, r, y);
       layer.appendChild(g); multEls[r].push(g);
     }
   }
@@ -2077,11 +2065,71 @@ function buildBoard() {
       c.className = "cell low";
       c.style.setProperty("--i", y);   // its row from the top
       c.style.setProperty("--ib", ROWS - 1 - y);   // and from the bottom, for the landing ripple (CSS .reel.impact)
-      setClock(c, r, y);
       reel.appendChild(c); cellEls[r].push(c);
     }
     board.appendChild(reel);
   }
+  idleStretch();
+  frameIdle();
+}
+// A random drift: a value between -1 and 1 that wanders through random stops `stepLo`-`stepHi`
+// seconds apart, eased along a Catmull-Rom curve, starting from rest and never repeating.
+// Returns the value at t seconds. Stops already passed are forgotten, so it runs for ever.
+function drift(stepLo, stepHi) {
+  const ch = { step: stepLo + Math.random() * (stepHi - stepLo), k0: 0, v: [0] };
+  return t => {
+    const u = t / ch.step, k = Math.floor(u), f = u - k;
+    while (ch.k0 + ch.v.length <= k + 2) ch.v.push(Math.random() * 2 - 1);   // the next stops, as needed
+    while (ch.k0 < k - 1) { ch.v.shift(); ch.k0++; }                         // the ones passed, forgotten
+    const s = i => ch.v[i - ch.k0];
+    const p0 = k > 0 ? s(k - 1) : 0, p1 = s(k), p2 = s(k + 1), p3 = s(k + 2);
+    return .5 * (2 * p1 + (p2 - p0) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (3 * p1 - p0 - 3 * p2 + p3) * f * f * f);
+  };
+}
+// Every icon on the board idles with a slight stretch of its own: a slow random wander in
+// width (--sx), height (--sy) and lean (--sr), every cell on its own path - so no two move
+// alike and none ever repeats. The values go on the cell as CSS variables, which its icon, a
+// Multi's value and any icon dropped in later all read; the multiplier slot under the cell
+// takes the same ones.
+function idleStretch() {
+  if (REDUCED_MOTION) return;
+  const AMP = [.04, .04, 1.5];   // up to 4% wider or narrower, 4% taller or shorter, 1.5 degrees of lean
+  const chans = [];              // three per cell, in board order
+  for (let c = 0; c < REELS * ROWS * 3; c++) chans.push(drift(1.6, 3));
+  const t0 = performance.now();
+  const tick = now => {
+    const t = (now - t0) / 1000;
+    let i = 0;
+    for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+      const sx = (1 + AMP[0] * chans[i++](t)).toFixed(4);
+      const sy = (1 + AMP[1] * chans[i++](t)).toFixed(4);
+      const sr = (AMP[2] * chans[i++](t)).toFixed(2) + "deg";
+      for (const el of [cellEls[r][y], multEls[r][y]]) {
+        el.style.setProperty("--sx", sx); el.style.setProperty("--sy", sy); el.style.setProperty("--sr", sr);
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+// The sprayed outline round the board idles the same way, a little slower and smaller than an
+// icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches up to
+// 1.5% each way, on a path of its own that never repeats (--fx/--fy, --fr, --fsx/--fsy).
+function frameIdle() {
+  const frame = $("paintframe");
+  if (REDUCED_MOTION || !frame) return;
+  const dx = drift(2.5, 4.5), dy = drift(2.5, 4.5), dr = drift(3, 5), dsx = drift(2.5, 4.5), dsy = drift(2.5, 4.5);
+  const t0 = performance.now();
+  const tick = now => {
+    const t = (now - t0) / 1000;
+    frame.style.setProperty("--fx", (5 * dx(t)).toFixed(2) + "px");
+    frame.style.setProperty("--fy", (5 * dy(t)).toFixed(2) + "px");
+    frame.style.setProperty("--fr", (.35 * dr(t)).toFixed(3) + "deg");
+    frame.style.setProperty("--fsx", (1 + .015 * dsx(t)).toFixed(4));
+    frame.style.setProperty("--fsy", (1 + .015 * dsy(t)).toFixed(4));
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 function cellClass(sym) {
   return "cell " + (SYM[sym.name] || { cls: "low" }).cls;
@@ -2557,7 +2605,7 @@ function balanceTick(delta, ms) {
   const r0 = Math.min(1.6, .9 + .15 * Math.log2(1 + bets));
   const up = delta > 0;
   const curve = Float32Array.from({ length: 32 }, (_, i) => { const p = i / 31; return r0 * (up ? .92 + .26 * p : 1.08 - .28 * p); });
-  loopSfx("moneyTick", ms, curve);
+  loopSfx("moneyTick", ms, curve, .4);   // 60% quieter than the win screen's counter, which keeps the clip's full level
 }
 
 let shownWin = 0;
@@ -2877,11 +2925,11 @@ function loopHold(name) {
 }
 
 // One loop for the whole spin, its pitch following the reels' own speed curve.
-function loopSfx(name, ms, curve) {
+function loopSfx(name, ms, curve, gainMul = 1) {   // gainMul: a caller's own trim on the clip's level
   if (vol.sfx <= 0) return () => {};
   const ctx = audio();
   if (!ctx || !sfxBuf[name]) return () => {};
-  const level = SFX_VOL[name] ?? .4;   // this clip's own level, not the player's mix
+  const level = (SFX_VOL[name] ?? .4) * gainMul;   // this clip's own level, not the player's mix
   const secs = ms / 1000;
   const src = ctx.createBufferSource();
   src.buffer = sfxBuf[name];
@@ -4480,6 +4528,8 @@ function totalWinScreen(amount, { total = true } = {}) {
     void wrap.offsetWidth;                      // flush, so the first change transitions
     wrap.classList.add("on");                   // over the board: the icons stay in view behind it
     hudAway();                                  // and the bar drops out of the way
+    closeBars();                                // taking the volume bars with it if they were open,
+    if (autoDismiss) autoDismiss();             // and the Auto picker closes as if cancelled
     if (!total) tagPop(1.6);                    // the tag on the wall pops bigger for a spin's win; the bonus total leaves it be
     step(300, () => {
       wrap.classList.add("up");
