@@ -1905,6 +1905,11 @@
      so screen lengths are divided by that scale (--fit). The Bonus button is pinned to the
      bottom corner of the controls' box and so stays at the very foot of the screen. Last in
      the sheet on purpose: it has to outrank the general .main / .bottom / #walltag rules. */
+  /* The wall art is 16:9. A screen narrower than that (phones, tablets, the desktop pane) would
+     otherwise show it as a band across the middle with black above and below - the characters
+     and the tag floating on nothing - so there it covers the screen and loses a little off the
+     sides instead. Wider than 16:9 keeps the whole picture in view, pavement at the foot. */
+  @media (max-aspect-ratio: 16/9) { :root { --wall-scale: cover; } }
   @media (max-width: 760px) and (orientation: portrait) {
     #walltag { top: 24%; }
     .main { justify-content: flex-end; }
