@@ -31,6 +31,13 @@
     --num: "Timegoing", "Jraot Hollow", "IBM Plex Mono", monospace;
     --label: "BROMO", "Jraot Hollow", "IBM Plex Mono", monospace;
     --wall-scale: contain;   /* background wall size — `cover` fills and crops, `contain` fits it all in */
+    /* The scene's lean. The wall art is drawn dead-on (its brick courses are parallel to
+       0.2 degrees - no vanishing point to match), so the whole scene is turned a little as
+       one instead: the wall and its tag, the board and the characters all take this yaw, so
+       they share one vanishing point off to the side and read as one picture. Negative = the
+       right side comes forward and the left falls back; flip the sign to lean the other way,
+       0deg for flat. Each piece carries its own perspective() so none depends on a parent. */
+    --scene-yaw: -5deg;
     --char-height: 49.5vh;   /* base size the crop window is derived from */
     --char-headroom: 1.2;    /* canvas above the rig's standing height, so smoke, hats and
                                 raised arms have room: the figure is scaled to the box WITHOUT
@@ -116,10 +123,12 @@
      Wander on translate/rotate, hop and pop on scale, so they ride on top of one another
      without a fight. */
   #bgwall {
-    position: fixed; inset: -4%; z-index: -1; pointer-events: none;
+    position: fixed; inset: -4%; z-index: -1; pointer-events: none;   /* the bleed also covers the turned wall's far edge (to ~8deg) */
     background:
       linear-gradient(rgba(20,18,24,.78), rgba(20,18,24,.9)),
       url("assets/bonus_wall.jpg") center / var(--wall-scale) no-repeat;
+    /* the scene's lean (--scene-yaw); the hop (bgbounce) is on translate/scale and rides on top */
+    transform: perspective(2600px) rotateY(var(--scene-yaw));
   }
   #walltag {
     position: absolute; left: 50%; top: 46%;
@@ -152,22 +161,29 @@
     overflow: hidden; pointer-events: none; user-select: none;
     opacity: .78;   /* they are scenery — the reels stay the focus */
     transform-origin: 50% 100%;   /* they pop up off their feet, not out of the middle */
-    translate: 0 calc(-1 * var(--char-lift));   /* the lift, apart from the hop's transform */
+    translate: 0 calc(-1 * var(--char-lift));   /* the lift; the hop (charbounce) folds it into its own translate */
+    /* they stand on the turned wall: the scene's lean (--scene-yaw), and a touch of depth with
+       it - the figure on the far side a little smaller, the near one a little bigger
+       (--char-depth, from the yaw's sign, so flipping the lean flips this too) */
+    scale: var(--char-depth, 1);
+    transform: perspective(900px) rotateY(var(--scene-yaw));
   }
   /* --char-shift centres each character's own column on the union of its clips' content:
      char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
-  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; }   /* the skull stands 5% lower than the boy */
-  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; }
+  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); }   /* the skull stands 5% lower than the boy */
+  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); }
   /* same beat as the wall's bounce — they hop and shake it off on every spin */
   .charfx.bounce { animation: charbounce .7s cubic-bezier(.22,.9,.32,1.25); }
+  /* on translate/scale/rotate (transform carries the scene's lean): the lift and the depth
+     are folded in, so the hop starts and ends exactly where the figure stands */
   @keyframes charbounce {
-    0%   { transform: none; }
-    18%  { transform: translateY(calc(-11px * var(--bounce))) scale(calc(1 + .05 * var(--bounce))) rotate(calc(-1.4deg * var(--bounce))); }
-    38%  { transform: translateY(calc(6px * var(--bounce))) scale(calc(1 - .016 * var(--bounce))) rotate(calc(1.1deg * var(--bounce))); }
-    55%  { transform: translateY(calc(-3px * var(--bounce))) scale(calc(1 + .012 * var(--bounce))) rotate(calc(-.7deg * var(--bounce))); }
-    70%  { transform: translateY(calc(2px * var(--bounce))) rotate(calc(.4deg * var(--bounce))); }
-    85%  { transform: translateY(calc(-1px * var(--bounce))) rotate(calc(-.2deg * var(--bounce))); }
-    100% { transform: none; }
+    0%   { translate: 0 calc(-1 * var(--char-lift)); scale: var(--char-depth, 1); rotate: 0deg; }
+    18%  { translate: 0 calc(-1 * var(--char-lift) - 11px * var(--bounce)); scale: calc(var(--char-depth, 1) * (1 + .05 * var(--bounce))); rotate: calc(-1.4deg * var(--bounce)); }
+    38%  { translate: 0 calc(-1 * var(--char-lift) + 6px * var(--bounce)); scale: calc(var(--char-depth, 1) * (1 - .016 * var(--bounce))); rotate: calc(1.1deg * var(--bounce)); }
+    55%  { translate: 0 calc(-1 * var(--char-lift) - 3px * var(--bounce)); scale: calc(var(--char-depth, 1) * (1 + .012 * var(--bounce))); rotate: calc(-.7deg * var(--bounce)); }
+    70%  { translate: 0 calc(-1 * var(--char-lift) + 2px * var(--bounce)); rotate: calc(.4deg * var(--bounce)); }
+    85%  { translate: 0 calc(-1 * var(--char-lift) - 1px * var(--bounce)); rotate: calc(-.2deg * var(--bounce)); }
+    100% { translate: 0 calc(-1 * var(--char-lift)); scale: var(--char-depth, 1); rotate: 0deg; }
   }
   /* Narrow screens have no room beside the board, so instead of hiding them the pair is
      shrunk and pushed outward — they frame the reels from the edges rather than sitting
@@ -182,12 +198,14 @@
     :root { --char-height: 34.5vh; --char-inset: -12vw; }
     .charfx { opacity: .42; }
   }
-  /* Portrait phone: the board is scaled to the width and sits high, which leaves the lower
-     half of the screen empty — so the pair stands there, whole, one in each bottom corner
-     behind the controls. Sized so two of them fit across the screen with their feet on it. */
+  /* Portrait phone: the scenery takes the top of the screen and the game the bottom. The pair
+     stands mid-screen, feet about 42% of the way down, in front of the tag on the wall (which
+     moves up to meet them); the board sits below them just above the controls, the controls
+     ride up off the bottom edge, and the Bonus button alone stays at the very foot - see the
+     portrait layout block at the end of the sheet. Sized so the two fit side by side. */
   @media (max-width: 760px) and (orientation: portrait) {
-    :root { --char-height: 15vh; --char-inset: -2vw; --char-drop: 0.5vh; }
-    .charfx { opacity: .6; }
+    :root { --char-height: 22vh; --char-inset: 2vw; --char-drop: -58vh; }
+    .charfx { opacity: .75; }
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
   @media (max-height: 500px) {
@@ -205,10 +223,10 @@
   }
   .charfx canvas.on { opacity: 1; }
   #bgwall.bounce { animation: bgbounce .7s cubic-bezier(.22,.9,.32,1.25); }
-  @keyframes bgbounce {
-    0% { transform: none; }
-    38% { transform: translateY(calc(9px * var(--bounce))) scale(calc(1 + .022 * var(--bounce))); }
-    100% { transform: none; }
+  @keyframes bgbounce {   /* on translate/scale: transform carries the scene's lean */
+    0% { translate: 0 0; scale: 1; }
+    38% { translate: 0 calc(9px * var(--bounce)); scale: calc(1 + .022 * var(--bounce)); }
+    100% { translate: 0 0; scale: 1; }
   }
   button { font-family: inherit; cursor: pointer; }
   button:disabled { opacity: .45; cursor: default; }
@@ -291,9 +309,14 @@
   .bonusintro .inner {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 3vh 8vw 10vh; text-align: center; gap: .6vh;
-    opacity: 0; transform: translateY(16px); transition: opacity .65s ease .2s, transform .65s ease .2s;
+    opacity: 0; translate: 0 16px; transition: opacity .65s ease .2s, translate .65s ease .2s;
+    /* the screen is a card in space: it tips toward the cursor (tiltPlates, from bonusIntro)
+       and its pieces sit at their own heights above it (--depth), sliding apart as it tips */
+    --mx: 0; --my: 0;
+    transform: perspective(1400px) rotateX(calc(var(--my) * -7deg)) rotateY(calc(var(--mx) * 7deg));
   }
-  .bonusintro.up .wall, .bonusintro.up .inner { opacity: 1; transform: none; }
+  .bonusintro.up .wall, .bonusintro.up .inner { opacity: 1; }
+  .bonusintro.up .inner { translate: 0 0; }
   .bonusintro .blogo { width: min(50vw, 400px, 30vh); height: auto; filter: drop-shadow(0 8px 16px rgba(0,0,0,.7)); }
   /* the trigger line is two layers of the same words: the fill cut with a blue gradient
      poured into the letters, and the outline cut laid exactly over it in glowing white */
@@ -312,10 +335,16 @@
     font-family: "Smashed Graffiti Outline", "Smashed Graffiti", var(--disp);
     color: #fff; text-shadow: 0 0 6px rgba(255,255,255,.9), 0 0 16px rgba(170,240,255,.8), 0 0 30px rgba(79,232,255,.5);
   }
-  /* every piece of the screen wanders slightly on its own random path (hoverWin, from bonusIntro) */
+  /* every piece of the screen wanders slightly on its own random path (hoverWin, from bonusIntro),
+     slides with the cursor by its height above the screen (--depth), and leans in space as it
+     drifts: the way it floats sets the way it tips, a few degrees either way */
   .bonusintro .blogo, .bonusintro .bkind, .bonusintro .byou, .bonusintro .bnum, .bonusintro .bfs, .bonusintro .bhow {
-    translate: var(--px, 0px) var(--py, 0px); rotate: var(--pr, 0deg);
+    translate: calc(var(--px, 0px) + var(--mx, 0) * var(--depth, 0px)) calc(var(--py, 0px) + var(--my, 0) * var(--depth, 0px));
+    rotate: var(--pr, 0deg);
+    transform: perspective(900px) rotateY(atan2(var(--px, 0px), 5vh)) rotateX(calc(-1 * atan2(var(--py, 0px), 6vh)));
   }
+  .bonusintro .blogo { --depth: 22px; } .bonusintro .bkind { --depth: 14px; } .bonusintro .bnum { --depth: 12px; }
+  .bonusintro .byou, .bonusintro .bfs { --depth: 9px; } .bonusintro .bhow { --depth: 4px; }
   .bonusintro .byou, .bonusintro .bfs {
     font-size: clamp(24px, 4.8vh, 44px); text-transform: uppercase; line-height: 1;
     color: #fff; text-shadow: 0 4px 0 rgba(0,0,0,.8), 0 0 24px rgba(240,86,139,.8);
@@ -483,20 +512,42 @@
     filter: drop-shadow(0 10px 18px rgba(0,0,0,.65));
     transition: scale .25s cubic-bezier(.2,.9,.3,1.3), filter .25s ease;
     animation: fdrift 4.6s ease-in-out infinite;
+    /* 3D under the mouse (tiltPlates): --mx/--my run -.5..5 across and down the plate and
+       --glare 0..1 with the hover, all eased every frame. The plate tips like a card pressed
+       where the cursor is - the side under the mouse goes back, 12 degrees at an edge. The
+       drift's translate/rotate and the hover's scale are separate properties, so the tilt
+       stacks on them instead of replacing them */
+    --mx: 0; --my: 0; --glare: 0;
+    transform: perspective(900px) rotateX(calc(var(--my) * -24deg)) rotateY(calc(var(--mx) * 24deg));
   }
   .fbox:nth-child(2) { animation-delay: -1.5s; }
   .fbox:nth-child(3) { animation-delay: -3s; }
   .fbox:hover {
     scale: 1.09; z-index: 2; animation-play-state: paused;
-    filter: drop-shadow(0 16px 26px rgba(0,0,0,.75)) drop-shadow(0 0 22px rgba(79,232,255,.55));
+    /* the shadow slides away from the cursor as the plate tips: the raised side casts further */
+    filter: drop-shadow(calc(var(--mx) * -22px) calc(16px - var(--my) * 14px) 26px rgba(0,0,0,.75)) drop-shadow(0 0 22px rgba(79,232,255,.55));
   }
   @keyframes fdrift { 0%, 100% { translate: 0 0; rotate: -1.2deg; } 50% { translate: 0 -12px; rotate: 1.2deg; } }
+  /* a sheen under the cursor that slides with it, clipped to the plate's own shape by the
+     same art, and only there while the mouse is (--glare) */
+  .fbox::after {
+    content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(circle at calc(50% + var(--mx) * 100%) calc(50% + var(--my) * 100%),
+      rgba(255,255,255,.32) 0%, rgba(255,255,255,.1) 26%, rgba(255,255,255,0) 56%);
+    -webkit-mask: url("assets/feature_box.png") center / 100% 100% no-repeat;
+    mask: url("assets/feature_box.png") center / 100% 100% no-repeat;
+    mix-blend-mode: screen; opacity: var(--glare);
+  }
   /* percentages here are of the plate itself, so the band and the frayed edge stay clear */
   .fbox .fin {
     position: absolute; left: 13%; right: 13%; top: 10%; bottom: 10%; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center;
+    translate: calc(var(--mx) * 10px) calc(var(--my) * 8px);   /* the contents ride a little above the plate */
   }
-  .fbox .ficon { position: relative; width: 46%; aspect-ratio: 1; flex: none; display: flex; align-items: center; justify-content: center; }
+  .fbox .ficon {
+    position: relative; width: 46%; aspect-ratio: 1; flex: none; display: flex; align-items: center; justify-content: center;
+    translate: calc(var(--mx) * 6px) calc(var(--my) * 4px);    /* and the icon higher still */
+  }
   .fbox .ficon img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0,0,0,.6)); }
   /* the Multi's value over the bricks: the number font, the heat colour, a pop at each step */
   .fbox .fmult {
@@ -525,6 +576,8 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .fbox, .fbox .fmult, .features .fcont { animation: none !important; }
+    .fbox { transform: none !important; }   /* flat: tiltPlates does not run either */
+    .fbox::after { display: none; }
     body.features-fade #app, body.features-fade .charfx, .features { transition: none !important; }
   }
   /* The wordmark is wide (2.6:1), so it gets a little more width than the old square-ish tag
@@ -886,11 +939,25 @@
 
   /* main — slots front and center, info cards beneath */
   .main { flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 64px 20px 22px; align-items: center; }
-  .stage { position: relative; padding-bottom: 44px; }   /* a breath under the outline before the rail */
+  .stage {
+    position: relative; padding-bottom: 44px;   /* a breath under the outline before the rail */
+    /* the board sits on the turned wall: the scene's lean (--scene-yaw). The reveal's pop and
+       the lean-in zoom are on .board inside it, so they ride on top */
+    transform: perspective(1500px) rotateY(var(--scene-yaw));
+  }
 
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
     position: relative; display: flex; gap: var(--cell-gap); padding: 36px 41px;   /* the frame's bands never touch an icon */
+    /* the lean-in for a third Crew Leader (boardZoom): a touch bigger, about a point part way
+       toward the held column (--zx), reaching full size as that column's last icon lands
+       (--zoomms, set per reveal) and letting go again in a beat, hit or miss */
+    scale: 1; transform-origin: var(--zx, 50%) 50%;
+    transition: scale .6s cubic-bezier(.2,.9,.3,1.2), transform-origin .6s ease;
+  }
+  .board.zoomin {
+    scale: 1.045;
+    transition: scale var(--zoomms, 1.8s) cubic-bezier(.35,0,.65,1), transform-origin var(--zoomms, 1.8s) ease;
   }
   /* the sprayed outline: a thin band that runs 1% to 4% in from the art's edge, so a 10px
      overhang lands it in the board's own padding, just outside the icons, on every side */
@@ -1046,7 +1113,19 @@
     background: color-mix(in srgb, var(--heat, var(--fs-green)) 12%, rgba(8, 6, 12, .7));
     box-shadow: inset 0 0 14px color-mix(in srgb, var(--heat, var(--fs-green)) 32%, transparent);   /* a mild inner light, nothing more */
   }
-  .multlayer .gmult.bare { opacity: .95; }
+  /* a value comes into the open (the tile over it has just come apart): it pops in - small
+     and bright, past full size, and settles - rather than simply being there. The idle
+     stretch is on scale/rotate, so this transform rides on top of it */
+  .multlayer .gmult.bare { opacity: .95; animation: gmultIn calc(.42s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.35); }
+  @keyframes gmultIn {
+    0%   { transform: scale(.3); filter: brightness(2.2); }
+    55%  { transform: scale(1.2); filter: brightness(1.5); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .multlayer .gmult.bare { animation: none; } }
+  /* and when a new spin clears the board it fades away, drawing in a little, rather than
+     vanishing (paintCell hides the slot once the fade is through) */
+  .multlayer .gmult.gone { opacity: 0; transform: scale(.72); transition: opacity .45s ease, transform .45s ease; }
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
@@ -1547,17 +1626,31 @@
     position: relative; display: grid; place-items: center; width: 100%;
     background: rgba(12, 10, 16, .74); border: 2px solid rgba(0, 0, 0, .5); border-radius: 13px;
     padding: 15px 12px; cursor: pointer;
-    transition: border-color .18s, box-shadow .18s, transform .18s;
+    transition: border-color .18s, box-shadow .18s;
+    /* the same 3D as the opening screen's plates (tiltPlates): the card tips toward the
+       cursor, lifts and grows a touch while the mouse is on it (--glare is the hover, eased),
+       its art rides above it and a sheen slides across it */
+    --mx: 0; --my: 0; --glare: 0;
+    transform: perspective(700px) rotateX(calc(var(--my) * -22deg)) rotateY(calc(var(--mx) * 22deg))
+      translateY(calc(var(--glare) * -3px)) scale(calc(1 + var(--glare) * .04));
+  }
+  .bonuscard::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(circle at calc(50% + var(--mx) * 100%) calc(50% + var(--my) * 100%),
+      rgba(255,255,255,.26) 0%, rgba(255,255,255,.08) 28%, rgba(255,255,255,0) 60%);
+    opacity: var(--glare);
   }
   .bonuscard .cardart {
     display: block; width: 100%; height: 84px; object-fit: contain;
     filter: drop-shadow(0 3px 6px rgba(0,0,0,.6));
+    translate: calc(var(--mx) * 8px) calc(var(--my) * 7px);   /* the art sits above the card */
   }
   .bonuscard .ttl, .bonuscard .mult, .bonuscard .desc {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
   }
-  .bonuscard:hover:not(:disabled) { transform: translateY(-2px); }
+  .bonuscard:disabled { transform: none; }           /* a card that cannot be bought lies flat */
+  .bonuscard:disabled::after { display: none; }
   /* the chosen one lights up in its own paint */
   .bonuscard.gold.on {
     border-color: var(--fs-green);
@@ -1805,6 +1898,18 @@
   body.replay .betstep, body.replay .spinwrap { display: none; }
   body.replay .hudstack.right { margin-left: 0; }
   body.replay .hudbar { padding-right: 24px; }
+  /* Portrait phone layout (the characters' own rules are up with the other character rules):
+     the tag on the wall moves up to the top quarter so the pair stands in front of it, the
+     board drops to the bottom of its column so it sits just above the controls, and the
+     controls ride 12% of the screen up off the bottom edge. #app is scaled to fit the width,
+     so screen lengths are divided by that scale (--fit). The Bonus button is pinned to the
+     bottom corner of the controls' box and so stays at the very foot of the screen. Last in
+     the sheet on purpose: it has to outrank the general .main / .bottom / #walltag rules. */
+  @media (max-width: 760px) and (orientation: portrait) {
+    #walltag { top: 24%; }
+    .main { justify-content: flex-end; }
+    .bottom { padding-bottom: calc(12vh / var(--fit, 1)); }
+  }
 </style>
 </head>
 <body>
@@ -2093,9 +2198,11 @@ function drift(stepLo, stepHi) {
 // takes the same ones.
 function idleStretch() {
   if (REDUCED_MOTION) return;
-  const AMP = [.04, .04, 1.5];   // up to 4% wider or narrower, 4% taller or shorter, 1.5 degrees of lean
+  const AMP = [.07, .07, 2.5];   // up to 7% wider or narrower, 7% taller or shorter, 2.5 degrees of lean
+  // each channel is a slow wander with a quicker, smaller one laid over it, so the motion
+  // never stalls at the slow one's turning points - there is always something moving
   const chans = [];              // three per cell, in board order
-  for (let c = 0; c < REELS * ROWS * 3; c++) chans.push(drift(1.6, 3));
+  for (let c = 0; c < REELS * ROWS * 3; c++) { const slow = drift(1.3, 2.4), quick = drift(.5, 1); chans.push(t => .7 * slow(t) + .3 * quick(t)); }
   const t0 = performance.now();
   const tick = now => {
     const t = (now - t0) / 1000;
@@ -2113,8 +2220,9 @@ function idleStretch() {
   requestAnimationFrame(tick);
 }
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
-// icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches up to
-// 1.5% each way, on a path of its own that never repeats (--fx/--fy, --fr, --fsx/--fsy).
+// icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
+// hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never
+// repeats (--fx/--fy, --fr, --fsx/--fsy).
 function frameIdle() {
   const frame = $("paintframe");
   if (REDUCED_MOTION || !frame) return;
@@ -2125,8 +2233,8 @@ function frameIdle() {
     frame.style.setProperty("--fx", (5 * dx(t)).toFixed(2) + "px");
     frame.style.setProperty("--fy", (5 * dy(t)).toFixed(2) + "px");
     frame.style.setProperty("--fr", (.35 * dr(t)).toFixed(3) + "deg");
-    frame.style.setProperty("--fsx", (1 + .015 * dsx(t)).toFixed(4));
-    frame.style.setProperty("--fsy", (1 + .015 * dsy(t)).toFixed(4));
+    frame.style.setProperty("--fsx", (1 + .004 * dsx(t)).toFixed(4));
+    frame.style.setProperty("--fsy", (1 + .004 * dsy(t)).toFixed(4));
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
@@ -2190,13 +2298,19 @@ function heatColour(v) {
 function paintCell(r, y) {
   const g = multEls[r][y], v = (state.grid[r] || [])[y] || 0;
   if (v > 0) {
+    clearTimeout(g.fadeTimer); g.classList.remove("gone");   // a value arriving mid-fade keeps the slot
     const t = "x" + fmtMult(v);
     g.textContent = t; g.hidden = false;
     // the face fills the cell and shrinks with the value's length (a fraction of the rule's
     // own font size, see .multlayer .gmult) so a stacked x1001.25 never runs past it
     g.style.setProperty("--shrink", t.length > 7 ? ".46" : t.length > 5 ? ".56" : t.length > 3 ? ".72" : "1");
     g.style.setProperty("--heat", heatColour(v));
-  } else g.hidden = true;
+  } else if (!g.hidden && !g.classList.contains("gone")) {
+    // cleared: it fades away over a beat (.gmult.gone) and only then leaves the board
+    if (REDUCED_MOTION) { g.hidden = true; return; }
+    g.classList.add("gone");
+    g.fadeTimer = setTimeout(() => { if (g.classList.contains("gone")) { g.hidden = true; g.classList.remove("gone"); } }, 480);
+  }
 }
 function paintGrid() { placeMultLayer(); for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) paintCell(r, y); }
 
@@ -2333,6 +2447,21 @@ function stripsFor(gameType) {
 
 const FALLBACK_STRIP = ["L1", "H4", "L3", "H1", "L5", "H3", "L2", "H5", "L4", "H2"];
 
+// Two Crew Leaders down and a reel held for the third: the board leans in. It eases up a touch
+// bigger, about a point part way toward the held column, over the rest of the reveal - full
+// size as the last held icon lands - and lets go again when the reveal is over, hit or miss.
+function boardZoom(on, heldEls = [], ms = 1800) {
+  const bd = $("board");
+  if (!bd || REDUCED_MOTION) return;
+  if (!on) { bd.classList.remove("zoomin"); bd.style.removeProperty("--zx"); return; }
+  if (heldEls.length) {   // halfway from the middle toward the centre of the held columns
+    const w = bd.offsetWidth || 1;
+    const lo = Math.min(...heldEls.map(el => el.offsetLeft)), hi = Math.max(...heldEls.map(el => el.offsetLeft + el.offsetWidth));
+    bd.style.setProperty("--zx", (50 + ((lo + hi) / 2 / w - .5) * 50).toFixed(1) + "%");
+  }
+  bd.style.setProperty("--zoomms", Math.round(Math.max(700, ms)) + "ms");
+  bd.classList.add("zoomin");
+}
 function bounceFx() {
   // background bounce + board pop + character hop, on every reveal (base and each free spin)
   if (REDUCED_MOTION) return;
@@ -2381,7 +2510,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
     const reel = reelEls[r], cells = cellEls[r], t = tempo();
     reel.style.setProperty("--tempo", String(t));   // this column's animations keep the clock its schedule was planned on
     const timers = [];
-    let done = false, placed = false;
+    let done = false, placed = false, quick = false;
     const place = () => {   // this round's symbols into the column, hidden until each one falls
       if (placed) return;
       placed = true;
@@ -2408,8 +2537,27 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
       reel.style.removeProperty("--tempo");
       resolve();
     };
-    const skipWatch = setInterval(() => { if (state.skip) finish(); }, 60);
-    if (REDUCED_MOTION || state.skip) { finish(); return; }
+    // A skip still shows the board arrive, just all at once and fast: whatever this column
+    // was doing, this round's icons drop in together from a little way up, land with the
+    // usual bounce in a fifth of a second, and the round carries on
+    const quickDrop = () => {
+      if (done || quick) return;
+      quick = true;
+      timers.forEach(clearTimeout);
+      place();
+      for (let y = 0; y < ROWS; y++) {
+        const c = cells[y];
+        c.classList.remove("fallout", "tdrop"); c.style.removeProperty("--out");
+        c.style.visibility = "";
+        c.style.setProperty("--fall", "-34px"); c.style.setProperty("--droptime", ".4");   // a short drop, a fifth of the usual time
+        void c.offsetWidth;
+        c.classList.add("tdrop");
+      }
+      setTimeout(finish, 240 * t + 40);
+    };
+    const skipWatch = setInterval(() => { if (state.skip) quickDrop(); }, 60);
+    if (REDUCED_MOTION) { finish(); return; }
+    if (state.skip) { quickDrop(); return; }
 
     const later = (ms, fn) => timers.push(setTimeout(fn, ms));
     const arrive = (y, pace, tt = t) => {   // one icon lands: it bounces, a drip of paint, a bonus symbol announces itself
@@ -2475,7 +2623,7 @@ async function renderReveal(ev) {
 
   // reels go left to right; a reel held back for a near miss means a bonus symbol is down
   // and one or two more would pay it off: it waits, and the characters lean in
-  const t = tempo(), stagger = 90 * t, anticExtra = 800 * t;
+  const t = tempo(), stagger = 90 * t, anticExtra = 800 * t, revealStart = performance.now();
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     state.anticipated = true;
     charReact("anticipation");
@@ -2495,7 +2643,10 @@ async function renderReveal(ev) {
   const lastStart = s => 95 * t * s * ((ROWS - 1) + (s > 1 ? .09 * (ROWS - 1) * (ROWS - 2) / 2 : 0));
   let crewDown = 0;
   const onCrewLeader = () => {
-    if (++crewDown === 2) goldReels.forEach(el => el.classList.add("antic"));
+    if (++crewDown !== 2) return;
+    goldReels.forEach(el => el.classList.add("antic"));
+    // and the board leans in for the wait, reaching full size as the last held icon lands
+    boardZoom(true, goldReels, revealMs - (performance.now() - revealStart) - 250 * t);
   };
   // the spin's whoosh runs under the whole reveal: the last reel's wait, its column dropping
   // out, any near-miss beat, and its seven icons falling in. It rises and eases on the old
@@ -2506,6 +2657,7 @@ async function renderReveal(ev) {
   await Promise.all(reelEls.map((_, r) =>
     dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra, onCrewLeader, slowOf(r))));
   hushReels();   // a skipped reveal cuts it short; a full one has already faded out
+  boardZoom(false);   // the lean-in lets go as the board settles, hit or miss
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
@@ -3385,6 +3537,7 @@ async function presentRound(round, { settle = true } = {}) {
   setRoundWin(0);
   state.grid = emptyGrid();
   state.anticipated = false;
+  boardZoom(false);   // never carried into a new round
   state.bonusHit = false;
   state.multiCount = 0; state.multiTotal = 0;
   setTags(0, 4);
@@ -4078,13 +4231,33 @@ function preloadAll(onProgress) {
 // pace and turns at its own slow spin, and a knock only throws it off both for a moment before
 // it settles back. Drawn from the same sprites as the win screen's rain; an icon whose art is
 // still on its way fades in when it arrives. It stops by itself once the screen has gone.
+// They are cards in 3D as well: each one turns slowly about its own upright and its own
+// side-to-side axis (yaw and pitch, on top of the flat spin), so it narrows to an edge and
+// comes round showing its back - drawn darker - and a knock, from a wall, the block or another
+// icon, flips it harder for a moment. Drawn as a flat affine of the card's two axes (an
+// orthographic view), which is all a 100px card needs to read as turning in space.
 function startIntroIcons(canvas, avoid) {
   if (REDUCED_MOTION || !canvas) return;
   const kinds = iconSprites();
   if (!kinds.length) return;
   const ctx = canvas.getContext("2d");
   const SPIN_KICK = 0.25;   // how much of a glancing knock turns into spin
+  const FLIP_KICK = 1.4;    // degrees/s of flip per px/s of a knock's normal speed
   const SETTLE = 0.8;       // per second: how quickly a knocked icon eases back to its own pace and spin
+  const RAD = Math.PI / 180;
+  // the back of a card: the same art, darkened, baked once per kind the first time it shows
+  const backOf = kind => {
+    if (kind.back || !kind.icon) return kind.back;
+    const c = document.createElement("canvas");
+    c.width = c.height = ICON_SPRITE;
+    const g = c.getContext("2d");
+    g.drawImage(kind.icon, 0, 0);
+    g.globalCompositeOperation = "source-atop";   // only where the art is
+    g.fillStyle = "rgba(14, 10, 22, .58)";
+    g.fillRect(0, 0, ICON_SPRITE, ICON_SPRITE);
+    kind.back = c;
+    return c;
+  };
   const size = () => [canvas.clientWidth || innerWidth, canvas.clientHeight || innerHeight];
   // the block in the middle: one box round everything it holds, a little padded, in the
   // canvas's own pixels (the logo breathes, so it is measured afresh every frame)
@@ -4119,10 +4292,13 @@ function startIntroIcons(canvas, avoid) {
     }
     const cruise = (60 + Math.random() * 60) * grow, dir = Math.random() * Math.PI * 2;   // px/s: an easy drift
     const spin = (Math.random() * 2 - 1) * 22;
+    // its own slow turn in space: about one axis mostly, so it reads as a flip rather than a wobble
+    const flipY = (Math.random() < .5 ? -1 : 1) * (14 + Math.random() * 30), flipX = (Math.random() * 2 - 1) * 12;
     bodies.push({
       kind: kinds[order[i % order.length]], size: s, r, m: r * r, x, y,
       vx: Math.cos(dir) * cruise, vy: Math.sin(dir) * cruise, cruise,
       a: Math.random() * 360, va: spin, spin, fade: 0,
+      yaw: Math.random() * 360, pitch: Math.random() * 360, vyaw: flipY, vpitch: flipX, flipY, flipX,
     });
   }
   let last = performance.now();
@@ -4137,10 +4313,15 @@ function startIntroIcons(canvas, avoid) {
       const sp = Math.hypot(b.vx, b.vy) || 1, k = 1 + (b.cruise - sp) / sp * ease;
       b.vx *= k; b.vy *= k;
       b.va += (b.spin - b.va) * ease;
+      b.vyaw += (b.flipY - b.vyaw) * ease; b.vpitch += (b.flipX - b.vpitch) * ease;   // a knock's flip eases back to its own turn
       b.x += b.vx * dt; b.y += b.vy * dt; b.a += b.va * dt;
-      // the four edges, corners and all
-      if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx); } else if (b.x > w - b.r) { b.x = w - b.r; b.vx = -Math.abs(b.vx); }
-      if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy); } else if (b.y > h - b.r) { b.y = h - b.r; b.vy = -Math.abs(b.vy); }
+      b.yaw += b.vyaw * dt; b.pitch += b.vpitch * dt;
+      // the four edges, corners and all: a side wall flips it about its upright, the floor
+      // and ceiling about its side-to-side axis, each on in the direction it already turns
+      if (b.x < b.r) { b.x = b.r; b.vyaw += FLIP_KICK * Math.abs(b.vx) * Math.sign(b.vyaw || 1); b.vx = Math.abs(b.vx); }
+      else if (b.x > w - b.r) { b.x = w - b.r; b.vyaw += FLIP_KICK * Math.abs(b.vx) * Math.sign(b.vyaw || 1); b.vx = -Math.abs(b.vx); }
+      if (b.y < b.r) { b.y = b.r; b.vpitch += FLIP_KICK * Math.abs(b.vy) * Math.sign(b.vpitch || 1); b.vy = Math.abs(b.vy); }
+      else if (b.y > h - b.r) { b.y = h - b.r; b.vpitch += FLIP_KICK * Math.abs(b.vy) * Math.sign(b.vpitch || 1); b.vy = -Math.abs(b.vy); }
       if (!box) continue;
       // the block, with rounded corners so an icon glances off them rather than catching
       const R = Math.min(40, (box.b - box.t) / 2, (box.r - box.l) / 2);
@@ -4158,7 +4339,11 @@ function startIntroIcons(canvas, avoid) {
       const nx = dx / d, ny = dy / d;
       b.x = cx + nx * (b.r + R); b.y = cy + ny * (b.r + R);
       const vn = b.vx * nx + b.vy * ny;
-      if (vn < 0) { b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny; }
+      if (vn < 0) {
+        b.vx -= 2 * vn * nx; b.vy -= 2 * vn * ny;
+        b.vyaw += FLIP_KICK * -vn * Math.abs(nx) * Math.sign(b.vyaw || 1);     // the block flips it too,
+        b.vpitch += FLIP_KICK * -vn * Math.abs(ny) * Math.sign(b.vpitch || 1); // by the side it hit
+      }
     }
     // icon on icon: round bodies, overlap shared out by mass, a clean springy knock that
     // loses nothing, and the glancing part of it turned into spin
@@ -4179,6 +4364,9 @@ function startIntroIcons(canvas, avoid) {
         q.vx += jn * nx * iq; q.vy += jn * ny * iq;
         const vt = -rvx * ny + rvy * nx;
         p.va -= vt * SPIN_KICK; q.va += vt * SPIN_KICK;
+        // and each flips over by how hard it was hit, about the axis the hit came in on
+        p.vyaw += FLIP_KICK * jn * ip * Math.abs(nx) * Math.sign(p.vyaw || 1); p.vpitch += FLIP_KICK * jn * ip * Math.abs(ny) * Math.sign(p.vpitch || 1);
+        q.vyaw += FLIP_KICK * jn * iq * Math.abs(nx) * Math.sign(q.vyaw || 1); q.vpitch += FLIP_KICK * jn * iq * Math.abs(ny) * Math.sign(q.vpitch || 1);
       }
     }
     const dpr = Math.min(2, devicePixelRatio || 1);
@@ -4188,11 +4376,19 @@ function startIntroIcons(canvas, avoid) {
     for (const b of bodies) {
       if (!b.kind.icon) continue;                  // its art is still on its way
       b.fade = Math.min(1, b.fade + real * 2.5);   // on the clock, so a slow first frame never leaves it dim
-      const turn = b.a * Math.PI / 180, s = dpr * b.size / ICON_SPRITE;
-      const cos = Math.cos(turn) * s, sin = Math.sin(turn) * s;
-      ctx.globalAlpha = b.fade;
-      ctx.setTransform(cos, sin, -sin, cos, b.x * dpr, b.y * dpr);
-      ctx.drawImage(b.kind.icon, -ICON_SPRITE / 2, -ICON_SPRITE / 2);
+      const s = dpr * b.size / ICON_SPRITE;
+      // the card's two axes, turned in space (yaw about its upright, then pitch about its
+      // side-to-side axis) and seen flat: its across-axis is (cos yaw, sin yaw sin pitch), its
+      // down-axis (0, cos pitch); the flat spin then turns both in the screen plane. Their
+      // cross product's sign (cos yaw cos pitch) says which face is toward us.
+      const cy = Math.cos(b.yaw * RAD), sy = Math.sin(b.yaw * RAD), cp = Math.cos(b.pitch * RAD), spn = Math.sin(b.pitch * RAD);
+      const ax = cy, ay = sy * spn, bx = 0, by = cp;
+      const turn = b.a * RAD, ct = Math.cos(turn), st = Math.sin(turn);
+      const facing = cy * cp;
+      const back = facing < 0 ? backOf(b.kind) : null;
+      ctx.globalAlpha = b.fade * (facing < 0 ? .92 : 1);
+      ctx.setTransform((ax * ct - ay * st) * s, (ax * st + ay * ct) * s, (bx * ct - by * st) * s, (bx * st + by * ct) * s, b.x * dpr, b.y * dpr);
+      ctx.drawImage(back || b.kind.icon, -ICON_SPRITE / 2, -ICON_SPRITE / 2);
     }
     ctx.globalAlpha = 1;
     requestAnimationFrame(tick);
@@ -4579,6 +4775,48 @@ function totalWinScreen(amount, { total = true } = {}) {
 // fades the plates out and the game in. A replay is a viewer, so it never shows this.
 const FEATURE_VALUES = [1.25, 2, 3, 5, 10, 20, 50, 100, 250, 500, 1000];
 let featuresDone = Promise.resolve();
+// The plates in 3D. Each one carries --mx/--my (-.5..5: where the pointer is across and down
+// it) and --glare (0..1: how far in the hover is), eased toward their targets every frame for
+// as long as anything is still moving; the CSS turns them into the tilt, the sliding shadow
+// and sheen, and the raised contents. Leaving a plate eases it flat again. Touch never tilts:
+// a tap here is the click to play, and a flick on the way out would only read as a glitch.
+function tiltPlates(plates) {
+  if (REDUCED_MOTION) return { stop() {} };
+  const tilts = [];
+  let raf = 0, stopped = false;
+  const step = () => {
+    raf = 0;
+    if (stopped) return;
+    let moving = false;
+    for (const p of tilts) {
+      p.x += (p.tx - p.x) * .16; p.y += (p.ty - p.y) * .16; p.g += (p.tg - p.g) * .14;
+      if (Math.abs(p.tx - p.x) + Math.abs(p.ty - p.y) + Math.abs(p.tg - p.g) > .002) moving = true;
+      else { p.x = p.tx; p.y = p.ty; p.g = p.tg; }
+      p.el.style.setProperty("--mx", p.x.toFixed(4));
+      p.el.style.setProperty("--my", p.y.toFixed(4));
+      p.el.style.setProperty("--glare", p.g.toFixed(3));
+    }
+    if (moving) raf = requestAnimationFrame(step);
+  };
+  const wake = () => { if (!raf && !stopped) raf = requestAnimationFrame(step); };
+  const clamp = v => Math.max(-.5, Math.min(.5, v));
+  plates.forEach(el => {
+    const p = { el, x: 0, y: 0, g: 0, tx: 0, ty: 0, tg: 0 };
+    tilts.push(p);
+    el.addEventListener("pointermove", e => {
+      if (e.pointerType === "touch") return;
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      p.tx = clamp((e.clientX - r.left) / r.width - .5);
+      p.ty = clamp((e.clientY - r.top) / r.height - .5);
+      p.tg = 1;
+      wake();
+    });
+    el.addEventListener("pointerleave", () => { p.tx = p.ty = p.tg = 0; wake(); });
+  });
+  return { stop() { stopped = true; if (raf) cancelAnimationFrame(raf); raf = 0; } };
+}
+tiltPlates(document.querySelectorAll(".bonuscard"));   // the buy-bonus cards carry the same 3D (see .bonuscard)
 function runFeatures() {
   if (RGS.replayParams().replay) return;
   let settle;
@@ -4603,6 +4841,7 @@ function runFeatures() {
     `</div>` +
     `<div class="fcont">${T("Click to play")}</div>`;
   document.body.appendChild(wrap);
+  const tilt = tiltPlates(wrap.querySelectorAll(".fbox"));   // the plate under the mouse tips toward it
   // the Multi's value climbs the table and warms with it, round and round
   const face = wrap.querySelector("#featMult");
   let vi = 0;
@@ -4625,6 +4864,7 @@ function runFeatures() {
     wrap.classList.add("gone");                        // the plates fade out
     document.body.classList.remove("features-up");    // and the game fades in beneath them
     setTimeout(() => {
+      tilt.stop();
       wrap.remove();
       document.body.classList.remove("features-fade");
       fitToScreen();
@@ -4681,6 +4921,7 @@ function bonusIntro(spins, extreme, why) {
     // every piece of the screen drifts slightly on a random path of its own, so the whole thing
     // feels alive rather than printed; each stops with the screen
     for (const el of wrap.querySelectorAll(".blogo, .bkind, .byou, .bnum, .bfs, .bhow")) hoverWin(el, { x: .5, y: .7, r: .5, s: 0, unit: "vh", pace: 2.2 }, 0);
+    tiltPlates([wrap.querySelector(".inner")]);   // and the whole screen tips toward the cursor, its pieces at their own depths
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 fading to black, 1 up and waiting, 2 leaving
     // no "click to continue" here - only the TOTAL WIN at the end of a bonus waits for one. It
