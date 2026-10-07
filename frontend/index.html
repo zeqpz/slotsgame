@@ -199,13 +199,18 @@
     .charfx { opacity: .42; }
   }
   /* Portrait phone: the scenery takes the top of the screen and the game the bottom. The pair
-     stands mid-screen, feet about 42% of the way down, in front of the tag on the wall (which
-     moves up to meet them); the board sits below them just above the controls, the controls
-     ride up off the bottom edge, and the Bonus button alone stays at the very foot - see the
-     portrait layout block at the end of the sheet. Sized so the two fit side by side. */
+     stands BEHIND the board - head, body and hands above its top edge, legs behind it, cut off
+     along the frame's top band (--char-cut: the board is see-through, so uncut legs would show
+     between the icons) - with the tag on the wall behind them, lowered with them; the board
+     sits just above the controls, the controls ride up off the bottom edge, and the Bonus
+     button alone stays at the very foot - see the portrait layout block at the end of the
+     sheet. --char-drop here is only the first paint: placeScenery() (from fitToScreen)
+     measures where the board really is on this screen and sets --char-drop, --tag-top and
+     each figure's --char-cut from that, so every phone shape gives the same picture. Sized so
+     the two stand either side of the lettering. */
   @media (max-width: 760px) and (orientation: portrait) {
-    :root { --char-height: 22vh; --char-inset: 2vw; --char-drop: -58vh; }
-    .charfx { opacity: .75; }
+    :root { --char-height: 22vh; --char-inset: 2vw; --char-drop: -46vh; }
+    .charfx { opacity: .75; clip-path: inset(0 0 var(--char-cut, 0px) 0); }
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
   @media (max-height: 500px) {
@@ -1911,7 +1916,7 @@
      sides instead. Wider than 16:9 keeps the whole picture in view, pavement at the foot. */
   @media (max-aspect-ratio: 16/9) { :root { --wall-scale: cover; } }
   @media (max-width: 760px) and (orientation: portrait) {
-    #walltag { top: 24%; }
+    #walltag { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
     .main { justify-content: flex-end; }
     .bottom { padding-bottom: calc(12vh / var(--fit, 1)); }
   }
@@ -4086,8 +4091,63 @@ function fitToScreen() {
     app.style.height = (H / fit) + "px";
     app.style.transform = `scale(${fit.toFixed(4)})`;
     document.documentElement.style.setProperty("--fit", fit.toFixed(4));
+    placeScenery();   // the characters and the tag take their places from where the board landed
   } finally {
     fitBusy = false;
+  }
+}
+// Portrait phones: the pair stands behind the board. Each figure's box ends 35% of its
+// height below the board's top edge, so (with the lift) the head, the body and the hands show
+// above the board and the legs are behind it - and cut off there (--char-cut, a clip-path in
+// the portrait rules): the board is see-through, and uncut legs would show between the icons.
+// The cut follows the middle of the frame's sprayed top band, read where each figure stands,
+// because the scene's lean tilts that edge a few pixels across the board. The tag's centre
+// sits 8% of the screen above the board, behind them. All of it is measured from where the
+// board really is on this screen, so every phone shape gets the same picture. Landscape clears
+// it and the stylesheet's values apply.
+let sceneryProbes = null;
+function placeScenery() {
+  const root = document.documentElement.style, chars = [$("charfx"), $("charfx2")].filter(Boolean);
+  if (!matchMedia("(max-width: 760px) and (orientation: portrait)").matches) {
+    root.removeProperty("--char-drop"); root.removeProperty("--tag-top");
+    for (const el of chars) el.style.removeProperty("--char-cut");
+    return;
+  }
+  const stage = document.querySelector(".stage"), board = $("board");
+  if (!stage || !board || !chars.length) return;
+  // two invisible specks on the line through the middle of the frame's top band (the band runs
+  // 1% to 4% of the frame art in from its edge, and the art hangs 10px past the board), one at
+  // each end of the stage: placed in its own coordinates, read back on screen with the lean and
+  // the fit applied
+  if (!sceneryProbes) {
+    sceneryProbes = ["left", "right"].map(side => {
+      const p = document.createElement("i");
+      p.setAttribute("aria-hidden", "true");
+      p.style.cssText = `position:absolute;${side}:0;width:1px;height:1px;visibility:hidden;pointer-events:none`;
+      stage.appendChild(p);
+      return p;
+    });
+  }
+  const band = -10 + .025 * (board.offsetHeight + 20);
+  for (const p of sceneryProbes) p.style.top = band.toFixed(1) + "px";
+  const [a, b] = sceneryProbes.map(p => p.getBoundingClientRect());
+  const lineAt = x => a.top + (b.left === a.left ? 0 : (x - a.left) / (b.left - a.left) * (b.top - a.top));
+  const ref = lineAt(innerWidth / 2);
+  const feet = ref + .35 * chars[0].offsetHeight;                 // the character boxes' bottom edge
+  root.setProperty("--char-drop", (feet - innerHeight).toFixed(1) + "px");   // bottom = screen bottom - feet
+  // #walltag's top is its centre (it is moved up half its height), measured inside #bgwall,
+  // which starts 4% of the screen above the screen's top
+  root.setProperty("--tag-top", (ref - .08 * innerHeight + .04 * innerHeight).toFixed(1) + "px");
+  // each figure's cut, in its own box: worked out down its centre column, where the lean (a
+  // turn about that column) moves nothing up or down, from its lift and its depth scale (both
+  // taken about its bottom edge)
+  for (const el of chars) {
+    const cs = getComputedStyle(el), h = el.offsetHeight;
+    const lift = (parseFloat(cs.getPropertyValue("--char-lift")) || 0) / 100 * h;
+    const depth = parseFloat(cs.scale) || 1;
+    const r = el.getBoundingClientRect();
+    const cut = (feet - lift - lineAt(r.left + r.width / 2)) / depth;
+    el.style.setProperty("--char-cut", Math.max(0, Math.min(h, cut)).toFixed(1) + "px");
   }
 }
 addEventListener("resize", fitToScreen);
