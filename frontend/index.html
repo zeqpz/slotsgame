@@ -581,9 +581,27 @@
     color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.8);
     animation: bcont 1.5s ease-in-out infinite;
   }
+  /* CLICK TO PLAY in 3D, the way the plates above it are (tiltPlates). .fhit is a steady area
+     round the words that reads the mouse - --mx/--my/--glare, which .ftxt inherits - so the
+     tilting words never slip out from under the cursor at their own edges. The words tip toward
+     the mouse, grow a touch and light up cyan, and their solid edge (the stacked shadows, a
+     3px edge at rest, as before) swings out on whichever side the tilt shows. The pulse holds
+     still while the mouse is on them, as the plates' drift does. */
+  .features .fcont .fhit { display: inline-block; padding: .8em 1.6em; --mx: 0; --my: 0; --glare: 0; }
+  .features .fcont .ftxt {
+    display: inline-block;
+    transform: perspective(600px) rotateX(calc(var(--my) * -36deg)) rotateY(calc(var(--mx) * 32deg)) scale(calc(1 + var(--glare) * .1));
+    text-shadow:
+      calc(var(--mx) * -2px) calc(1px - var(--my) * 2px) 0 #3a3a44,
+      calc(var(--mx) * -4px) calc(2px - var(--my) * 4px) 0 #24242c,
+      calc(var(--mx) * -6px) calc(3px - var(--my) * 6px) 0 #101014,
+      0 0 calc(var(--glare) * 14px) rgba(79, 232, 255, .95),
+      0 0 calc(var(--glare) * 30px) rgba(79, 232, 255, .55);
+  }
+  .features .fcont:has(.fhit:hover) { animation-play-state: paused; }
   @media (prefers-reduced-motion: reduce) {
     .fbox, .fbox .fmult, .features .fcont { animation: none !important; }
-    .fbox { transform: none !important; }   /* flat: tiltPlates does not run either */
+    .fbox, .features .fcont .ftxt { transform: none !important; }   /* flat: tiltPlates does not run either */
     .fbox::after { display: none; }
     body.features-fade #app, body.features-fade .charfx, .features { transition: none !important; }
   }
@@ -2758,17 +2776,18 @@ function setBalance(v, dir) {
   fitFigure(el, fmtBal(v));
   countTo(el, from, v, countMs(), fmtBal);
   cashFx(el, dir || (v > from ? "up" : v < from ? "down" : null));
-  if (v !== from && !REDUCED_MOTION) balanceTick(v - from, countMs());   // (no count to tick under, with motion off)
+  // it ticks only on the way up: a stake coming off is silent. And never with motion off,
+  // where there is no count to tick under
+  if (v > from && !REDUCED_MOTION) balanceTick(v - from, countMs());
 }
-// The balance ticks as it counts: the same ticking as the win screen's counter, pitched by
-// which way it is going and how much it moves. A rise climbs in pitch, a fall drops; a bigger
-// change - measured in bets, so the same win reads the same at any stake - starts higher and
-// ticks faster, from about .9x for a bet's worth to 1.6x for a hundred bets.
+// The balance ticks as it counts up: the same ticking as the win screen's counter, climbing in
+// pitch as it goes. A bigger rise - measured in bets, so the same win reads the same at any
+// stake - starts higher and ticks faster, from about .9x for a bet's worth to 1.6x for a
+// hundred bets.
 function balanceTick(delta, ms) {
   const bets = Math.abs(delta) / Math.max(1, bet());
   const r0 = Math.min(1.6, .9 + .15 * Math.log2(1 + bets));
-  const up = delta > 0;
-  const curve = Float32Array.from({ length: 32 }, (_, i) => { const p = i / 31; return r0 * (up ? .92 + .26 * p : 1.08 - .28 * p); });
+  const curve = Float32Array.from({ length: 32 }, (_, i) => r0 * (.92 + .26 * i / 31));
   loopSfx("moneyTick", ms, curve, .4);   // 60% quieter than the win screen's counter, which keeps the clip's full level
 }
 
@@ -4911,9 +4930,10 @@ function runFeatures() {
         T("The Phantom \u00b7 Extreme"),
         T(`<b>2</b> anywhere award <b>17</b> free spins under Extreme rules: Multis land more often still and every value is <b>x2</b> or more. A Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme. Tag Meter: <b>3</b> tags pay <b>+3</b> spins.`)) +
     `</div>` +
-    `<div class="fcont">${T("Click to play")}</div>`;
+    `<div class="fcont"><span class="fhit"><span class="ftxt">${T("Click to play")}</span></span></div>`;
   document.body.appendChild(wrap);
-  const tilt = tiltPlates(wrap.querySelectorAll(".fbox"));   // the plate under the mouse tips toward it
+  // the plate under the mouse tips toward it, and so does CLICK TO PLAY under them
+  const tilt = tiltPlates([...wrap.querySelectorAll(".fbox"), wrap.querySelector(".fcont .fhit")]);
   // the Multi's value climbs the table and warms with it, round and round
   const face = wrap.querySelector("#featMult");
   let vi = 0;
