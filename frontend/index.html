@@ -207,9 +207,11 @@
      sheet. --char-drop here is only the first paint: placeScenery() (from fitToScreen)
      measures where the board really is on this screen and sets --char-drop, --tag-top and
      each figure's --char-cut from that, so every phone shape gives the same picture. Sized so
-     the two stand either side of the lettering. */
+     the two stand either side of the lettering, out towards the screen's edges (the boxes run
+     a little past them; the figures themselves stay on screen). */
   @media (max-width: 760px) and (orientation: portrait) {
-    :root { --char-height: 22vh; --char-inset: 2vw; --char-drop: -46vh; }
+    :root { --char-height: 22vh; --char-inset: -4vw; --char-drop: -46vh; }
+    #charfx { right: -2vw; }   /* the skull's figure sits further out in its box than the boy's: this evens their margins */
     .charfx { opacity: .75; clip-path: inset(0 0 var(--char-cut, 0px) 0); }
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
@@ -1918,7 +1920,7 @@
   @media (max-width: 760px) and (orientation: portrait) {
     #walltag { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
     .main { justify-content: flex-end; }
-    .bottom { padding-bottom: calc(12vh / var(--fit, 1)); }
+    .bottom { padding-bottom: calc(12vh / max(var(--fit, 1), .2)); }   /* bounded: a tiny scale must never blow it up */
   }
 </style>
 </head>
@@ -4079,6 +4081,11 @@ function fitToScreen() {
   fitBusy = true;
   try {
     const W = innerWidth, H = innerHeight;
+    // A window with no size yet - a tab or a frame still hidden while it loads - has nothing
+    // to fit, and fitting it anyway wrote a scale of 0: #app vanished, and on a portrait phone
+    // the controls' lift (12vh divided by the scale) went infinite and held it at 0 for good.
+    // Leave the last fit alone; the resize that gives the window its size fits it then.
+    if (W < 40 || H < 40) return;
     // The board is the one thing that can't wrap, so it sets the floor on the scale: lay the
     // page out wide enough for it, then see how tall that comes out and fit that too. The
     // final width is never narrower than the first pass, so nothing wraps back taller.
@@ -4086,7 +4093,7 @@ function fitToScreen() {
     const needW = stage.offsetWidth + 40;                   // .main's side padding
     const fitW = Math.min(1, W / needW);
     app.style.width = (W / fitW) + "px";
-    const fit = Math.min(fitW, H / app.scrollHeight);       // reading it flushes layout
+    const fit = Math.max(.05, Math.min(fitW, H / app.scrollHeight));   // reading it flushes layout; never 0
     app.style.width = (W / fit) + "px";
     app.style.height = (H / fit) + "px";
     app.style.transform = `scale(${fit.toFixed(4)})`;
