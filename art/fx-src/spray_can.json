@@ -1,0 +1,7 @@
+{
+ "nozzle": [
+  500.0,
+  112.9
+ ],
+ "notes": "Brand-new aerosol can, upright and symmetric about x=500, seen from directly behind: the charcoal spray button shows only its plain back (no nozzle hole) and the paint caked round the hidden nozzle crusts its FAR lip and runs back over the crown towards us, one run going on down the dome to the seam. nozzle = the top centre of the button on that crust, where the mist leaves heading into the wall. Paint-coloured parts (body, label drips and fleck, button crust and runs, dome seep) are hue-134 greens: key rgb(0,255,61), highlight rgb(120,255,152), shadow rgb(0,170,40). Metal, charcoal button, grey label (204), ink and sticker edge are pure neutrals; anti-aliased pixels are post-snapped so every pixel is either tintGreen-tinted or neutral. Has its own 14 px white sticker edge (make_spray_fx detects it and adds none). Bbox (alpha>8): x 327-674, y 85-914. Shipped by make_spray_fx (trim + 8 px, 480 tall): 207x480, nozzle there [102.7, 20.4]."
+}
