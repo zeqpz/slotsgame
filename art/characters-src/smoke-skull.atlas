@@ -158,10 +158,3 @@ ember_glow
   orig: 58, 65
   offset: 0, 0
   index: -1
-neck_fill
-  rotate: false
-  xy: 8, 1560
-  size: 340, 190
-  orig: 340, 190
-  offset: 0, 0
-  index: -1

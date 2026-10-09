@@ -1061,6 +1061,17 @@
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     transform-origin: 50% 90%; pointer-events: none;
   }
+  /* An animated symbol (see "animated symbols" in the script): the rig is the icon's own box
+     in skeleton units (100 = the icon's longer side), scaled to fit the same 88% box the flat
+     icon used; .rigin carries what the CSS does to a symbol (glow, landing punch, win shadow),
+     and each part is a piece of the shared atlas, placed and moved by its own transform. */
+  .cell .rig {
+    position: absolute; left: 50%; top: 50%; pointer-events: none;
+    width: calc(var(--rw) * 1px); height: calc(var(--rh) * 1px);
+    transform: translate(-50%, -50%) scale(min(calc(var(--boxw, 97) / var(--rw)), calc(var(--boxh, 82) / var(--rh))));
+  }
+  .cell .rigin { position: absolute; inset: 0; }
+  .cell .rig .part { position: absolute; left: 0; top: 0; transform-origin: 0 0; background-repeat: no-repeat; }
   /* Everything on the board idles with a slight stretch of its own: a slow random wander in
      width, height and lean that never repeats (idleStretch writes --sx / --sy / --sr per board
      position; the multiplier slot under a cell takes its cell's), so the wall never looks
@@ -1100,13 +1111,13 @@
   .cell.scat  { color: var(--fs-green); }
   .cell.escat { color: var(--fs-purple); }
   .cell.scat img, .cell.escat img { scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg); }
-  .cell.scat img  { animation: scatglow 1.7s ease-in-out infinite; }
-  .cell.escat img { animation: escatglow 1.7s ease-in-out infinite; }
+  .cell.scat img, .cell.scat .rigin   { animation: scatglow 1.7s ease-in-out infinite; }
+  .cell.escat img, .cell.escat .rigin { animation: escatglow 1.7s ease-in-out infinite; }
   /* a bonus symbol announces itself the moment its reel lands: punches up, shakes it off,
      settles - on top of its glow, which keeps breathing underneath. The stretch stays in the
      list so it carries straight on rather than restarting when the landing class comes off. */
-  .cell.scat.scatland img  { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
-  .cell.escat.scatland img { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
+  .cell.scat.scatland img, .cell.scat.scatland .rigin   { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), scatglow 1.7s ease-in-out infinite; }
+  .cell.escat.scatland img, .cell.escat.scatland .rigin { animation: scatland calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1), escatglow 1.7s ease-in-out infinite; }
   .cell.scatland { z-index: 2; }
   @keyframes scatland {
     0%   { transform: scale(1); }
@@ -1287,7 +1298,7 @@
     transform: scale(1.2); z-index: 1;
     animation: winpop calc(.52s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1);
   }
-  .cell.winhit img { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
+  .cell.winhit img, .cell.winhit .rigin { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
   @keyframes winpop {
     0%   { transform: scale(1); }
     18%  { transform: scale(1.45) rotate(-2.4deg); }   /* punched up, hard and fast */
@@ -2002,7 +2013,7 @@
 </style>
 </head>
 <body>
-<div id="bgwall"><img id="walltag" src="assets/wall_tag.webp" width="1101" height="558" alt="" draggable="false"></div>
+<div id="bgwall"><img id="walltag" src="assets/wall_tag.webp" width="2202" height="1116" alt="" draggable="false"></div>
 <div id="charfx" class="charfx" aria-hidden="true"></div>
 <div id="charfx2" class="charfx" aria-hidden="true"></div>
 
@@ -2185,8 +2196,9 @@ const SYM = {
   L9: { label: "TRAIN", sub: "FREIGHT",    cls: "low",  img: "assets/L9.png" },
   L10:{ label: "LOW",   sub: "RIDER",      cls: "low",  img: "assets/L10.png" },
 };
-for (const def of Object.values(SYM)) {   // pre-warm icon cache
-  if (def.img) { const i = new Image(); i.src = def.img; }
+const FLAT = {};   // the flat icon pictures, kept: the paytable, the shards of a blown-out tile and the fallback all draw them
+for (const [k, def] of Object.entries(SYM)) {   // pre-warm icon cache
+  if (def.img) { const i = new Image(); i.src = def.img; FLAT[k] = i; }
 }
 const REELS = 7, ROWS = 7;   // the 7x7 cluster board; the events still pad every reel by one row top and bottom
 // Cost multipliers mirror index.json. The RGS applies them server-side (it debits
@@ -2284,6 +2296,7 @@ function buildBoard() {
   }
   idleStretch();
   frameIdle();
+  startRigs();
 }
 // A random drift: a value between -1 and 1 that wanders through random stops `stepLo`-`stepHi`
 // seconds apart, eased along a Catmull-Rom curve, starting from rest and never repeating.
@@ -2375,9 +2388,11 @@ function fillCell(cell, sym) {
   const def = SYM[sym.name] || { label: sym.name, sub: "", cls: "low" };
   const el = cell.ico || cell;   // a board cell fills its lasting icon box
   el.replaceChildren();
+  const rig = cell.ico ? rigEl(sym.name, def.label) : null;   // an animated symbol, once the rigs have loaded
   // the Multi shows its value as the tile itself - that number is what the player cares about
   if (def.cls === "booster") {
-    if (def.img) {   // the brick chunk; the value is painted over it
+    if (rig) el.append(rig);
+    else if (def.img) {   // the brick chunk; the value is painted over it
       const im = document.createElement("img");
       im.src = def.img; im.alt = def.label; im.draggable = false;
       el.append(im);
@@ -2389,7 +2404,9 @@ function fillCell(cell, sym) {
     el.append(m);
     return;
   }
-  if (def.img) {
+  if (rig) {
+    el.append(rig);
+  } else if (def.img) {
     const im = document.createElement("img");
     im.src = def.img; im.alt = def.label; im.draggable = false;
     el.append(im);
@@ -2408,6 +2425,172 @@ function setCell(r, y, sym) {
   fillCell(el, sym);
   (shownSym[r] || (shownSym[r] = []))[y] = sym;
 }
+
+/* ---------- animated symbols ---------- */
+// Every symbol is a Spine 4.2 skeleton: tools/icon_rigs cuts the icon art into parts, packs
+// them into one atlas (assets/icons/icons.png) and authors each icon's clips - "idle" (a short
+// performance every so often: the lowrider hops on its hydraulics, the spray can's cloud
+// billows and sheds puffs, the marker redraws its line...), "land" and "win". The Spine runtime
+// the characters already use evaluates every clip once, at load: each part's transform and
+// opacity, RIG_FPS times a second. Those are played back as Web Animations on plain elements
+// inside the cell - on the compositor, no per-frame script - so a symbol still rides on
+// everything the board does to its cell: the drops, the pops, the spotlight, the idle stretch.
+const RIG_FPS = 30;
+const RIGS = {};             // symbol -> { w, h, parts: [{ w, h, bg, m, a }], clips: { name: { ms, kf: [keyframes | null per part] } } }
+let rigsReady = null;
+function loadRigs() {
+  if (rigsReady) return rigsReady;
+  rigsReady = (async () => {
+    if (REDUCED_MOTION || typeof spine === "undefined" || !spine.SkeletonJson) return false;
+    const [atlasText, bundle] = await Promise.all([
+      fetch("assets/icons/icons.atlas").then(r => r.ok ? r.text() : Promise.reject(new Error("atlas " + r.status))),
+      fetch("assets/icons/icons.json").then(r => r.ok ? r.json() : Promise.reject(new Error("rigs " + r.status))),
+    ]);
+    const atlas = new spine.TextureAtlas(atlasText);
+    // the pages are drawn by CSS, not by Spine: have them decoded before a cell shows them
+    await Promise.all(atlas.pages.map(p => { const im = new Image(); im.src = "assets/icons/" + p.name; return im.decode().catch(() => {}); }));
+    const json = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas));
+    for (const [name, data] of Object.entries(bundle)) {
+      try { RIGS[name] = bakeRig(json.readSkeletonData(data)); }
+      catch (e) { console.warn("rig " + name + " skipped:", e); }
+    }
+    return Object.keys(RIGS).length > 0;
+  })().catch(e => { console.warn("animated symbols unavailable:", e); return false; });
+  return rigsReady;
+}
+// 2D affines as CSS writes them: [a, b, c, d, e, f] maps (x, y) to (a x + c y + e, b x + d y + f)
+const rigAff = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3],
+                       m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+const rigMat = m => `matrix(${m.map(v => +v.toFixed(4)).join(",")})`;
+function bakeRig(data) {
+  const sk = new spine.Skeleton(data);
+  const physics = spine.Physics ? spine.Physics.update : undefined;
+  const W = data.width, H = data.height;
+  // skeleton space (origin at the centre) -> the rig box. spine-pixi switches the runtime to
+  // y-down world coordinates (Skeleton.yDown), which is already the box's orientation.
+  const yDown = !!((spine.Skeleton && spine.Skeleton.yDown) || (spine.Bone && spine.Bone.yDown));
+  const toRig = [1, 0, 0, yDown ? 1 : -1, W / 2, H / 2];
+  const pose = () => sk.slots.map(slot => {                       // every slot's part: its matrix and opacity right now
+    const att = slot.getAttachment();
+    if (!att || !att.region) return { m: "matrix(0,0,0,0,0,0)", a: 0 };
+    const b = slot.bone, r = (att.rotation || 0) * Math.PI / 180, co = Math.cos(r), si = Math.sin(r);
+    const sx = att.scaleX ?? 1, sy = att.scaleY ?? 1;
+    let m = [1, 0, 0, -1, -att.width / 2, att.height / 2];      // the part's own box (y down) -> centred, y up
+    m = rigAff([co * sx, si * sx, -si * sy, co * sy, att.x, att.y], m);   // the attachment's place on its bone
+    m = rigAff([b.a, b.c, b.b, b.d, b.worldX, b.worldY], m);       // the bone's world transform
+    return { m: rigMat(rigAff(toRig, m)), a: +(slot.color.a * (att.color ? att.color.a : 1)).toFixed(3) };
+  });
+  sk.setToSetupPose(); sk.updateWorldTransform(physics);
+  const rest = pose();
+  const parts = sk.slots.map((slot, i) => {
+    const att = slot.data.attachmentName ? sk.getAttachment(i, slot.data.attachmentName) : null;
+    const reg = att && att.region;
+    if (!reg) return { w: 0, h: 0, bg: "", ...rest[i] };
+    const k = att.width / reg.width;                              // skeleton units per atlas pixel
+    return { w: att.width, h: att.height, ...rest[i],
+      bg: `url("assets/icons/${reg.page.name}") ${(-reg.x * k).toFixed(3)}px ${(-reg.y * k).toFixed(3)}px / ${(reg.page.width * k).toFixed(3)}px ${(reg.page.height * k).toFixed(3)}px no-repeat` };
+  });
+  const clips = {};
+  for (const anim of data.animations) {
+    const dur = Math.max(anim.duration, 1 / RIG_FPS), n = Math.max(2, Math.round(dur * RIG_FPS) + 1);
+    const tracks = parts.map(() => []);
+    for (let f = 0; f < n; f++) {
+      const t = dur * f / (n - 1);
+      sk.setToSetupPose();
+      anim.apply(sk, 0, t, false, null, 1, spine.MixBlend.setup, spine.MixDirection.mixIn);
+      sk.updateWorldTransform(physics);
+      pose().forEach((p, i) => tracks[i].push({ offset: f / (n - 1), transform: p.m, opacity: p.a }));
+    }
+    // a part that never moves in this clip is left alone rather than animated in place
+    clips[anim.name] = { ms: dur * 1000, kf: tracks.map((tr, i) => tr.every(k => k.transform === rest[i].m && k.opacity === rest[i].a) ? null : tr) };
+  }
+  sk.setToSetupPose();
+  return { w: W, h: H, parts, clips };
+}
+function rigEl(name, label) {
+  const rig = RIGS[name];
+  if (!rig) return null;
+  const el = document.createElement("span");
+  el.className = "rig"; el.setAttribute("role", "img"); el.setAttribute("aria-label", label || name);
+  el.style.setProperty("--rw", rig.w.toFixed(3)); el.style.setProperty("--rh", rig.h.toFixed(3));
+  const inner = document.createElement("span"); inner.className = "rigin"; el.append(inner);
+  el._rig = rig; el._name = name;
+  el._parts = rig.parts.map(p => {
+    const i = document.createElement("i");
+    i.className = "part";
+    if (p.bg) i.style.cssText = `width:${p.w.toFixed(3)}px;height:${p.h.toFixed(3)}px;background:${p.bg};transform:${p.m};opacity:${p.a}`;
+    inner.append(i);
+    return i;
+  });
+  return el;
+}
+const rigOf = cell => cell && cell.ico ? cell.ico.querySelector(".rig") : null;
+// Play one of a symbol's clips. Clips start and end on the rest pose, so a finished one simply
+// hands the parts back to it; a new clip cuts the running one. Rapid and Skip speed them up.
+function rigPlay(cell, clip, { loop = false } = {}) {
+  const el = rigOf(cell);
+  if (!el || REDUCED_MOTION) return null;
+  const c = el._rig.clips[clip];
+  if (!c) return null;
+  rigStop(el);
+  const rate = 1 / tempo();
+  const anims = [];
+  el._parts.forEach((p, i) => {
+    if (!c.kf[i]) return;
+    const a = p.animate(c.kf[i], { duration: c.ms, iterations: loop ? Infinity : 1, easing: "linear" });
+    a.playbackRate = rate;
+    anims.push(a);
+  });
+  el._anims = anims; el._clip = clip;
+  if (anims[0]) anims[0].onfinish = () => { if (el._anims === anims) { el._anims = null; el._clip = null; } };
+  return anims[0] || null;
+}
+function rigStop(el) {
+  if (el && el._anims) el._anims.forEach(a => a.cancel());
+  if (el) { el._anims = null; el._clip = null; }
+}
+// The rig's box matches the flat icon's (88% of the cell); measured once per layout.
+function measureRigBox() {
+  const c = cellEls[0] && cellEls[0][0];
+  if (!c) return;
+  const w = c.clientWidth * .88, h = c.clientHeight * .88;
+  if (w > 0 && h > 0) { $("board").style.setProperty("--boxw", w.toFixed(2)); $("board").style.setProperty("--boxh", h.toFixed(2)); }
+}
+// Between rounds the board performs: every so often a resting symbol plays its idle - never
+// more than a few at once, never the same one twice running, and nothing while a round plays.
+let rigIdleBusy = 0, rigIdleLast = null;
+function rigIdleTick() {
+  setTimeout(rigIdleTick, 420 + Math.random() * 640);
+  if (document.hidden || state.playing || REPLAY || !Object.keys(RIGS).length) return;
+  if (rigIdleBusy >= 4) return;
+  const r = Math.floor(Math.random() * REELS), y = Math.floor(Math.random() * ROWS);
+  const cell = cellEls[r] && cellEls[r][y];
+  const el = rigOf(cell);
+  if (!el || el._anims || cell === rigIdleLast || cell.classList.contains("winhit")) return;
+  rigIdleLast = cell;
+  const a = rigPlay(cell, "idle");
+  if (!a) return;
+  rigIdleBusy++;
+  const done = () => { rigIdleBusy = Math.max(0, rigIdleBusy - 1); };
+  a.addEventListener("finish", done); a.addEventListener("cancel", done);
+}
+function startRigs() {
+  loadRigs().then(ok => {
+    if (!ok) return;
+    measureRigBox();
+    // the board is already showing flat icons: swap every cell for its animated self
+    for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+      const sym = shownSym[r] && shownSym[r][y];
+      if (sym && RIGS[sym.name]) fillCell(cellEls[r][y], sym);
+    }
+    // a tile that has just dropped in lands with its own little performance
+    $("board").addEventListener("animationend", e => {
+      if (e.animationName === "tumbleDrop" && e.target.classList && e.target.classList.contains("cell")) rigPlay(e.target, "land");
+    });
+    rigIdleTick();
+  });
+}
+
 // The multipliers a Multi leaves behind belong to the CELL, not the symbol on it. They are
 // drawn in #multLayer, a layer under the reels with one slot per cell, so a tile can explode,
 // fall or drop in on top of its number without ever taking the number with it.
@@ -2484,11 +2667,14 @@ function splat(r, y, sym) {
   if (REDUCED_MOTION) return;
   const ctx = shardLayer();
   if (!ctx) return;
-  const img = cellEls[r][y].querySelector("img");
+  // the picture on the tile: a flat icon, or an animated symbol (its rig box is the icon's own
+  // footprint; the shards are cut from the flat picture of the same symbol)
+  const pic = cellEls[r][y].querySelector("img, .rig");
+  const img = pic && (pic.tagName === "IMG" ? pic : FLAT[pic._name]);
   if (!(img && img.complete && img.naturalWidth)) return;   // a Multi tile has no picture to break
   const c = cellCentre(r, y), t = tempo(), now = performance.now();
   const box = cellEls[r][y].getBoundingClientRect(), k = box.width / Math.max(1, cellEls[r][y].offsetWidth);
-  const boxW = (img.getBoundingClientRect().width / k) || c.w * .8, boxH = (img.getBoundingClientRect().height / k) || c.w * .8;
+  const boxW = (pic.getBoundingClientRect().width / k) || c.w * .8, boxH = (pic.getBoundingClientRect().height / k) || c.w * .8;
   // object-fit: contain letterboxes the picture inside its box: cut the picture, not the box
   const ar = img.naturalWidth / img.naturalHeight;
   const drawW = boxW / boxH > ar ? boxH * ar : boxW, drawH = boxW / boxH > ar ? boxH : boxW / ar;
@@ -2502,7 +2688,7 @@ function splat(r, y, sym) {
       vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - c.w * .05 / t, rot: 0, vrot: (Math.random() - .5) * .35,
       born: now, life: (640 + Math.random() * 360) * t });
   }
-  img.style.visibility = "hidden";   // the tile is bare now; the pieces carry the picture away
+  pic.style.visibility = "hidden";   // the tile is bare now; the pieces carry the picture away
   if (!splatRaf) {
     let last = now;
     const step = ts => {
@@ -3311,7 +3497,7 @@ const handlers = {
       clearFxWins();
       for (const p of w.positions) restyle(cellEls[p.reel][p.row - 1]);   // apply the removal so every cluster's tiles pop in fresh,
                                      // including cells carried over from the previous cluster
-      for (const p of w.positions) cellEls[p.reel][p.row - 1].classList.add("winhit");
+      for (const p of w.positions) { const cell = cellEls[p.reel][p.row - 1]; cell.classList.add("winhit"); rigPlay(cell, "win"); }
       const drawMs = drawWinLine(w.positions);   // the orange stroke draws itself along the cluster
       placeWinChip(w.positions, cents(w.win), mult);
       sfx("line");   // one call per cluster as it lights up - skipping does not skip clusters
