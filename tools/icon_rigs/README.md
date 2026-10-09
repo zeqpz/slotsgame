@@ -16,8 +16,12 @@ Every board symbol is a Spine 4.2 skeleton built from its icon art by `rigkit.py
 - `python tools/icon_rigs/grid.py <ID>` - the icon with a labelled 50 px grid, for reading coordinates.
 
 In the game (`frontend/index.html`, "animated symbols"), the Spine runtime evaluates every clip once
-at load and the results play as Web Animations on the parts inside each cell: `idle` now and then
-between rounds, `land` when a tile drops in, `win` when its cluster lights up.
+at load (30 fps, then thinned by `rigThin` to the keyframes the browser cannot blend its own way to,
+within a quarter of a rig unit) and parses each part's track once into a `KeyframeEffect`. Each cell's
+rig is a clone of a per-symbol template, and a play copies the prepared effects. Clips play as Web
+Animations on the parts inside each cell: `idle` from the moment a tile starts to drop in (started by
+`dropIn`, a few per frame) and now and then between rounds, `win` when its cluster lights up. `land`
+is kept as the fallback for a rig with no `idle`.
 
 Style rules for clips: every clip starts and ends on the rest pose; `idle` 2-3 s, `land` 0.45-0.6 s,
 `win` 1.2-1.5 s; at most ~14 parts per symbol; motion stays within ~15 units of the icon's box.

@@ -861,6 +861,11 @@
     background: rgba(8, 6, 10, .78); padding: 20px;
   }
   .infowrap[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
+  /* a menu on its way out (showMenu): closed already, but still drawn - and out of reach of the
+     pointer - for the fifth of a second it takes to shrink away */
+  .infowrap.leaving[hidden] { display: flex; }
+  .popover.leaving[hidden], .vpop.leaving[hidden] { display: block; }
+  .leaving { pointer-events: none; }
   /* The panel stands on the sprayed plate: its thin blue band is the art's own, held at its
      proportions by the border-image while the grey ground stretches to whatever height the
      rules run to. The game's light ink would vanish on that grey, so the panel redefines the
@@ -1138,6 +1143,18 @@
     color: var(--heat, var(--fs-green));
     text-shadow: 0 2px 0 rgba(0,0,0,.9), 0 0 4px rgba(0,0,0,.9), 0 0 12px var(--heat, var(--fs-green));
   }
+  /* its value is a span of its own, so the spray can can paint it on (sprayMulti): a Multi
+     that has just dropped in is .bare - the value is there, only not painted yet */
+  .cell.booster .multface .mv { display: inline-block; }
+  .cell.booster .multface.bare .mv { opacity: 0; }
+  /* the spray can, its mist and its puffs: over everything on the board, in the way of nothing */
+  .spraylayer { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  .spraylayer > * { position: absolute; left: 0; top: 0; user-select: none; }
+  .spraylayer .smist {
+    width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+    background: radial-gradient(circle, hsl(var(--hue) 100% 72% / .95) 0, hsl(var(--hue) 100% 56% / .55) 34%, hsl(var(--hue) 100% 50% / 0) 70%);
+  }
+  .spraylayer .spuff { width: 46px; height: auto; margin: -18px 0 0 -23px; }
   /* it blows out: the Multi itself, then the four cells it hits */
   .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
   .cell.hit  { animation: multihit calc(.5s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1); }
@@ -1277,14 +1294,6 @@
     0%   { transform: translateY(-2px) scaleY(1.04) scaleX(.985); }
     38%  { transform: translateY(3.5px) scaleY(.92) scaleX(1.03); }
     68%  { transform: translateY(-1.2px) scaleY(1.02) scaleX(.995); }
-    100% { transform: none; }
-  }
-  /* the whole board takes a nudge on every landing — --thud is set per reel */
-  .board.thud { animation: boardthud .24s cubic-bezier(.2,.8,.3,1); }
-  @keyframes boardthud {
-    0%   { transform: none; }
-    35%  { transform: translateY(calc(2.4px * var(--thud, 1))) rotate(calc(.12deg * var(--thud, 1))); }
-    70%  { transform: translateY(calc(-.8px * var(--thud, 1))); }
     100% { transform: none; }
   }
   /* A winning tile POPS. There used to be a sprayed frame drawn around it as well; the
@@ -2299,6 +2308,12 @@ function buildBoard() {
     }
     board.appendChild(reel);
   }
+  const spray = document.createElement("div");
+  spray.className = "spraylayer"; spray.id = "sprayLayer";
+  board.appendChild(spray);
+  // a Multi that dropped in bare gets its value sprayed on the moment it has landed
+  board.addEventListener("animationend", e => { if (e.animationName === "tumbleDrop") sprayDue(e.target); });
+  prepareSpray();   // normally already under way behind the loading screen
   idleStretch();
   frameIdle();
   startRigs();
@@ -2331,21 +2346,28 @@ const wanderWatched = new WeakSet();
 const wanderIO = typeof IntersectionObserver === "function" ? new IntersectionObserver(entries => {
   for (const e of entries) {
     wanderShown.set(e.target, e.isIntersecting);
-    for (const a of e.target.getAnimations()) if (a.id === "wander") { if (e.isIntersecting) a.play(); else a.pause(); }
+    const a = e.target._wander;   // held on the element: getAnimations() walks every animation on the page
+    if (a) { if (e.isIntersecting) a.play(); else a.pause(); }
   }
 }) : null;
 function wander(targets, frames, { seg = 24, rate = 8 } = {}) {
   let t = 0;
+  // the first stretch is a random part of a full one, so the 49 cells (each its own wander)
+  // renew at scattered moments instead of all in the same frame every `seg` seconds
+  let len = seg * (.3 + .7 * Math.random());
   const run = () => {
-    const n = Math.round(seg * rate), kf = [];
-    for (let k = 0; k <= n; k++) kf.push(frames(t + k / rate));
-    t += seg;
+    const n = Math.max(2, Math.round(len * rate)), kf = [];
+    for (let k = 0; k <= n; k++) kf.push(frames(t + k * len / n));
+    t += len;
+    const dur = len * 1000;
+    len = seg;
     let lead = null;
     for (const el of targets()) {
       if (!el || !el.isConnected) continue;
-      for (const old of el.getAnimations()) if (old.id === "wander") old.cancel();   // the stretch it just finished
-      const a = el.animate(kf, { duration: seg * 1000, easing: "linear", fill: "forwards" });
+      if (el._wander) el._wander.cancel();   // the stretch it just finished
+      const a = el.animate(kf, { duration: dur, easing: "linear", fill: "forwards" });
       a.id = "wander";
+      el._wander = a;
       if (wanderIO) {
         if (!wanderWatched.has(el)) { wanderWatched.add(el); wanderIO.observe(el); }
         if (!wanderShown.get(el)) a.pause();   // starts held; the observer plays it once it shows
@@ -2404,8 +2426,13 @@ function fillCell(cell, sym) {
     }
     const m = document.createElement("div");
     m.className = "multface";
-    m.textContent = sym.multiplier ? "x" + fmtMult(sym.multiplier) : def.label;
-    if (sym.multiplier) m.style.setProperty("--heat", heatColour(sym.multiplier));
+    if (sym.multiplier) {
+      const v = document.createElement("span");
+      v.className = "mv"; v.textContent = "x" + fmtMult(sym.multiplier);
+      m.append(v);
+      m.style.setProperty("--heat", heatColour(sym.multiplier));
+      m._mult = sym.multiplier;
+    } else m.textContent = def.label;
     el.append(m);
     return;
   }
@@ -2426,6 +2453,7 @@ function fillCell(cell, sym) {
 const shownSym = [];
 function setCell(r, y, sym) {
   const el = cellEls[r][y];
+  el._spray = null;   // a new symbol: any spray this cell was waiting for was for the old one
   el.className = cellClass(sym);
   fillCell(el, sym);
   (shownSym[r] || (shownSym[r] = []))[y] = sym;
@@ -2433,16 +2461,21 @@ function setCell(r, y, sym) {
 
 /* ---------- animated symbols ---------- */
 // Every symbol is a Spine 4.2 skeleton: tools/icon_rigs cuts the icon art into parts, packs
-// them into one atlas (assets/icons/icons.png) and authors each icon's clips - "idle" (a short
-// performance every so often: the lowrider hops on its hydraulics, the spray can's cloud
-// billows and sheds puffs, the marker redraws its line...), "land" and "win". The Spine runtime
+// them into one atlas (assets/icons/icons.png) and authors each icon's clips - "idle" (its own
+// performance, played as the symbol drops in and every so often between rounds: the lowrider
+// hops on its hydraulics, the spray can's cloud billows and sheds puffs, the marker redraws its
+// line...), "land" (a spare, for a rig without an idle) and "win". The Spine runtime
 // the characters already use evaluates every clip once, at load: each part's transform and
 // opacity, RIG_FPS times a second. Those are played back as Web Animations on plain elements
 // inside the cell - on the compositor, no per-frame script - so a symbol still rides on
 // everything the board does to its cell: the drops, the pops, the spotlight, the idle stretch.
 const RIG_FPS = 30;
+const RIG_DROP_S = 1.1, RIG_SETTLE_S = .3;   // a drop-in plays this much of the idle, then settles (0 = the whole idle)
+// every clip's keyframes are parsed once into a KeyframeEffect, and a play copies it
+const RIG_FX = typeof KeyframeEffect === "function" && typeof Animation === "function";
 const RIGS = {};             // symbol -> { w, h, parts: [{ w, h, bg, m, a }], clips: { name: { ms, kf: [keyframes | null per part] } } }
 let rigsReady = null;
+const rigPages = [];         // the atlas pages, decoded and held for as long as the page is up
 function loadRigs() {
   if (rigsReady) return rigsReady;
   rigsReady = (async () => {
@@ -2452,12 +2485,14 @@ function loadRigs() {
       fetch("assets/icons/icons.json").then(r => r.ok ? r.json() : Promise.reject(new Error("rigs " + r.status))),
     ]);
     const atlas = new spine.TextureAtlas(atlasText);
-    // the pages are drawn by CSS, not by Spine: have them decoded before a cell shows them
-    await Promise.all(atlas.pages.map(p => { const im = new Image(); im.src = "assets/icons/" + p.name; return im.decode().catch(() => {}); }));
+    // the pages are drawn by CSS, not by Spine: have them decoded before a cell shows them, and
+    // keep hold of them so the decoded pictures are never let go and fetched in again mid-spin
+    await Promise.all(atlas.pages.map(p => { const im = new Image(); im.src = "assets/icons/" + p.name; rigPages.push(im); return im.decode().catch(() => {}); }));
     const json = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas));
     for (const [name, data] of Object.entries(bundle)) {
       try { RIGS[name] = bakeRig(json.readSkeletonData(data)); }
       catch (e) { console.warn("rig " + name + " skipped:", e); }
+      await new Promise(r => setTimeout(r, 0));   // one symbol per task: the loading screen keeps moving
     }
     return Object.keys(RIGS).length > 0;
   })().catch(e => { console.warn("animated symbols unavailable:", e); return false; });
@@ -2506,27 +2541,135 @@ function bakeRig(data) {
       sk.updateWorldTransform(physics);
       pose().forEach((p, i) => tracks[i].push({ offset: f / (n - 1), transform: p.m, opacity: p.a }));
     }
-    // a part that never moves in this clip is left alone rather than animated in place
-    clips[anim.name] = { ms: dur * 1000, kf: tracks.map((tr, i) => tr.every(k => k.transform === rest[i].m && k.opacity === rest[i].a) ? null : tr) };
+    // a part that never moves in this clip is left alone rather than animated in place; one
+    // that does keeps only the keyframes the browser cannot blend its own way to (rigThin)
+    const kf = tracks.map((tr, i) => tr.every(k => k.transform === rest[i].m && k.opacity === rest[i].a) ? null : rigThin(tr, parts[i], rest[i]));
+    // ...and is parsed ONCE, here, into an effect every play of it copies (rigPlay)
+    const fx = kf.map(tr => tr && RIG_FX ? new KeyframeEffect(null, tr, { duration: dur * 1000, easing: "linear" }) : null);
+    clips[anim.name] = { ms: dur * 1000, kf, fx };
+    // The drop-in performance: the idle's opening RIG_DROP_S seconds, then an eased glide back to
+    // rest. A whole board drops in within about a second, so playing every symbol's full idle
+    // kept 49 of them animating at once for three; this keeps the move and gives the board back.
+    const step = dur / (n - 1), cut = Math.round(RIG_DROP_S / step);   // the frames are `step` s apart
+    if (anim.name === "idle" && RIG_DROP_S > 0 && cut < n - 1 - .3 / step) {
+      const D = cut * step + RIG_SETTLE_S;
+      const dkf = tracks.map((tr, i) => {
+        const head = tr.slice(0, cut + 1).map((k, f) => ({ offset: f * step / D, transform: k.transform, opacity: k.opacity }));
+        // a part that hardly moves in the opening (under RIG_DROP_MIN rig units at any corner,
+        // and no real fade) is left still: no one sees a pixel of motion on a falling tile, and
+        // every animated part is work for the compositor on every frame of the reveal
+        if (rigReach(head, parts[i], rest[i]) < RIG_DROP_MIN) return null;
+        const out = rigThin(head, parts[i], rest[i]);
+        out[out.length - 1] = { ...out[out.length - 1], easing: "cubic-bezier(.45,0,.55,1)" };
+        out.push({ offset: 1, transform: rest[i].m, opacity: rest[i].a });
+        return out;
+      });
+      clips.drop = { ms: D * 1000, kf: dkf, fx: dkf.map(tr => tr && RIG_FX ? new KeyframeEffect(null, tr, { duration: D * 1000, easing: "linear" }) : null) };
+    }
   }
   sk.setToSetupPose();
-  return { w: W, h: H, parts, clips };
+  const rig = { w: W, h: H, parts, clips };
+  rig.tpl = rigBuild(rig);   // the symbol's elements, built once; every cell that shows it gets a copy
+  return rig;
 }
+// Clips are baked at RIG_FPS, which is far more keyframes than the motion needs: most of them
+// sit on the straight line (as the browser blends it) between their neighbours. rigThin keeps,
+// greedily, only the ones that line misses by more than a quarter of a rig unit at any corner of
+// the part (a quarter of a pixel on a 100 px icon), a fifth of a degree or 0.01 of opacity -
+// transform and opacity each on their own track. CSS blends matrix() keyframes by decomposing
+// them (translate, rotation, scale, skew) rather than element by element, so that is what the
+// error is measured against. Typically a fifth of the keyframes are left; nothing visible moves.
+const RIG_TOL = { px: .25, deg: .2, op: .01 };
+const RIG_DROP_MIN = 1.5;
+// How far a track ever takes its part from rest: the furthest any corner gets, in rig units, with
+// a fade counted as a big move (a part fading in or out is always seen).
+function rigReach(tr, part, rest) {
+  const pm = s => s.slice(s.indexOf("(") + 1, -1).split(",").map(Number);
+  const R = pm(rest.m), at = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  let far = 0;
+  for (const k of tr) {
+    if (Math.abs(k.opacity - rest.a) > .1) return Infinity;
+    if (k.transform === rest.m) continue;
+    const M = pm(k.transform);
+    for (const [x, y] of [[0, 0], [part.w, 0], [0, part.h], [part.w, part.h]]) {
+      const P = at(M, x, y), Q = at(R, x, y);
+      far = Math.max(far, Math.hypot(P[0] - Q[0], P[1] - Q[1]));
+    }
+  }
+  return far;
+}
+function rigThin(tr, part, rest) {
+  const pm = s => { const v = s.slice(s.indexOf("(") + 1, -1).split(",").map(Number); return v.length === 6 ? v : [1, 0, 0, 1, 0, 0]; };
+  const dec2 = m => {   // CSS Transforms 1, "decomposing a 2D matrix"
+    let [r0x, r0y, r1x, r1y, tx, ty] = m;
+    let s0 = Math.hypot(r0x, r0y), s1 = Math.hypot(r1x, r1y);
+    if (r0x * r1y - r0y * r1x < 0) { if (r0x < r1y) s0 = -s0; else s1 = -s1; }
+    if (s0) { r0x /= s0; r0y /= s0; }
+    if (s1) { r1x /= s1; r1y /= s1; }
+    const a = Math.atan2(r0y, r0x);
+    if (a) {
+      const sn = -r0y, cs = r0x, m11 = r0x, m12 = r0y, m21 = r1x, m22 = r1y;
+      r0x = cs * m11 + sn * m21; r0y = cs * m12 + sn * m22; r1x = -sn * m11 + cs * m21; r1y = -sn * m12 + cs * m22;
+    }
+    return { tx, ty, s0, s1, a: a * 180 / Math.PI, m11: r0x, m12: r0y, m21: r1x, m22: r1y };
+  };
+  const lerp2 = (A, B, q) => {   // ... and blending two of them, recomposed
+    A = { ...A }; B = { ...B };
+    if ((A.s0 < 0 && B.s1 < 0) || (A.s1 < 0 && B.s0 < 0)) { A.s0 = -A.s0; A.s1 = -A.s1; A.a += A.a < 0 ? 180 : -180; }
+    if (!A.a) A.a = 360;
+    if (!B.a) B.a = 360;
+    if (Math.abs(A.a - B.a) > 180) { if (A.a > B.a) A.a -= 360; else B.a -= 360; }
+    const o = {};
+    for (const k in A) o[k] = A[k] + (B[k] - A[k]) * q;
+    const r = o.a * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r);
+    const k0x = o.m11 * o.s0, k0y = o.m12 * o.s0, k1x = o.m21 * o.s1, k1y = o.m22 * o.s1;
+    return [c * k0x - sn * k0y, sn * k0x + c * k0y, c * k1x - sn * k1y, sn * k1x + c * k1y, o.tx, o.ty];
+  };
+  const at = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+  const ang = m => Math.atan2(m[1], m[0]) * 180 / Math.PI;
+  const off = (a, b) => {
+    let px = 0, deg = 0;
+    for (const [x, y] of [[0, 0], [part.w, 0], [0, part.h], [part.w, part.h]]) {
+      const P = at(a, x, y), Q = at(b, x, y);
+      px = Math.max(px, Math.hypot(P[0] - Q[0], P[1] - Q[1]));
+    }
+    if (Math.hypot(a[0], a[1]) > 1e-3 && Math.hypot(b[0], b[1]) > 1e-3) { deg = Math.abs(ang(a) - ang(b)); if (deg > 180) deg = 360 - deg; }
+    return px > RIG_TOL.px || deg > RIG_TOL.deg;
+  };
+  const n = tr.length, M = tr.map(k => pm(k.transform)), D = M.map(dec2);
+  const q = (i, j, k) => (tr[k].offset - tr[i].offset) / (tr[j].offset - tr[i].offset);
+  const okT = (i, j) => { for (let k = i + 1; k < j; k++) if (off(lerp2(D[i], D[j], q(i, j, k)), M[k])) return false; return true; };
+  const okO = (i, j) => { for (let k = i + 1; k < j; k++) if (Math.abs(tr[i].opacity + (tr[j].opacity - tr[i].opacity) * q(i, j, k) - tr[k].opacity) > RIG_TOL.op) return false; return true; };
+  const greedy = ok => { const keep = [0]; let i = 0; while (i < n - 1) { let j = i + 1; while (j + 1 < n && ok(i, j + 1)) j++; keep.push(j); i = j; } return keep; };
+  const keepT = tr.every(k => k.transform === rest.m) ? [] : greedy(okT);
+  const keepO = tr.every(k => k.opacity === rest.a) ? [] : greedy(okO);
+  const out = new Map();
+  for (const k of keepT) out.set(k, Object.assign(out.get(k) || { offset: tr[k].offset }, { transform: tr[k].transform }));
+  for (const k of keepO) out.set(k, Object.assign(out.get(k) || { offset: tr[k].offset }, { opacity: tr[k].opacity }));
+  return [...out.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1]);
+}
+// A cell's rig is a copy of its symbol's template (rigBuild, made when the rig is baked):
+// cloning the elements costs a tenth of building them, and every reveal fills 49 cells.
 function rigEl(name, label) {
   const rig = RIGS[name];
   if (!rig) return null;
+  const el = rig.tpl.cloneNode(true);
+  el.setAttribute("aria-label", label || name);
+  el._rig = rig; el._name = name;
+  el._parts = [...el.firstChild.children];   // one <i> per slot, in slot order
+  return el;
+}
+function rigBuild(rig) {
   const el = document.createElement("span");
-  el.className = "rig"; el.setAttribute("role", "img"); el.setAttribute("aria-label", label || name);
+  el.className = "rig"; el.setAttribute("role", "img");
   el.style.setProperty("--rw", rig.w.toFixed(3)); el.style.setProperty("--rh", rig.h.toFixed(3));
   const inner = document.createElement("span"); inner.className = "rigin"; el.append(inner);
-  el._rig = rig; el._name = name;
-  el._parts = rig.parts.map(p => {
+  for (const p of rig.parts) {
     const i = document.createElement("i");
     i.className = "part";
     if (p.bg) i.style.cssText = `width:${p.w.toFixed(3)}px;height:${p.h.toFixed(3)}px;background:${p.bg};transform:${p.m};opacity:${p.a}`;
     inner.append(i);
-    return i;
-  });
+  }
   return el;
 }
 const rigOf = cell => cell && cell.ico ? cell.ico.querySelector(".rig") : null;
@@ -2542,7 +2685,15 @@ function rigPlay(cell, clip, { loop = false } = {}) {
   const anims = [];
   el._parts.forEach((p, i) => {
     if (!c.kf[i]) return;
-    const a = p.animate(c.kf[i], { duration: c.ms, iterations: loop ? Infinity : 1, easing: "linear" });
+    let a;
+    if (c.fx[i]) {
+      // a copy of the effect parsed at load: starting a clip parses nothing
+      const fx = new KeyframeEffect(c.fx[i]);
+      fx.target = p;
+      if (loop) fx.updateTiming({ iterations: Infinity });
+      a = new Animation(fx, document.timeline);
+      a.play();
+    } else a = p.animate(c.kf[i], { duration: c.ms, iterations: loop ? Infinity : 1, easing: "linear" });
     a.playbackRate = rate;
     anims.push(a);
   });
@@ -2553,6 +2704,38 @@ function rigPlay(cell, clip, { loop = false } = {}) {
 function rigStop(el) {
   if (el && el._anims) el._anims.forEach(a => a.cancel());
   if (el) { el._anims = null; el._clip = null; }
+}
+// A tile starts performing the moment it starts to fall - its own move (the lowrider's
+// hydraulics, the spray cloud, the marker's line...) plays through the drop and the landing.
+// Every drop-in calls this as it adds .tdrop (the reveal, a skipped reveal, a tumble's refill):
+// started from the drop itself, not from an animation event a busy frame can lose, and at most
+// a handful per frame, so a whole board landing at once never piles into one long frame. A tile
+// already performing (a skip re-dropping a landed column) carries on rather than restarting.
+const rigQueue = new Set();
+let rigQueueRaf = 0;
+function rigDrop(cell) {
+  if (REDUCED_MOTION || !cell) return;
+  rigQueue.add(cell);
+  if (!rigQueueRaf) rigQueueRaf = requestAnimationFrame(rigDrain);
+}
+function rigDrain() {
+  rigQueueRaf = 0;
+  let n = 0;
+  for (const cell of rigQueue) {
+    if (n++ >= 6) break;
+    rigQueue.delete(cell);
+    const el = rigOf(cell);
+    if (!el || ((el._clip === "drop" || el._clip === "idle") && el._anims)) continue;
+    rigPlay(cell, "drop") || rigPlay(cell, "idle") || rigPlay(cell, "land");
+  }
+  if (rigQueue.size) rigQueueRaf = requestAnimationFrame(rigDrain);
+}
+// What a tile does as it drops in: its own clip, and - for a bare Multi - the can, sent for the
+// moment it has landed (`ms`, the drop's length). The landing's animationend sends it too, and
+// spraysDone catches any the two both missed; sprayDue only ever acts once.
+function dropIn(cell, ms) {
+  rigDrop(cell);
+  if (cell._spray === "due") setTimeout(() => sprayDue(cell), ms);
 }
 // The rig's box matches the flat icon's (88% of the cell); measured once per layout.
 function measureRigBox() {
@@ -2588,12 +2771,235 @@ function startRigs() {
       const sym = shownSym[r] && shownSym[r][y];
       if (sym && RIGS[sym.name]) fillCell(cellEls[r][y], sym);
     }
-    // a tile that has just dropped in lands with its own little performance
-    $("board").addEventListener("animationend", e => {
-      if (e.animationName === "tumbleDrop" && e.target.classList && e.target.classList.contains("cell")) rigPlay(e.target, "land");
-    });
     rigIdleTick();
   });
+}
+
+/* ---------- the Multi's value, sprayed on ---------- */
+// A Multi that drops in lands as a bare brick: its value is there (the .mv in its .multface)
+// but not painted yet. Once the brick has landed, a spray can - drawn turned away from us, its
+// nozzle to the wall, standing up straight - slides into the frame, gets a shake, and sweeps across the brick
+// spraying the value on: the figure builds up behind the nozzle under a drifting mist and a few
+// puffs of paint, then the can lifts away and fades. Can and paint take the value's heat colour:
+// tools/make_spray_fx.py ships the can and the puff once per heat hue of SPRAY.values.
+// The round waits for the paint (spraysDone) before it pays anything off it; a skip runs the
+// can on the fast clock, and reduced motion just shows the value.
+const SPRAY = {
+  can: h => `assets/fx/spray_can_${h}.webp`, puff: h => `assets/fx/spray_puff_${h}.webp`,
+  canSize: [207, 480], nozzle: [102.7, 20.4],   // the shipped can and where its spray comes out (tools/make_spray_fx.py prints both)
+  height: 90,                                   // the can on the board, in layout px (a cell is 98 tall)
+  aim: [0, 16],                                 // the nozzle sits this far right of and below the paint it lays: the
+                                                // can faces the wall, so its paint lands just above its top
+  // every value a Multi can carry (math-sdk/games/smukiez_tag_run/game_config.py booster_mults_*)
+  values: [1.25, 1.5, 2, 3, 5, 10, 20, 50, 100, 250, 500, 1000],
+};
+const sprayPics = {};   // heat hue -> { can, puff }: the pictures in that colour (URLs, decoded and held)
+const sprayJobs = new Set();
+let sprayReady = null;
+// Fetches and decodes the can and the puff in every value's colour (two dozen small pictures,
+// decoded off the main thread) and holds them, so a can is whole on its first frame on the
+// board. Idempotent; a picture that will not load leaves its colour to the nearest one there is.
+function prepareSpray() {
+  if (sprayReady) return sprayReady;
+  sprayReady = (async () => {
+    if (REDUCED_MOTION) return false;
+    const hues = [...new Set(SPRAY.values.map(v => Math.round(heatHue(v))))];
+    await Promise.all(hues.map(async h => {
+      const held = [SPRAY.can(h), SPRAY.puff(h)].map(u => { const im = new Image(); im.src = u; return im; });
+      try { await Promise.all(held.map(im => im.decode())); } catch (e) { return; }
+      sprayPics[h] = { can: held[0].src, puff: held[1].src, held };
+    }));
+    return Object.keys(sprayPics).length > 0;
+  })().catch(e => { console.warn("spray can unavailable:", e); return false; });
+  return sprayReady;
+}
+function sprayPicsFor(v) {
+  const h = Math.round(heatHue(v));
+  if (sprayPics[h]) return sprayPics[h];
+  let best = null, bd = Infinity;   // a value outside the table: the nearest colour there is
+  for (const k of Object.keys(sprayPics)) { const dd = Math.abs(k - h); if (dd < bd) { bd = dd; best = sprayPics[k]; } }
+  return best;
+}
+// Marks a Multi that is about to drop in as unpainted; its landing (or spraysDone) sends the can.
+function bareMulti(cell) {
+  const m = cell && cell.ico && cell.ico.querySelector(".multface");
+  if (!m || !m.querySelector(".mv") || REDUCED_MOTION) return;
+  m.classList.add("bare");
+  cell._spray = "due";
+}
+function sprayDue(cell) { if (cell && cell._spray === "due") sprayMulti(cell); }
+// Every bare Multi painted: one whose landing went unseen (a drop cut short) is sent its can now.
+async function spraysDone() {
+  eachCell(sprayDue);
+  while (sprayJobs.size) await Promise.all([...sprayJobs]);
+}
+// An element's resting place on the board, from offsets - whatever transform it is animating
+// through right now, this is where it sits (the same walk placeMultLayer does for the cells).
+function boardXY(el) {
+  const board = $("board");
+  let x = 0, y = 0;
+  while (el && el !== board) {
+    x += el.offsetLeft; y += el.offsetTop;
+    el = el.offsetParent;
+    if (el && el !== board) { x += el.clientLeft; y += el.clientTop; }
+  }
+  return [x, y];
+}
+function sprayMulti(cell) {
+  cell._spray = "on";
+  const job = sprayRun(cell).catch(e => console.warn("spray:", e)).finally(() => {
+    sprayJobs.delete(job);
+    if (cell._spray === "on") cell._spray = null;
+    const m = cell.ico && cell.ico.querySelector(".multface");
+    if (m) m.classList.remove("bare");   // whatever happened, the value ends up on the brick
+  });
+  sprayJobs.add(job);
+  return job;
+}
+async function sprayRun(cell) {
+  const m = cell.ico && cell.ico.querySelector(".multface"), mv = m && m.querySelector(".mv");
+  const layer = $("sprayLayer");
+  if (!mv || !layer || REDUCED_MOTION) return;
+  // the tints are made behind the loading screen; a page that skipped it waits a beat for them
+  if (!Object.keys(sprayPics).length) await Promise.race([prepareSpray(), new Promise(r => setTimeout(r, 1500))]);
+  const pics = sprayPicsFor(m._mult || 2);
+  if (!pics || document.hidden || cell._spray !== "on") return;
+  const t = tempo(), rnd = (a, b) => a + Math.random() * (b - a);
+  const T = { in: 300 * t, rattle: 210 * t, sweep: 580 * t, out: 340 * t };
+  const sweepAt = T.in + T.rattle, sweepEnd = sweepAt + T.sweep, total = sweepEnd + T.out;
+  // where the figure sits, in board px: the can sweeps along it, a little under its middle
+  const [fx, fy] = boardXY(mv), w = mv.offsetWidth, h = mv.offsetHeight;
+  const x0 = fx - 6, x1 = fx + w + 6, y = fy + h * .55;
+  const k = SPRAY.height / SPRAY.canSize[1], nx = SPRAY.nozzle[0] * k, ny = SPRAY.nozzle[1] * k;
+  const hue = Math.round(heatHue(m._mult || 2));
+  const els = [], anims = [];
+  const add = (tag, cls) => { const e = document.createElement(tag); e.className = cls; if (tag === "img") { e.alt = ""; e.draggable = false; } layer.append(e); els.push(e); return e; };
+  // the can: its nozzle is the pivot and the point it is placed by
+  const can = add("img", "scan");
+  can.src = pics.can;
+  can.style.width = (SPRAY.canSize[0] * k).toFixed(1) + "px"; can.style.height = SPRAY.height + "px";
+  can.style.transformOrigin = `${nx.toFixed(1)}px ${ny.toFixed(1)}px`;
+  const pose = (x, yy, r, s) => `translate(${(x + SPRAY.aim[0] - nx).toFixed(1)}px, ${(yy + SPRAY.aim[1] - ny).toFixed(1)}px) rotate(${r}deg) scale(${s})`;
+  const o = ms => ms / total;
+  const rat = i => o(T.in + T.rattle * i / 5);
+  anims.push(can.animate([
+    // in from the side, upright but for a lean that it settles out of
+    { offset: 0, transform: pose(x0 + 110, y - 30, 9, .86), opacity: 0, easing: "cubic-bezier(.2,.85,.3,1)" },
+    { offset: o(T.in * .45), opacity: 1 },
+    { offset: o(T.in), transform: pose(x0, y, -1.5, 1), opacity: 1 },
+    // the shake: up and down, the mixing ball knocking about inside
+    { offset: rat(1), transform: pose(x0, y - 6, 1.5, 1) },
+    { offset: rat(2), transform: pose(x0, y + 3, -1, 1) },
+    { offset: rat(3), transform: pose(x0, y - 5, 1, 1) },
+    { offset: rat(4), transform: pose(x0, y + 2, 0, 1) },
+    { offset: o(sweepAt), transform: pose(x0, y, 0, 1) },
+    // the sweep along the figure, with the slightest dip of a hand
+    { offset: o(sweepAt + T.sweep / 2), transform: pose((x0 + x1) / 2, y + 2, 0, 1) },
+    { offset: o(sweepEnd), transform: pose(x1, y, 0, 1), opacity: 1, easing: "cubic-bezier(.45,0,.7,.5)" },
+    // and away: it lifts off and fades out
+    { offset: 1, transform: pose(x1 + 34, y - 60, 4, .92), opacity: 0 },
+  ], { duration: total, fill: "both" }));
+  // the paint: it builds up from the left, just behind the nozzle, as the can goes over it
+  const pad = 24;
+  const wipe = mv.animate([
+    { clipPath: `inset(-16px ${(w + 6).toFixed(1)}px -16px -${pad}px)`, opacity: .3 },
+    { offset: .35, opacity: .75 },
+    { clipPath: `inset(-16px -${pad}px -16px -${pad}px)`, opacity: 1 },
+  ], { duration: T.sweep, delay: sweepAt, fill: "both" });
+  anims.push(wipe);
+  // and a fresh coat pops once it is all on
+  anims.push(mv.animate([{ transform: "scale(1)" }, { offset: .4, transform: "scale(1.16)" }, { transform: "scale(1)" }],
+    { duration: 260 * t, delay: sweepEnd, easing: "cubic-bezier(.3,.7,.4,1)" }));
+  // the mist where the paint hits the wall, drifting up off it and thinning out
+  const N = 12;
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1), px = x0 + (x1 - x0) * u + rnd(-4, 4), py = y + rnd(-6, 3);
+    const e = add("i", "smist");
+    e.style.setProperty("--hue", hue);
+    const dx = rnd(-14, 10), dy = rnd(-18, -5);
+    anims.push(e.animate([
+      { transform: `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px) scale(.25)`, opacity: 0 },
+      { offset: .18, opacity: .85 },
+      { transform: `translate(${(px + dx).toFixed(1)}px, ${(py + dy).toFixed(1)}px) scale(${rnd(1.4, 2).toFixed(2)})`, opacity: 0 },
+    ], { duration: 720 * t, delay: sweepAt + T.sweep * u, fill: "both", easing: "cubic-bezier(.2,.7,.4,1)" }));
+  }
+  // a few cartoon puffs of paint burst off it, in the icons' own style
+  for (const u of [.04, .5, .96]) {
+    const px = x0 + (x1 - x0) * u + rnd(-6, 6), py = y + rnd(-10, 0), r0 = rnd(-25, 25);
+    const e = add("img", "spuff");
+    e.src = pics.puff;
+    const dx = rnd(-20, 16), dy = rnd(-26, -12);
+    anims.push(e.animate([
+      { transform: `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px) rotate(${r0.toFixed(0)}deg) scale(.2)`, opacity: 0 },
+      { offset: .22, transform: `translate(${(px + dx * .3).toFixed(1)}px, ${(py + dy * .3).toFixed(1)}px) rotate(${(r0 * .7).toFixed(0)}deg) scale(1.05)`, opacity: 1 },
+      { transform: `translate(${(px + dx).toFixed(1)}px, ${(py + dy).toFixed(1)}px) rotate(${(r0 * .3).toFixed(0)}deg) scale(1.2)`, opacity: 0 },
+    ], { duration: 640 * t, delay: sweepAt + T.sweep * u, fill: "both", easing: "cubic-bezier(.25,.8,.4,1)" }));
+  }
+  // the sound: the rattle, then the hiss for as long as it sprays
+  const noises = [canRattle(T.rattle, T.in), sprayHiss(T.sweep, sweepAt)].filter(Boolean);
+  // a skip mid-spray runs the rest of it on the fast clock
+  let sped = t < 1;
+  const watch = setInterval(() => {
+    if (sped || !state.skip) return;
+    sped = true;
+    for (const a of anims) a.updatePlaybackRate(1 / TEMPO_FAST);
+    noises.forEach(n => n.stop());
+  }, 60);
+  // everything off the board once the last of it has gone (a hidden tab gets a deadline)
+  const tidy = () => { clearInterval(watch); els.forEach(e => e.remove()); };
+  Promise.all(anims.map(a => a.finished.catch(() => {}))).then(tidy);
+  setTimeout(tidy, total + 4000);
+  // the round carries on once the paint is on; the can leaves in its own time
+  await Promise.race([wipe.finished.catch(() => {}), new Promise(r => setTimeout(r, total + 2500))]);
+  m.classList.remove("bare");
+  wipe.cancel();
+}
+// The spray's sounds are made rather than recorded: white noise, filtered. The hiss is the
+// nozzle open for as long as the can sweeps; the rattle is the mixing ball, four knocks.
+let noiseBuf = null;
+function noiseOf(ctx) {
+  if (!noiseBuf || noiseBuf.sampleRate !== ctx.sampleRate) {
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuf;
+}
+function sprayCtx() {
+  if (vol.sfx <= 0 || !actx || actx.state !== "running") return null;   // never the first thing to open audio
+  return actx;
+}
+function sprayHiss(ms, inMs = 0) {
+  const ctx = sprayCtx();
+  if (!ctx) return null;
+  const t0 = ctx.currentTime + inMs / 1000, s = Math.max(.08, ms / 1000);
+  const src = ctx.createBufferSource(); src.buffer = noiseOf(ctx); src.loop = true;
+  const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 2400;
+  const pk = ctx.createBiquadFilter(); pk.type = "peaking"; pk.frequency.value = 6800; pk.Q.value = .9; pk.gain.value = 5;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(.075, t0 + .04);
+  g.gain.setValueAtTime(.075, t0 + Math.max(.05, s - .09));
+  g.gain.linearRampToValueAtTime(0, t0 + s);
+  src.connect(hp).connect(pk).connect(g).connect(sfxBus);
+  src.start(t0); src.stop(t0 + s + .05);
+  return { stop: () => { try { const n = ctx.currentTime; g.gain.cancelScheduledValues(n); g.gain.setTargetAtTime(0, n, .02); src.stop(n + .12); } catch (e) { /* already done */ } } };
+}
+function canRattle(ms, inMs = 0) {
+  const ctx = sprayCtx();
+  if (!ctx) return null;
+  const srcs = [];
+  for (let i = 0; i < 4; i++) {
+    const at = ctx.currentTime + (inMs + ms * (i + .5) / 4) / 1000;
+    const src = ctx.createBufferSource(); src.buffer = noiseOf(ctx);
+    const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2100 + i * 260; bp.Q.value = 5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.55, at + .002); g.gain.exponentialRampToValueAtTime(.001, at + .05);
+    src.connect(bp).connect(g).connect(sfxBus);
+    src.start(at, Math.random() * .5, .06);
+    srcs.push(src);
+  }
+  return { stop: () => srcs.forEach(s => { try { s.stop(); } catch (e) { /* already done */ } }) };
 }
 
 // The multipliers a Multi leaves behind belong to the CELL, not the symbol on it. They are
@@ -2604,13 +3010,17 @@ const emptyGrid = () => Array.from({ length: REELS }, () => Array(ROWS).fill(0))
 // from 100x up. Anchored on the value table (log scale between anchors) so each step up
 // the table is a visible step warmer.
 const HEAT_ANCHORS = [[1.25, 100], [3, 75], [5, 58], [10, 45], [20, 32], [50, 18], [100, 8], [1000, 0]];   // [value, hue]
-function heatColour(v) {
+function heatHue(v) {
   const x = Math.max(1.25, Math.min(1000, v));
   let hue = 0;
   for (let i = 1; i < HEAT_ANCHORS.length; i++) {
     const [v0, h0] = HEAT_ANCHORS[i - 1], [v1, h1] = HEAT_ANCHORS[i];
     if (x <= v1) { const t = Math.log(x / v0) / Math.log(v1 / v0); hue = h0 + (h1 - h0) * t; break; }
   }
+  return hue;
+}
+function heatColour(v) {
+  const hue = heatHue(v);
   return `hsl(${Math.round(hue)} 100% ${hue > 40 ? 55 : 52}%)`;
 }
 function paintCell(r, y) {
@@ -2813,9 +3223,15 @@ function tagPop(size = 1) {   // 1 = a cluster's pop (7%); the big-win popup ask
 // One nudge of the whole board per landed reel, a touch harder for each reel that lands
 // after the last, plus a soft thunk. Restarted per reel so every landing reads as its own hit.
 function boardThud(r) {
-  const bd = $("board");
-  bd.style.setProperty("--thud", String(0.7 + r * 0.12));
-  bd.classList.remove("thud"); restyle(bd); bd.classList.add("thud");
+  // Played on the board directly, the push worked out here: a custom property set on #board
+  // made all of its 300-500 elements restyle, on every reel's landing.
+  const k = 0.7 + r * 0.12, ease = "cubic-bezier(.2,.8,.3,1)";
+  if (!REDUCED_MOTION) $("board").animate([
+    { transform: "none", easing: ease },
+    { offset: .35, transform: `translateY(${(2.4 * k).toFixed(2)}px) rotate(${(.12 * k).toFixed(3)}deg)`, easing: ease },
+    { offset: .7, transform: `translateY(${(-.8 * k).toFixed(2)}px)`, easing: ease },
+    { transform: "none" },
+  ], { duration: 240 });
   if (!state.skip) sfx("bet", 0.5 + r * 0.04);
 }
 
@@ -2839,6 +3255,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
         cells[y].classList.remove("fallout");
         cells[y].style.removeProperty("--out");
         setCell(r, y, ev.board[r][y + 1]);   // strip the 1-row padding
+        bareMulti(cells[y]);                 // a Multi falls in unpainted: the can sprays its value on
         cells[y].style.visibility = "hidden";
       }
     };
@@ -2874,6 +3291,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
         c.style.setProperty("--fall", "-34px"); c.style.setProperty("--droptime", ".4");   // a short drop, a fifth of the usual time
         if (was) restyle(c);   // only a tile still mid-animation needs its removal applied first
         c.classList.add("tdrop");
+        dropIn(c, 500 * .4 * t);
       }
       setTimeout(finish, 240 * t + 40);
     };
@@ -2890,6 +3308,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
       c.style.setProperty("--fall", (-(y + 1) * CELL_STEP - 48) + "px");   // from above the frame
       c.style.setProperty("--droptime", pace.toFixed(3));                  // at its own pace
       c.classList.add("tdrop");
+      dropIn(c, 500 * tt * pace);
       later(275 * tt * pace, () => sfx("dripLand", landRate(y, pace)));   // the note lands with the tile (55% of its drop)
       const crew = c.classList.contains("scat");
       if (crew || c.classList.contains("escat")) {
@@ -2981,6 +3400,7 @@ async function renderReveal(ev) {
     dropReel(r, ev, r * stagger, (ev.anticipation?.[r] || 0) * anticExtra, onCrewLeader, slowOf(r))));
   hushReels();   // a skipped reveal cuts it short; a full one has already faded out
   boardZoom(false);   // the lean-in lets go as the board settles, hit or miss
+  await spraysDone();   // every Multi's value is on its brick before anything is paid off it
   // near-miss resolution: linger on landed scatters when the reveal carried anticipation
   if (ev.anticipation && ev.anticipation.some(a => a > 0)) {
     eachCell(el => { if (el.className.includes("scat")) el.classList.add("pulse"); });
@@ -3372,7 +3792,7 @@ function audio() {
   return actx;
 }
 // browsers only allow audio once the player has interacted — first gesture opens the context
-addEventListener("pointerdown", () => { audio(); startMusic(); }, { once: true });
+addEventListener("pointerdown", () => { audio(); startMusic(); if (actx) loadTrack("bonus"); }, { once: true });   // the bonus loop is decoded ahead of the first bonus
 
 function sfx(name, rate = 1) {
   if (vol.sfx <= 0) return;   // the bar is at the bottom: don't even open the context
@@ -3587,17 +4007,22 @@ const handlers = {
       if (news.length > H) news.splice(0, news.length - H);
       const finalSyms = news.concat(survSyms);              // top -> bottom, length ROWS
       for (let fy = 0; fy < ROWS; fy++) {
-        setCell(r, fy, finalSyms[fy]);
         const cell = cellEls[r][fy];
         // new tiles (top H rows) drop in from above by H rows; a survivor drops by the number
         // of gaps that were below it = its new row minus its original row.
         const fall = fy < H ? H : fy - survRows[fy - H];
+        // a survivor that stays put is the same symbol in the same cell: it keeps its picture,
+        // so a performance it is part-way through carries on instead of snapping back
+        if (fall === 0) cell.className = cellClass(finalSyms[fy]);
+        else setCell(r, fy, finalSyms[fy]);
+        if (fy < H) bareMulti(cell);   // a new Multi falls in unpainted, like on the reveal
         if (fall > 0) {
           const pace = dropPace();
           if (cell.classList.contains("tdrop")) { cell.classList.remove("tdrop"); restyle(cell); }   // restart it from the top
           cell.style.setProperty("--fall", (-fall * CELL_STEP) + "px");
           cell.style.setProperty("--droptime", pace.toFixed(3));
           cell.classList.add("tdrop");
+          dropIn(cell, 500 * tempo() * pace);
           landers.push({ row: fy, pace });
         }
       }
@@ -3619,6 +4044,7 @@ const handlers = {
     await delay(500 * slowest);   // until the slowest tile has settled
     eachCell((el, r, y) => { el.classList.remove("tdrop", "explode"); el.style.removeProperty("--fall"); el.style.removeProperty("--droptime"); multEls[r][y].classList.remove("bare"); });
     for (let r = 0; r < REELS; r++) cellEls[r][0].parentElement.classList.remove("tumbling");
+    await spraysDone();   // a Multi that just fell in has its value before the next win is read
   },
 
   async updateTumbleWin(ev) {
@@ -3985,14 +4411,14 @@ function paintBonus() {
 }
 function closeBonus() {
   if (!$("bonusWrap").hidden) sfx("menuClose");
-  $("bonusWrap").hidden = true;
+  showMenu($("bonusWrap"), false);
   $("bonusBtn").classList.remove("open");
 }
 function openBonus() {
   if (REPLAY || !RGS.state.authenticated || state.playing) return;
   if (!$("bonusWrap").hidden) { closeBonus(); return; }   // the same button closes it
   closeBars();   // the panel covers the bar: the volume bars go with it
-  $("bonusWrap").hidden = false;
+  showMenu($("bonusWrap"), true);
   $("bonusBtn").classList.add("open");
   sfx("menuOpen");
   paintBonus();
@@ -4292,21 +4718,59 @@ async function loadSpine(base, name) {
   const atlas = new spine.TextureAtlas(atlasText);
   // each atlas page is its own PNG; decode before handing it to Pixi or the first frame
   // renders untextured
+  // Decoded off the main thread where the browser can (createImageBitmap): an <img> handed to
+  // WebGL is decoded again, on the main thread, inside the upload - 0.3 s a page on a slow laptop.
+  const pages = [];
   await Promise.all(atlas.pages.map(async page => {
-    const img = new Image();
-    img.src = `${base}/${page.name}`;
-    await img.decode();
-    page.setTexture(spine.SpineTexture.from(PIXI.Texture.from(img).source));
+    const url = `${base}/${page.name}`;
+    let pic = null;
+    if (typeof createImageBitmap === "function") {
+      try {
+        const r = await fetch(url);
+        if (r.ok) pic = await createImageBitmap(await r.blob(), { premultiplyAlpha: "premultiply" });
+      } catch (e) { pic = null; }
+    }
+    if (!pic) {
+      pic = new Image();
+      pic.src = url;
+      await pic.decode();
+    }
+    const source = PIXI.Texture.from(pic).source;
+    source.autoGarbageCollect = false;   // a page a rare clip uses must never be dropped and uploaded again mid-game
+    pages.push(source);
+    page.setTexture(spine.SpineTexture.from(source));
   }));
-  return new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
+  const data = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
+  return { data, pages };
+}
+// Pixi uploads a texture the first time something draws from it. A character page that only a
+// rare clip uses (the big win, the anticipation lean, a cash break) went up mid-game - decoded
+// and uploaded on the spot, a third of a second with nothing drawn. Every page is drawn once,
+// out of sight, the moment the character's renderer exists, so they all go up behind the
+// loading screen.
+function uploadPages(app, pages) {
+  try {
+    const tex = app.renderer.texture;
+    if (tex && typeof tex.initSource === "function") { pages.forEach(src => tex.initSource(src)); return; }
+    const warm = new PIXI.Container();   // no direct upload in this Pixi: draw each page once instead
+    for (const source of pages) {
+      const s = new PIXI.Sprite(new PIXI.Texture({ source }));
+      s.position.set(-8192, -8192); s.alpha = .01;
+      warm.addChild(s);
+    }
+    app.stage.addChild(warm);
+    app.renderer.render(app.stage);
+    app.stage.removeChild(warm);
+    warm.destroy({ children: true });   // the sprites only: the pages stay on the GPU for the rig
+  } catch (e) { /* a page that will not go up early just goes up when it is first drawn */ }
 }
 
 async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
   const root = document.getElementById(el);
   if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
 
-  let data;
-  try { data = await loadSpine(base, name); }
+  let data, pages;
+  try { ({ data, pages } = await loadSpine(base, name)); }
   catch (e) { console.warn("character rig failed to load:", name, e.message); return null; }
 
   const app = new PIXI.Application();
@@ -4317,6 +4781,7 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
   });
   root.appendChild(app.canvas);
 
+  uploadPages(app, pages);
   const actor = new spine.Spine({ skeletonData: data, autoUpdate: true });
   actor.state.data.defaultMix = .2;
   actor.state.timeScale = CHAR_RATE;
@@ -4406,8 +4871,11 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
   return { react, enter, exit };
 }
 
+// the loading screen waits for both characters (their pages decoded and on the GPU)
+let charsLoaded = Promise.resolve([]);
 (async function characters() {
-  const rigs = (await Promise.all(CHARACTERS.map(makeCharacter))).filter(Boolean);
+  charsLoaded = Promise.all(CHARACTERS.map(makeCharacter));
+  const rigs = (await charsLoaded).filter(Boolean);
   if (!rigs.length) return;
   charReact = kind => rigs.forEach(r => r.react(kind));
   charEnter = () => rigs.forEach(r => r.enter());
@@ -4660,10 +5128,9 @@ const heldPics = [];
 function preloadAll(onProgress) {
   const pics = assetUrls();
   const sounds = Object.values(sfxRaw || {});
-  const jobs = pics.length + sounds.length + 1;   // + the fonts
-  let done = 0;
-  const tick = () => onProgress(jobs ? done / jobs : 1);
-  const one = pr => pr.then(() => { done++; tick(); }, () => { done++; tick(); });
+  let jobs = 0, done = 0;   // every promise one() is handed counts, so the bar ends at 100% exactly
+  const tick = () => onProgress(jobs ? Math.min(1, done / jobs) : 1);
+  const one = pr => { jobs++; return pr.then(() => { done++; tick(); }, () => { done++; tick(); }); };
   const waits = pics.map(u => one(new Promise((res, rej) => {
     const img = new Image();
     img.onload = res; img.onerror = rej;
@@ -4671,6 +5138,9 @@ function preloadAll(onProgress) {
     heldPics.push(img);
   })));
   waits.push(...sounds.map(one));
+  waits.push(one(prepareSpray()));   // the spray can, tinted for every Multi value
+  waits.push(one(loadRigs()));       // the animated symbols: atlas, skeletons, every clip baked
+  waits.push(one(charsLoaded));      // the two characters, every atlas page on the GPU
   waits.push(one(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()));
   // the bonus screen's faces are not on the page yet, so fonts.ready would not wait for them
   if (document.fonts && document.fonts.load) {
@@ -5422,12 +5892,60 @@ function bonusIntro(spins, extreme, why) {
   });
 }
 
+// Opens or closes a menu - the bonus panel, the info panel, the auto play picker, a sound bar.
+// Closing does not snap it out: it gives a tiny swell and shrinks away back the way it popped
+// out, fading as it goes, in a fifth of a second. The hidden attribute is still the menu's
+// state and is set the moment it closes, so nothing that asks whether a menu is open has to
+// know about the exit; .leaving (and inert) keeps it drawn but out of reach while it goes.
+// Opening it again mid-exit cuts the exit short and pops it in afresh.
+function showMenu(el, on) {
+  if (!el) return;
+  if (on) {
+    if (el._leave) { stopLeaving(el); restyle(el); }   // flushed out of sight first, so its pop-in plays afresh
+    el.hidden = false;
+    return;
+  }
+  if (el.hidden) return;
+  if (REDUCED_MOTION || document.hidden) { el.hidden = true; return; }
+  el.classList.add("leaving"); el.inert = true;   // first, so it is never drawn as gone in between
+  el.hidden = true;
+  // the curve: a quick swell, then a shrink you can see, and only at the end does it fade out
+  const ms = 220, anims = [];
+  const exit = (lead, swell, mid, end) => [
+    { offset: 0, transform: lead + "scale(1)", opacity: 1, easing: "cubic-bezier(.3,0,.6,1)" },
+    { offset: .18, transform: lead + swell, opacity: 1, easing: "cubic-bezier(.5,0,.8,.6)" },
+    { offset: .62, transform: lead + mid, opacity: .92, easing: "cubic-bezier(.3,0,.7,1)" },
+    { offset: 1, transform: lead + end, opacity: 0 },
+  ];
+  if (el.classList.contains("infowrap")) {
+    // a full-screen panel: it shrinks into the middle while the dim behind it lifts
+    const part = el.firstElementChild || el;
+    anims.push(el.animate([{ opacity: 1 }, { offset: .55, opacity: .75 }, { opacity: 0 }], { duration: ms, easing: "ease-in", fill: "forwards" }));
+    anims.push(part.animate(exit("", "scale(1.035)", "scale(.74)", "scale(.42)"), { duration: ms, fill: "forwards" }));
+  } else {
+    // a pop-up shrinks back into the button it grew out of (its transform-origin); a sound bar
+    // folds down into its button the way it rose out of it
+    const lead = el.classList.contains("vpop") || (el.classList.contains("popover") && !el.classList.contains("right")) ? "translateX(-50%) " : "";
+    const bar = el.classList.contains("vpop");
+    anims.push(el.animate(bar ? exit(lead, "scale(1.04, 1.06)", "scale(.9, .55)", "scale(.75, .12)")
+                             : exit(lead, "scale(1.05)", "scale(.68)", "scale(.3)"), { duration: ms, fill: "forwards" }));
+  }
+  el._leave = anims;
+  Promise.all(anims.map(a => a.finished)).then(() => { if (el._leave === anims) stopLeaving(el); }, () => {});
+}
+function stopLeaving(el) {
+  const anims = el._leave;
+  el._leave = null;
+  el.classList.remove("leaving"); el.inert = false;
+  if (anims) anims.forEach(a => a.cancel());
+}
+
 // One pop-up open at a time; its button reads as pressed while it is up.
 const POPS = { autoPop: "autoBtn" };
 function openPop(id) {
   for (const [pid, bid] of Object.entries(POPS)) {
     const on = pid === id;
-    $(pid).hidden = !on;
+    showMenu($(pid), on);
     $(bid).classList.toggle("open", on);
   }
 }
@@ -5529,7 +6047,7 @@ function trackBars() {
   if (any) barTrack = requestAnimationFrame(trackBars);
 }
 function showBar(b, on) {
-  $(b.pop).hidden = !on;
+  showMenu($(b.pop), on);
   if (on) {
     placeBar(b);   // placed in the same task as the unhide, so it never paints adrift
     if (!barTrack) barTrack = requestAnimationFrame(trackBars);
@@ -5674,7 +6192,7 @@ document.addEventListener("visibilitychange", async () => {
       closeBars();   // the panel covers the bar: the volume bars go with it
       $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
     }
-    wrap.hidden = !on;
+    showMenu(wrap, on);
     sfx(on ? "menuOpen" : "menuClose");
     // the panel is modal: the keyboard belongs inside it while it is up, and back on the
     // button that opened it once it is gone
@@ -5717,6 +6235,9 @@ async function bootReplay(p) {
     status.textContent = T("This replay could not be loaded. Check the link and try again.");
     return;
   }
+  // a replay has no loading screen: Play waits (at most 15 s) for what the round animates - the
+  // symbol rigs, the spray can and the characters - so nothing swaps or uploads once it runs
+  await Promise.race([Promise.all([loadRigs(), prepareSpray(), charsLoaded]).catch(() => {}), new Promise(r => setTimeout(r, 15000))]);
   const cost = MODE_COST[state.mode] * bet();
   const payout = Math.round(round.payoutMultiplier * bet());
   meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet cost ${fmt(cost)} (x${MODE_COST[state.mode]} the bet of ${fmt(bet())})`);
