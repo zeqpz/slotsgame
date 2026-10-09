@@ -28,8 +28,13 @@ const RGS = (() => {
     CLP: { symbol: "CLP", decimals: 0, after: true },
     ARS: { symbol: "ARS", decimals: 2, after: true },
     PEN: { symbol: "S/", decimals: 2, after: true },
-    XGC: { symbol: "GC", decimals: 2 },           XSC: { symbol: "SC", decimals: 2 },
+    // the social-casino coins read "10.00 SC" / "10.00 GC" - never with a $ in front
+    XGC: { symbol: "GC", decimals: 2, after: true },
+    XSC: { symbol: "SC", decimals: 2, after: true },
+    XEC: { symbol: "SC", decimals: 2, after: true },
   };
+  // thousands grouped: 1,000,000.00 - the integer part only
+  const group = s => s.replace(/^(\d+)/, d => d.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
 
   const q = new URLSearchParams(location.search);
   const sessionID = q.get("sessionID") || "";
@@ -206,11 +211,12 @@ const RGS = (() => {
       catch (e) { return null; }   // never let bookkeeping break a round
     },
 
-    /** What the player is actually staking — the social-casino currencies get real names. */
+    /** The token the player is playing with, as the balance label names it. The social
+     *  coins go by their short codes: their long names carry words social mode forbids. */
     currencyName(code) {
       const c = code || state.currency;
-      if (c === "XSC") return "Stake Cash";
-      if (c === "XGC") return "Gold Coins";
+      if (c === "XSC" || c === "XEC") return "SC";
+      if (c === "XGC") return "GC";
       return c;
     },
 
@@ -229,6 +235,7 @@ const RGS = (() => {
         s = v.toFixed(maxDec).replace(/0+$/, "");
         if (s.split(".")[1] && s.split(".")[1].length < meta.decimals) s = v.toFixed(meta.decimals);
       }
+      s = group(s);
       return meta.after ? `${s} ${meta.symbol}` : `${meta.symbol}${s}`;
     },
 

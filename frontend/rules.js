@@ -46,6 +46,8 @@ const RULES = (() => {
   // Restricted phrase -> replacement, from Stake's jurisdiction-requirements table. Longer
   // phrases first so "buy bonus" is swapped before "buy" gets a chance at it.
   const SWEEPS = [
+    ["pay table", "win table"], ["paytable", "win table"], ["payouts", "wins"], ["payout", "win"],
+    ["buying", "getting"], ["gambling", "play"],
     ["buy bonus", "get bonus"], ["bonus buy", "bonus"], ["total bet", "total play"],
     ["at the cost of", "for"], ["cost of", "can be played for"], ["pays out", "wins"],
     ["paid out", "won"], ["pay out", "win"], ["win feature", "play feature"],
@@ -78,9 +80,9 @@ const RULES = (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const x = v => "x" + (Number.isInteger(v) ? v : String(v));
 
-  function tile(sym) {
+  function tile(sym, social) {
     if (sym === "M") return `<div class="ptile multi"><span>x5</span><small>MULTI</small></div>`;
-    return `<img class="ptile" src="assets/${sym}.png" alt="${esc(NAMES[sym])}" draggable="false">`;
+    return `<img class="ptile" src="assets/${sym}.png" alt="${esc(T(NAMES[sym], social))}" draggable="false">`;
   }
 
   /**
@@ -95,7 +97,7 @@ const RULES = (() => {
     const payRows = ORDER.map(sym => {
       const p = PAYS[sym];
       return `<div class="prow">
-        ${tile(sym)}
+        ${tile(sym, social)}
         <div class="pname">${esc(t(NAMES[sym]))}<small>${sym}</small></div>
         <div class="pvals">
           ${TIERS.map((tier, i) => `<div><b>${tier}</b> ${x(p[i])} <em>${money(p[i])}</em></div>`).join("")}
@@ -106,7 +108,7 @@ const RULES = (() => {
     const html = `
 <section>
   <h4>${t("About the game")}</h4>
-  <p>${t(`Smukiez Tag Run is a 7-reel, 7-row video slot with cluster pays and tumbling reels. A cluster is 5 or more matching symbols touching horizontally or vertically, anywhere on the board; every cluster on the board pays, winning symbols are removed, new ones drop in, and the new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
+  <p>${t(`Smukiezs Mural is a 7-reel, 7-row video slot with cluster pays and tumbling reels. A cluster is 5 or more matching symbols touching horizontally or vertically, anywhere on the board; every cluster on the board pays, winning symbols are removed, new ones drop in, and the new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
   <div class="kvgrid">
     <div><span>RTP</span><b>${RTP}</b><small>${t("every mode")}</small></div>
     <div><span>${t("Max win")}</span><b>${x(MAX_WIN)}</b><small>${t("of the total bet")} · ${money(MAX_WIN)}</small></div>
@@ -158,7 +160,8 @@ const RULES = (() => {
     <tr><td><b>${t("Bonus")}</b></td><td>${t("Opens the bonus chooser: pick Standard or Extreme, set the bet, and the total charge is shown before you press Play.")}</td></tr>
     <tr><td><b>${t("Auto")}</b></td><td>${t("Plays a chosen number of rounds one after another at the current bet. You confirm the number before it starts; press it again to stop. It also stops when the balance can't cover the next round.")}</td></tr>
     <tr><td><b>${t("Rapid")}</b></td><td>${t("Shortens the reel spin and win animations. Results are unaffected.")}</td></tr>
-    <tr><td><b>☰</b></td><td>${t("Opens the sound, music and information controls. Sound and music each have their own level, remembered on this device.")}</td></tr>
+    <tr><td><b>${t("Info")}</b></td><td>${t("Opens this page: the rules, the paytable and your recent rounds.")}</td></tr>
+    <tr><td><b>${t("Audio")}</b></td><td>${t("Opens the Sound and Music level bars. Drag a bar to the bottom to silence it; with both at the bottom every sound in the game is off. Levels are remembered on this device.")}</td></tr>
     <tr><td><b>${t("Win / Balance")}</b></td><td>${t("The bar shows your balance in the token you are playing with, and the current round's win while there is one. The balance is always the amount the server reports.")}</td></tr>
   </table>
 </section>

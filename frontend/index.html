@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Smukiez Tag Run</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Smukiezs Mural</title>
 <style>
   :root {
     --bg: #141218;
@@ -648,6 +648,26 @@
     opacity: 0; transition: opacity .8s ease;
   }
   .intromsg.in { opacity: 1; }
+  /* Short screens (the 400x225 popout, a phone on its side): the three plates stand in one
+     row sized to the height, CLICK TO PLAY takes its own line under them instead of floating
+     over them, and nothing scrolls. The disclosure under the loading bar shrinks to fit. */
+  @media (max-height: 520px) {
+    .features { padding: 2.5vh 3vw; gap: 1.5vh; overflow: hidden; justify-content: center; }
+    .fboxes { flex-wrap: nowrap; gap: 1.8vw; }
+    .fbox { width: min(30vw, calc((100vh - 15vh - 44px) * 560 / 716)); }
+    .features .fcont { position: static; font-size: clamp(11px, 4.2vh, 20px); }
+    .features .fcont .fhit { padding: .35em 1.2em; }
+    .intro { padding: 3vh 6vw; }
+    .intrologo { max-height: 36vh; width: auto; }
+    .intromsg { font-size: clamp(6.5px, 2.4vh, 9.5px); line-height: 1.45; margin-top: 1.4vh; max-width: 92vw; }
+  }
+  /* At popout size the plates are too small for their paragraphs: the icon and the title
+     stay, the full text is in the game information */
+  @media (max-height: 320px) {
+    .fbox p { display: none; }
+    .fbox h3 { font-size: max(7cqw, 9px); }
+    .fbox .ficon { width: 58%; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .intro, .intrologo, .intromsg, .introbar, .introfill { transition: none !important; }
     .intrologo { animation: none !important; }
@@ -1035,6 +1055,12 @@
      the graffiti face runs much wider than the UI font it replaced */
   .cell > div { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cell img { width: 88%; height: 88%; object-fit: contain; pointer-events: none; }
+  /* Each cell's contents sit in one lasting box (.ico) that idleStretch() animates. The icon
+     inside is replaced on every fill; the box is not, so its idle path carries straight on. */
+  .cell .ico {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    transform-origin: 50% 90%; pointer-events: none;
+  }
   /* Everything on the board idles with a slight stretch of its own: a slow random wander in
      width, height and lean that never repeats (idleStretch writes --sx / --sy / --sr per board
      position; the multiplier slot under a cell takes its cell's), so the wall never looks
@@ -1142,15 +1168,16 @@
      and bright, past full size, and settles - rather than simply being there. The idle
      stretch is on scale/rotate, so this transform rides on top of it */
   .multlayer .gmult.bare { opacity: .95; animation: gmultIn calc(.42s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.35); }
+  /* the idle wander runs on transform (on the compositor), so the pop and the fade use scale */
   @keyframes gmultIn {
-    0%   { transform: scale(.3); filter: brightness(2.2); }
-    55%  { transform: scale(1.2); filter: brightness(1.5); }
-    100% { transform: scale(1); filter: brightness(1); }
+    0%   { scale: .3; filter: brightness(2.2); }
+    55%  { scale: 1.2; filter: brightness(1.5); }
+    100% { scale: 1; filter: brightness(1); }
   }
   @media (prefers-reduced-motion: reduce) { .multlayer .gmult.bare { animation: none; } }
   /* and when a new spin clears the board it fades away, drawing in a little, rather than
      vanishing (paintCell hides the slot once the fade is through) */
-  .multlayer .gmult.gone { opacity: 0; transform: scale(.72); transition: opacity .45s ease, transform .45s ease; }
+  .multlayer .gmult.gone { opacity: 0; scale: .72; transition: opacity .45s ease, scale .45s ease; }
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
@@ -1340,6 +1367,26 @@
     color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px;
   }
   .ticker b { color: var(--ink); }
+  /* What the player has to see - not enough balance, no connection, an RGS error, a round
+     being resumed. The ticker above stays hidden (the board face is clean), so these float
+     over the foot of the board for a few seconds. They sit outside #app, so they never shrink
+     with the fit-to-screen scale and stay readable on the smallest popout. */
+  .notice {
+    position: fixed; left: 50%; bottom: max(15vh, 84px); z-index: 45;
+    max-width: min(92vw, 520px); padding: 9px 18px 8px; border-radius: 12px;
+    background: rgba(10, 8, 14, .93); border: 2px solid #4fe8ff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .55);
+    font-family: var(--legible); font-size: clamp(11px, 2vh, 16px); line-height: 1.35; color: #f4f0ea;
+    text-align: center; pointer-events: none;
+    opacity: 0; transform: translate(-50%, 10px);
+    transition: opacity .25s ease, transform .3s cubic-bezier(.2, .9, .3, 1.2);
+  }
+  .notice.on { opacity: 1; transform: translate(-50%, 0); }
+  .notice b { color: var(--gold); }
+  .notice.err { border-color: #ff5a5a; }
+  /* nothing can be played without a session: the connection error sits over everything,
+     the opening screens included */
+  #errorWrap { z-index: 70; }
 
   /* banner overlay */
   .banner {
@@ -1763,7 +1810,7 @@
 
 
   .bonusbtn {
-    position: relative; width: 146px; height: 74px;
+    position: relative; width: calc(146px * var(--hs, 1)); height: calc(74px * var(--hs, 1));
     background: none !important; border: none !important; padding: 0 !important;
     overflow: visible; color: transparent; font-size: 0; cursor: pointer;
   }
@@ -1805,17 +1852,20 @@
   /* the pieces touch: the two left plates sit on each other and on the long plate, the spin
      hexagon rides over the plate's right end, and Rapid and Auto sit on each other against it;
      only the Bonus button, first on the row, keeps a little air */
-  .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: 1060px; }
+  /* --hs sizes the whole bar. It is 1 on a full HD screen; on smaller windows, where the page's
+     fit-to-screen scale would shrink the readouts past reading, fitToScreen() raises it so the
+     bar keeps a legible size - the art and its proportions are unchanged, only its scale. */
+  .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: calc(1060px * var(--hs, 1)); }
   /* the Bonus button sits in the corner, out of the row, so the bar itself is what is
      centred on the screen rather than the row plus a button on one side of it */
   .hud .bonusbtn { position: absolute; left: 16px; bottom: 14px; margin: 0; }
   .hudstack { display: flex; flex-direction: column; gap: 0; }
-  .hudstack.left { align-items: flex-end; margin-right: -52px; position: relative; z-index: 1; }   /* over the plate's left end */
-  .hudstack.right { align-items: flex-start; margin-left: -32px; }   /* its notch on the hexagon's point */
+  .hudstack.left { align-items: flex-end; margin-right: calc(-52px * var(--hs, 1)); position: relative; z-index: 1; }   /* over the plate's left end */
+  .hudstack.right { align-items: flex-start; margin-left: calc(-32px * var(--hs, 1)); }   /* its notch on the hexagon's point */
   /* the outer plates are slanted: stacked, the two on each side make a chevron - the point
      outward, the notch nesting against the long plate or the hexagon */
   .hudbtn, .sidebtn {
-    position: relative; width: 82px; height: 37px; padding: 0; border: 0; font-size: 0; color: transparent;
+    position: relative; width: calc(82px * var(--hs, 1)); height: calc(37px * var(--hs, 1)); padding: 0; border: 0; font-size: 0; color: transparent;
     background: none; background-size: contain; background-repeat: no-repeat; background-position: center;
     cursor: pointer; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
@@ -1846,23 +1896,32 @@
   /* the long plate: its rounded ends are cut from the art and kept at their own width, the
      middle stretches to whatever the figures need */
   .hudbar {
-    position: relative; display: flex; align-items: center; justify-content: space-between; gap: 18px;
-    height: 74px; flex: 1 1 440px; min-width: 440px; max-width: 640px; box-sizing: border-box;
-    padding: 10px 44px 10px 72px;   /* the left end is under the chevron, the right end under the hexagon */
-    border: 0 solid transparent; border-width: 0 20px;
-    border-image: url("assets/hud_bar.png") 0 6% 0 6% fill / 0 20px stretch;
+    --u: var(--hs, 1);
+    position: relative; display: flex; align-items: center; justify-content: space-between; gap: calc(18px * var(--u));
+    height: calc(74px * var(--u)); flex: 1 1 calc(440px * var(--u)); min-width: calc(440px * var(--u)); max-width: calc(640px * var(--u)); box-sizing: border-box;
+    /* the left end is under the chevron, the right end under the hexagon */
+    padding: calc(9px * var(--u)) calc(44px * var(--u)) calc(9px * var(--u)) calc(72px * var(--u));
+    border: 0 solid transparent; border-width: 0 calc(20px * var(--u));
+    border-image: url("assets/hud_bar.png") 0 6% 0 6% fill / 0 calc(20px * var(--u)) stretch;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
   }
-  .hudstat { display: flex; flex-direction: column; justify-content: center; gap: 3px; line-height: 1; }
+  .hudstat { display: flex; flex-direction: column; justify-content: center; gap: calc(4px * var(--hs, 1)); line-height: 1; }
+  /* the labels were 11px on a 74px plate - unreadable once the page scales down; now they
+     read at a glance, and the currency code beside Balance is set apart by space, not by a
+     middle dot the label face has no glyph for */
   .hudstat .lbl {
-    font-family: var(--label); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    font-family: var(--label); font-size: calc(14px * var(--hs, 1)); letter-spacing: .12em; text-transform: uppercase;
     color: #e6e2dc; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
   }
+  .hudstat .lbl .cur { margin-left: .55em; opacity: .72; }
   .hudstat .val, #balance, #betVal {
-    font-family: var(--num) !important; font-size: 24px; font-weight: 400; letter-spacing: .03em; text-indent: 0;
+    font-family: var(--num) !important; font-size: calc(30px * var(--hs, 1)); font-weight: 400; letter-spacing: .03em; text-indent: 0;
     min-width: 0; text-align: left; color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px rgba(0,0,0,.85);
     font-variant-numeric: tabular-nums;
   }
+  /* long figures step down so a seven-figure balance never crowds the bet */
+  #balance.long, #betVal.long { font-size: calc(26px * var(--hs, 1)); }
+  #balance.vlong, #betVal.vlong { font-size: calc(21px * var(--hs, 1)); }
   .hudstat.bet { align-items: flex-end; }
   .hudstat.bet .val, #betVal { text-align: right; }
   /* the balance flashes green on the way up and red on the way down; the id rule above sets
@@ -1870,10 +1929,10 @@
   #balance.up   { color: var(--fs-green); text-shadow: 0 2px 0 #000, 0 0 10px rgba(168,240,0,.7); }
   #balance.down { color: #ff3b3b;         text-shadow: 0 2px 0 #000, 0 0 10px rgba(255,59,59,.7); }
   .hudbar .chip.juris { background: rgba(0,0,0,.35); padding: 4px 9px; }
-  .hudbet { display: flex; align-items: center; gap: 8px; }
-  .betstep { display: flex; flex-direction: column; gap: 3px; }
+  .hudbet { display: flex; align-items: center; gap: calc(9px * var(--hs, 1)); }
+  .betstep { display: flex; flex-direction: column; gap: calc(3px * var(--hs, 1)); }
   .betstep button {
-    width: 31px; height: 31px; padding: 0; border: 0; font-size: 0; color: transparent;
+    width: calc(31px * var(--hs, 1)); height: calc(31px * var(--hs, 1)); padding: 0; border: 0; font-size: 0; color: transparent;
     background: center / contain no-repeat; cursor: pointer;
     filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
@@ -1886,7 +1945,7 @@
   /* the spin hexagon, our arrows inside it; while the reels are in the air the arrows turn
      blue, because the press is a skip until the board is in */
   .spinwrap {
-    margin-left: -40px; position: relative; z-index: 2;   /* over the plate's right end */
+    margin-left: calc(-40px * var(--hs, 1)); position: relative; z-index: 2;   /* over the plate's right end */
     filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));        /* outside the clip, so the plate keeps its shadow */
     pointer-events: none;   /* the wrapper's corners are over the chevrons: only the hexagon catches a press */
   }
@@ -1894,7 +1953,7 @@
   /* the corners of this box lie over the Rapid and Auto plates: clip the button to the
      hexagon so a press on their art is theirs, not a spin */
   .spinbtn {
-    width: 108px; height: 94px;
+    width: calc(108px * var(--hs, 1)); height: calc(94px * var(--hs, 1));
     clip-path: polygon(24.4% 0, 75.6% 0, 100% 50%, 75.6% 100%, 24.4% 100%, 0 50%);
   }
   .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; }
@@ -1953,7 +2012,7 @@
     <div class="board" id="board"><img id="paintframe" src="assets/frame.png" alt="" draggable="false"></div>
     <div class="ticker" id="ticker">Draws come from the optimized 96.5% RTP lookup tables — the real math.</div>
     <div class="banner" id="banner"><div class="big" id="bannerBig"></div><div class="sub2" id="bannerSub"></div><img id="bannerMural" class="muralimg" alt=""></div>
-    <div class="tally" id="tally">$0.00</div>
+    <div class="tally" id="tally">0.00</div>
   </div>
 
   <div class="rail">
@@ -1972,10 +2031,10 @@
       <button class="hudbtn audio" id="audioBtn" aria-label="Sound and music volume" aria-expanded="false">Audio</button>
     </div>
     <div class="hudbar">
-      <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">$0.00</span></div>
+      <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">0.00</span></div>
       <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
       <div class="hudbet">
-        <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">$1.00</span></div>
+        <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">1.00</span></div>
         <div class="betstep">
           <button id="betUp" aria-label="Raise bet">+</button>
           <button id="betDown" aria-label="Lower bet">−</button>
@@ -2002,7 +2061,7 @@
     </div>
   </div>
   <!-- the round total still counts here, unseen: the popup over the icons is the win text -->
-  <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">$0.00</span></div>
+  <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">0.00</span></div>
 
   <!-- The drag bars hang off the bar itself, not off the speaker button: both open together
        over it, sound to the left and music to the right, and are placed from JS. -->
@@ -2044,7 +2103,7 @@
       <div class="bonusbet">
         <span class="lbl" id="bonusBetLbl">Bet amount</span>
         <button type="button" id="bonusBetDown" aria-label="Lower bet">−</button>
-        <div class="amt" id="bonusBetVal">$1.00</div>
+        <div class="amt" id="bonusBetVal">1.00</div>
         <button type="button" id="bonusBetUp" aria-label="Raise bet">+</button>
       </div>
       <div class="bonustotal" id="bonusTotalLbl">Total<b id="bonusTotal"></b></div>
@@ -2076,6 +2135,15 @@
     <button class="infoclose" id="replayPlay" hidden>Play</button>
   </div>
 </div>
+
+<div class="infowrap" id="errorWrap" hidden>
+  <div class="infopanel" role="alertdialog" aria-modal="true" aria-labelledby="errorTitle">
+    <h3 id="errorTitle">Can't connect</h3>
+    <p id="errorMsg"></p>
+    <button class="infoclose" id="errorRetry" type="button">Reload</button>
+  </div>
+</div>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
 
 <div class="infowrap" id="infoWrap" hidden>
   <div class="infopanel" role="dialog" aria-modal="true" aria-label="Game information">
@@ -2147,6 +2215,8 @@ const fmt = v => RGS.money(v);
 // goes through T(): a no-op normally, the sweeps vocabulary when the lobby says social=true.
 const SOCIAL = RGS.social;
 const T = s => RULES.T(s, SOCIAL);
+// the symbols' short names reach the board as alt text and the ticker: they follow the rule too
+if (SOCIAL) for (const d of Object.values(SYM)) { d.label = T(d.label); d.sub = T(d.sub); }
 const bet = () => state.bets[state.betIdx] || 0;
 // Event amounts are hundredths of the bet (payoutMultiplier 63340 == 633.40x), and the
 // bet is a 6dp integer, so round back to a whole integer amount.
@@ -2200,6 +2270,9 @@ function buildBoard() {
       c.className = "cell low";
       c.style.setProperty("--i", y);   // its row from the top
       c.style.setProperty("--ib", ROWS - 1 - y);   // and from the bottom, for the landing ripple (CSS .reel.impact)
+      c.ico = document.createElement("span");      // the lasting box the icon sits in (idleStretch moves it)
+      c.ico.className = "ico";
+      c.appendChild(c.ico);
       reel.appendChild(c); cellEls[r].push(c);
     }
     board.appendChild(reel);
@@ -2221,60 +2294,82 @@ function drift(stepLo, stepHi) {
     return .5 * (2 * p1 + (p2 - p0) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (3 * p1 - p0 - 3 * p2 + p3) * f * f * f);
   };
 }
+// A random wander played by the compositor. The drift curves are sampled `rate` times a second
+// into one long Web Animation per target - `seg` seconds of path at a time, the next stretch
+// queued as each one ends and picking up exactly where it left off - so the motion is the same
+// random, never-repeating wander as before, with no JavaScript and no style work per frame.
+// (These loops used to write CSS variables on 98 elements every frame; on a laptop that alone
+// held the idle board near 20 fps.) frames(t) -> one keyframe; targets() -> the elements.
+// A wander on something not on screen right now (a multiplier slot with no value, the bonus
+// counters outside a bonus) holds still: an animation on an element with no box cannot run on
+// the compositor, so Chrome would tick it on the main thread every frame for nothing.
+const wanderShown = new WeakMap();
+const wanderWatched = new WeakSet();
+const wanderIO = typeof IntersectionObserver === "function" ? new IntersectionObserver(entries => {
+  for (const e of entries) {
+    wanderShown.set(e.target, e.isIntersecting);
+    for (const a of e.target.getAnimations()) if (a.id === "wander") { if (e.isIntersecting) a.play(); else a.pause(); }
+  }
+}) : null;
+function wander(targets, frames, { seg = 24, rate = 8 } = {}) {
+  let t = 0;
+  const run = () => {
+    const n = Math.round(seg * rate), kf = [];
+    for (let k = 0; k <= n; k++) kf.push(frames(t + k / rate));
+    t += seg;
+    let lead = null;
+    for (const el of targets()) {
+      if (!el || !el.isConnected) continue;
+      for (const old of el.getAnimations()) if (old.id === "wander") old.cancel();   // the stretch it just finished
+      const a = el.animate(kf, { duration: seg * 1000, easing: "linear", fill: "forwards" });
+      a.id = "wander";
+      if (wanderIO) {
+        if (!wanderWatched.has(el)) { wanderWatched.add(el); wanderIO.observe(el); }
+        if (!wanderShown.get(el)) a.pause();   // starts held; the observer plays it once it shows
+      }
+      // the next stretch is queued off a piece that is actually moving
+      if (!lead || (lead.playState === "paused" && a.playState !== "paused")) lead = a;
+    }
+    if (lead) lead.onfinish = run;
+  };
+  run();
+}
 // Every icon on the board idles with a slight stretch of its own: a slow random wander in
-// width (--sx), height (--sy) and lean (--sr), every cell on its own path - so no two move
-// alike and none ever repeats. The values go on the cell as CSS variables, which its icon, a
-// Multi's value and any icon dropped in later all read; the multiplier slot under the cell
-// takes the same ones.
+// width, height and lean, every cell on its own path - so no two move alike and none ever
+// repeats. It moves the cell's lasting icon box (.ico) and the multiplier slot under the cell
+// together. It is played on `transform`, the one property Chrome animates entirely on the
+// compositor (the individual scale/rotate properties were still resolved on the main thread
+// every frame); nothing else animates the .ico box, and the slot's own pop and fade use scale.
 function idleStretch() {
   if (REDUCED_MOTION) return;
   const AMP = [.07, .07, 2.5];   // up to 7% wider or narrower, 7% taller or shorter, 2.5 degrees of lean
-  // each channel is a slow wander with a quicker, smaller one laid over it, so the motion
-  // never stalls at the slow one's turning points - there is always something moving
-  const chans = [];              // three per cell, in board order
-  for (let c = 0; c < REELS * ROWS * 3; c++) { const slow = drift(1.3, 2.4), quick = drift(.5, 1); chans.push(t => .7 * slow(t) + .3 * quick(t)); }
-  const t0 = performance.now();
-  const tick = now => {
-    const t = (now - t0) / 1000;
-    let i = 0;
-    for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
-      const sx = (1 + AMP[0] * chans[i++](t)).toFixed(4);
-      const sy = (1 + AMP[1] * chans[i++](t)).toFixed(4);
-      const sr = (AMP[2] * chans[i++](t)).toFixed(2) + "deg";
-      for (const el of [cellEls[r][y], multEls[r][y]]) {
-        el.style.setProperty("--sx", sx); el.style.setProperty("--sy", sy); el.style.setProperty("--sr", sr);
-      }
-    }
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
+  for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+    // each channel is a slow wander with a quicker, smaller one laid over it, so the motion
+    // never stalls at the slow one's turning points - there is always something moving
+    const ch = [0, 1, 2].map(() => { const slow = drift(1.3, 2.4), quick = drift(.5, 1); return t => .7 * slow(t) + .3 * quick(t); });
+    wander(() => [cellEls[r][y].ico, multEls[r][y]], t => ({
+      transform: `rotate(${(AMP[2] * ch[2](t)).toFixed(2)}deg) scale(${(1 + AMP[0] * ch[0](t)).toFixed(4)}, ${(1 + AMP[1] * ch[1](t)).toFixed(4)})`,
+    }));
+  }
 }
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
 // icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
-// hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never
-// repeats (--fx/--fy, --fr, --fsx/--fsy).
+// hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never repeats.
 function frameIdle() {
   const frame = $("paintframe");
   if (REDUCED_MOTION || !frame) return;
   const dx = drift(2.5, 4.5), dy = drift(2.5, 4.5), dr = drift(3, 5), dsx = drift(2.5, 4.5), dsy = drift(2.5, 4.5);
-  const t0 = performance.now();
-  const tick = now => {
-    const t = (now - t0) / 1000;
-    frame.style.setProperty("--fx", (5 * dx(t)).toFixed(2) + "px");
-    frame.style.setProperty("--fy", (5 * dy(t)).toFixed(2) + "px");
-    frame.style.setProperty("--fr", (.35 * dr(t)).toFixed(3) + "deg");
-    frame.style.setProperty("--fsx", (1 + .004 * dsx(t)).toFixed(4));
-    frame.style.setProperty("--fsy", (1 + .004 * dsy(t)).toFixed(4));
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
+  wander(() => [frame], t => ({
+    transform: `translate(${(5 * dx(t)).toFixed(2)}px, ${(5 * dy(t)).toFixed(2)}px) rotate(${(.35 * dr(t)).toFixed(3)}deg) scale(${(1 + .004 * dsx(t)).toFixed(4)}, ${(1 + .004 * dsy(t)).toFixed(4)})`,
+  }), { seg: 30, rate: 6 });
 }
 function cellClass(sym) {
   return "cell " + (SYM[sym.name] || { cls: "low" }).cls;
 }
-function fillCell(el, sym) {
+function fillCell(cell, sym) {
   const def = SYM[sym.name] || { label: sym.name, sub: "", cls: "low" };
-  el.innerHTML = "";
+  const el = cell.ico || cell;   // a board cell fills its lasting icon box
+  el.replaceChildren();
   // the Multi shows its value as the tile itself - that number is what the player cares about
   if (def.cls === "booster") {
     if (def.img) {   // the brick chunk; the value is painted over it
@@ -2719,6 +2814,31 @@ async function banner(big, sub, ms, cls) {
   b.className = "banner";
 }
 function tick(html) { $("ticker").innerHTML = html; }
+// What the player has to see goes up as a notice as well as into the (hidden) ticker:
+// errors in red, everything else in the game's cyan, gone again after a few seconds.
+let noticeTimer = 0;
+function notice(html, err = false, ms = 3400) {
+  tick(html);
+  const el = $("notice");
+  if (!el) return;
+  el.innerHTML = html;
+  el.classList.toggle("err", !!err);
+  el.classList.add("on");
+  clearTimeout(noticeTimer);
+  if (ms > 0) noticeTimer = setTimeout(() => el.classList.remove("on"), ms);
+}
+// No session, no game: a blocking panel over everything (the loading and feature screens
+// included) instead of a board that looks ready and a button that does nothing.
+function fatal(title, html) {
+  tick(html);
+  $("errorTitle").textContent = title;
+  $("errorMsg").innerHTML = html;
+  $("errorWrap").hidden = false;
+  $("errorRetry").focus({ preventScroll: true });
+}
+$("errorRetry").addEventListener("click", () => location.reload());
+// the opening screens are up: nothing may be staked behind them
+const screensUp = () => !!$("intro") && !$("intro").classList.contains("gone") || document.body.classList.contains("features-up");
 
 /* ---------- money ---------- */
 const countMs = () => 650 * tempo();
@@ -3466,7 +3586,7 @@ function clearWinChip() {
 // reach: how far each channel strays ({ x, y } in `unit`, r in degrees, s as a fraction of
 // the size) and its pace (under 1 is livelier). It writes --p* and --t* on host (see the
 // .twhead and .winpop rules) until host leaves the page.
-function hoverWin(host, reach, lag) {
+function hoverWin(host, reach, lag, css) {
   if (REDUCED_MOTION || !host) return;
   const unit = reach.unit || "px", pace = reach.pace || 1;
   const chans = [["x", 1.3], ["y", 1.05], ["r", 1.6], ["s", 1.9]].map(([k, step]) => ({
@@ -3483,6 +3603,9 @@ function hoverWin(host, reach, lag) {
     }
     return o;
   };
+  // Pieces that stay on screen for good (the wall tag, the bonus counters) hand their path to
+  // the compositor: css(v) turns a point on it into real properties, and wander() plays it.
+  if (css) { wander(() => [host], t => css(at(t)), { seg: 24, rate: 8 }); return; }
   const put = (tag, v) => {
     host.style.setProperty(`--${tag}x`, v.x.toFixed(2) + unit);
     host.style.setProperty(`--${tag}y`, v.y.toFixed(2) + unit);
@@ -3602,7 +3725,7 @@ async function presentRound(round, { settle = true } = {}) {
       await RGS.endRound();
       setBalance(RGS.state.balance, win > 0 ? "up" : null);
     } catch (err) {
-      tick(`<b>${RGS_MESSAGE[err.code] || err.message}</b>`);
+      notice(`<b>${RGS_MESSAGE[err.code] || err.message}</b>`, true, 6000);
       return;
     }
   }
@@ -3707,9 +3830,10 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("bonusW
 async function playRound(mode) {
   if (REPLAY) return false;                              // a replay is watched, never played
   if (state.playing) { if (!state.noSkip) state.skip = true; return false; }   // fast-forward
-  if (!RGS.state.authenticated) { tick(T("<b>Not connected</b> — reopen the game from the lobby.")); return false; }
+  if (screensUp()) return false;                         // nothing is staked behind the opening screens
+  if (!RGS.state.authenticated) { notice(T("<b>Not connected</b> — reopen the game from the lobby."), true); return false; }
   const price = (MODE_COST[mode] || 1) * bet();
-  if (price > state.balance) { tick(T("<b>Not enough balance</b> — lower the bet.")); return false; }
+  if (price > state.balance) { notice(T("<b>Not enough balance</b> — lower the bet."), true); return false; }
   if (performance.now() - (state.lastPlayAt || 0) < 250) return false;
   state.lastPlayAt = performance.now();
 
@@ -3728,7 +3852,7 @@ async function playRound(mode) {
     await presentRound(d.round);
   } catch (err) {
     ok = false;
-    tick(`<b>${RGS_MESSAGE[err.code] || err.message || T("Round failed")}</b>`);
+    notice(`<b>${RGS_MESSAGE[err.code] || err.message || T("Round failed")}</b>`, true, 5000);
     try { await RGS.balance(); setBalance(RGS.state.balance); } catch (e) { /* offline */ }
   }
 
@@ -3838,7 +3962,7 @@ async function runAuto(n) {
     if (state.playing) { await hold(120); continue; }    // let a running round finish first (hold, not
                                                           // delay: delay collapses to nothing on a skipped
                                                           // round and this would spin the page frozen)
-    if (bet() > state.balance) break;
+    if (bet() > state.balance) { notice(T("<b>Auto play stopped</b> — not enough balance for the next round."), true); break; }
     state.auto--; setAutoBtn();
     turnSpinArrows();   // the round is starting; nobody pressed the button for it
     if (!(await playRound("base"))) break;
@@ -3857,7 +3981,8 @@ $("autoBtn").addEventListener("click", async () => {
 
 /* ---------- controls ---------- */
 function setButtons(on) {
-  $("spinBtn").textContent = on ? T("Spin") : (state.noSkip ? T("Spinning\u2026") : T("Skip >>"));
+  // off with no round running (not connected yet, a replay waiting for Play) is just Spin, greyed
+  $("spinBtn").textContent = (on || !state.playing) ? T("Spin") : (state.noSkip ? T("Spinning\u2026") : T("Skip >>"));
   $("autoBtn").disabled = !(on || state.auto > 0);
   $("bonusBtn").disabled = !on;   // the panel itself gates what is affordable
   $("betUp").disabled = !on || state.betIdx >= state.bets.length - 1;
@@ -3867,9 +3992,18 @@ function setButtons(on) {
   $("rapidBtn").disabled = false;
   $("menuBtn").disabled = false;
 }
+// The bet survives a reload within the same session only: a new session always opens on the
+// server's defaultBetLevel (Engine checks that), a refresh mid-session keeps what was chosen.
 const betKey = () => "smukiez.bet." + RGS.state.currency;
-function rememberBet() { try { localStorage.setItem(betKey(), String(bet())); } catch (e) { /* ignore */ } }
-function recallBet() { try { return Number(localStorage.getItem(betKey())) || 0; } catch (e) { return 0; } }
+function rememberBet() {
+  try { localStorage.setItem(betKey(), JSON.stringify({ s: RGS.sessionID, v: bet() })); } catch (e) { /* ignore */ }
+}
+function recallBet() {
+  try {
+    const b = JSON.parse(localStorage.getItem(betKey()) || "null");
+    return b && b.s === RGS.sessionID ? Number(b.v) || 0 : 0;
+  } catch (e) { return 0; }
+}
 // last 50 rounds, per currency — no replay link because the RGS never returns the event id
 const histKey = () => "smukiez.hist." + RGS.state.currency;
 function recordRound(mode, amount, payout, mult) {
@@ -4108,11 +4242,34 @@ function fitToScreen() {
     // The board is the one thing that can't wrap, so it sets the floor on the scale: lay the
     // page out wide enough for it, then see how tall that comes out and fit that too. The
     // final width is never narrower than the first pass, so nothing wraps back taller.
-    app.style.transform = "none"; app.style.width = "auto"; app.style.height = "auto";
-    const needW = stage.offsetWidth + 40;                   // .main's side padding
-    const fitW = Math.min(1, W / needW);
-    app.style.width = (W / fitW) + "px";
-    const fit = Math.max(.05, Math.min(fitW, H / app.scrollHeight));   // reading it flushes layout; never 0
+    const root = document.documentElement.style;
+    const measure = () => {
+      app.style.transform = "none"; app.style.width = "auto"; app.style.height = "auto";
+      const needW = stage.offsetWidth + 40;                   // .main's side padding
+      const fitW = Math.min(1, W / needW);
+      app.style.width = (W / fitW) + "px";
+      return Math.max(.05, Math.min(fitW, H / app.scrollHeight));   // reading it flushes layout; never 0
+    };
+    // The bar keeps a readable size: wherever the page fits below ~0.72 of full HD, the bar is
+    // raised (--hs) so its readouts land near that size on screen - by at most half again, and
+    // never wider than the screen. Measured at the bar's natural size, then once more with it.
+    root.setProperty("--hs", "1");
+    let fit = measure();
+    const hud = document.querySelector(".hud");
+    // the bar's own width: from the left chevrons to the right ones (the Bonus button sits apart)
+    const kids = hud ? [...hud.children].filter(e => getComputedStyle(e).position !== "absolute") : [];
+    const natW = kids.length ? Math.max(...kids.map(e => e.getBoundingClientRect().right)) - Math.min(...kids.map(e => e.getBoundingClientRect().left)) : 0;
+    let hs = Math.min(1.5, Math.max(1, .72 / fit));
+    if (natW) hs = Math.max(1, Math.min(hs, (W / fit - 40) / natW));
+    if (hs > 1.02) {
+      root.setProperty("--hs", hs.toFixed(3));
+      fit = measure();
+      if (natW && natW * hs > W / fit - 40) {   // the taller page made it narrower: settle at what fits
+        hs = Math.max(1, (W / fit - 40) / natW);
+        root.setProperty("--hs", hs.toFixed(3));
+        fit = measure();
+      }
+    }
     app.style.width = (W / fit) + "px";
     app.style.height = (H / fit) + "px";
     app.style.transform = `scale(${fit.toFixed(4)})`;
@@ -4215,6 +4372,7 @@ $("betDown").addEventListener("click", () => { state.betIdx = Math.max(state.bet
 document.addEventListener("keydown", e => {
   if (e.code !== "Space" || e.repeat || REPLAY) return;
   if (RGS.jurisdiction().disabledSpacebar) return;
+  if (screensUp() || !$("errorWrap").hidden) return;   // nothing is staked behind the opening screens or an error
   if (document.querySelector(".infowrap:not([hidden]), .popover:not([hidden]), .vpop:not([hidden])")) return;   // a dialog has the keyboard
   e.preventDefault();   // ... which also stops the focused button activating itself on the key
   // the key IS a press of the button, so it carries the same note, the same kick and the
@@ -4523,9 +4681,11 @@ function runIntro() {
 runIntro();
 // the tag on the wall wanders at random for as long as the page is up: a slow, small drift
 // with a slight lean, never the same path twice (the win popups' own wander, at a stroll)
-hoverWin($("walltag"), { x: 1.1, y: 1, r: .6, s: 0, unit: "vw", pace: 4.5 }, 0);
+hoverWin($("walltag"), { x: 1.1, y: 1, r: .6, s: 0, unit: "vw", pace: 4.5 }, 0,
+  v => ({ transform: `translate(${v.x.toFixed(3)}vw, ${v.y.toFixed(3)}vw) rotate(${v.r.toFixed(3)}deg)` }));   // centring stays on its translate
 // so do the bonus's rounds counter and the win under it, more gently, each on its own path
-for (const id of ["fsNow", "fsWin"]) hoverWin($(id), { x: .35, y: .45, r: .4, s: 0, unit: "vh", pace: 2.6 }, 0);
+for (const id of ["fsNow", "fsWin"]) hoverWin($(id), { x: .35, y: .45, r: .4, s: 0, unit: "vh", pace: 2.6 }, 0,
+  v => ({ transform: `translate(${v.x.toFixed(3)}vh, ${v.y.toFixed(3)}vh) rotate(${v.r.toFixed(3)}deg)` }));
 
 /* ---------- total win ---------- */
 // The amount is set in the sprayed numerals the art carries: one image per glyph, all drawn
@@ -5262,11 +5422,21 @@ $("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); s
 let rapidWas = false;
 try { rapidWas = localStorage.getItem("smukiez.rapid") === "1"; } catch (e) { /* storage blocked */ }
 setRapid(rapidWas);
-if (SOCIAL) {   // restricted vocabulary: the chooser's static copy goes through T() too
-  for (const id of ["bonusTitle", "bonusStdDesc", "bonusExtDesc", "bonusBetLbl", "bonusNote"]) {
-    $(id).textContent = T($(id).textContent);
+if (SOCIAL) {   // restricted vocabulary: every static word on the page goes through T() too -
+                // labels, buttons, the chooser, the loading screen - and so do the names
+                // screen readers and tooltips use
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.parentElement && /^(SCRIPT|STYLE)$/.test(n.parentElement.tagName)) continue;
+    const s = T(n.nodeValue);
+    if (s !== n.nodeValue) n.nodeValue = s;
   }
-  $("bonusTotalLbl").firstChild.textContent = T($("bonusTotalLbl").firstChild.textContent);
+  for (const el of document.querySelectorAll("[aria-label], [title], [alt]")) {
+    for (const a of ["aria-label", "title", "alt"]) {
+      const v = el.getAttribute(a);
+      if (v && T(v) !== v) el.setAttribute(a, T(v));
+    }
+  }
 }
 setAutoBtn();
 
@@ -5318,8 +5488,8 @@ async function bootReplay(p) {
   if (p.currency) RGS.state.currency = p.currency;
   state.bets = [p.amount || RGS.UNIT]; state.betIdx = 0;
   state.mode = p.mode || "base";
-  const modeName = { base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme" }[state.mode] || state.mode;
-  $("balanceLbl").textContent = T("Replay bet") + " \u00b7 " + RGS.currencyName();
+  const modeName = T({ base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme" }[state.mode] || state.mode);
+  $("balanceLbl").innerHTML = (SOCIAL ? "Replay" : "Replay bet") + `<span class="cur">${RGS.currencyName()}</span>`;
   $("balance").textContent = fmt(bet());
   refreshBet(); setButtons(false);
   const wrap = $("replayWrap"), meta = $("replayMeta"), status = $("replayStatus"),
@@ -5388,12 +5558,14 @@ async function boot() {
   try {
     await RGS.authenticate();
   } catch (err) {
-    tick(`<b>${RGS_MESSAGE[err.code] || "Could not connect"}</b>`);
-    return;   // leave the controls locked; nothing can be staked without a session
+    // leave the controls locked and say so over everything; nothing can be staked without a session
+    fatal(T("Can't connect"), `<b>${RGS_MESSAGE[err.code] || T("Could not connect to the game server.")}</b><br>` +
+      T("Reopen the game from the lobby, or reload to try again."));
+    return;
   }
 
   const lbl = $("balanceLbl");
-  if (lbl) lbl.textContent = "Balance · " + RGS.currencyName();
+  if (lbl) lbl.innerHTML = T("Balance") + `<span class="cur">${RGS.currencyName()}</span>`;
 
   // The RGS publishes each mode's cost multiplier; prefer it over the local table so a
   // change on their side can never mis-price a bonus buy.
@@ -5403,11 +5575,13 @@ async function boot() {
   }
 
   state.bets = RGS.betLevels();
-  // The bet the player last used on this device comes first (a refresh mid-session must
-  // not reset it); the server's default is the fallback for a first visit.
-  const preferred = recallBet() || (RGS.state.config && RGS.state.config.defaultBetLevel) || 0;
-  const at = state.bets.indexOf(preferred);
-  state.betIdx = at >= 0 ? at : Math.min(Math.floor(state.bets.length / 2), state.bets.length - 1);
+  // A reload within this session keeps the bet the player chose; anything else opens on the
+  // server's defaultBetLevel - or the level nearest it, should the default not be one of them.
+  const def = (RGS.state.config && RGS.state.config.defaultBetLevel) || 0;
+  let at = state.bets.indexOf(recallBet());
+  if (at < 0) at = state.bets.indexOf(def);
+  if (at < 0 && def) at = state.bets.reduce((best, v, i) => Math.abs(v - def) < Math.abs(state.bets[best] - def) ? i : best, 0);
+  state.betIdx = Math.max(0, at);
   if ($("maxWin")) $("maxWin").textContent = "x" + RULES.MAX_WIN;
   setBalance(RGS.state.balance);
 
@@ -5434,13 +5608,19 @@ async function boot() {
   if (open && open.events && open.events.length) {
     // the round was staked at its own amount and mode: payouts scale off bet() and the
     // strips follow state.mode, so both must be the round's, not whatever is selected now
-    const staked = state.bets.indexOf(open.amount);
+    // A round staked at an amount that is no longer one of the levels still resumes - and
+    // carries on afterwards - at that amount: it joins the list for this session.
+    let staked = state.bets.indexOf(open.amount);
+    if (staked < 0 && open.amount > 0) {
+      state.bets = [...state.bets, open.amount].sort((a, b) => a - b);
+      staked = state.bets.indexOf(open.amount);
+    }
     if (staked >= 0) { state.betIdx = staked; refreshBet(); }
     if (open.mode) state.mode = open.mode;
     await introDone;   // never replay a round behind the opening screen
     state.playing = true;
     setButtons(false);
-    tick("Resuming your round...");
+    notice(T("Resuming your round..."), false, 2600);
     try { await presentRound(open); } catch (e) { /* surfaced by presentRound */ }
     state.playing = false;
     setButtons(true);
