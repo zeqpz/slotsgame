@@ -5,7 +5,7 @@
   python tools/icon_rigs/build.py --preview-only L10   # just the preview sheet, nothing written to the game
 
 Writes:
-  frontend/assets/icons/icons.png (+ icons_2.png ...), icons.atlas   one shared Spine atlas
+  frontend/assets/icons/icons.webp (+ icons_2.webp ...), icons.atlas  one shared Spine atlas (lossless WebP)
   frontend/assets/icons/icons.json                                    {ID: Spine 4.2 skeleton}  (what the game loads)
   art/icons-spine/<ID>.json                                           the same skeletons one per file (Spine editor import)
   tools/icon_rigs/_preview/<ID>_<clip>.png                            Pillow preview sheets (not shipped)
@@ -79,7 +79,13 @@ def main(argv):
     images, names = {}, {}
     for rid, rig in rigs.items():
         names[rid] = {}
+        # only what a slot draws goes in the atlas: helper parts that exist to repair holes
+        # (cut, then left out of the draw list) cost no pixels
+        draw = rig.r.get("draw") or [p["name"] for p in rig.r["parts"]]
+        used = {next((q.get("copy") or q["name"]) for q in rig.r["parts"] if q["name"] == n) for n in draw}
         for pname, p in rig.parts.items():
+            if pname not in used:
+                continue
             k = rigkit.OUT_PX_PER_UNIT / rig.ppu
             im = p["img"].resize((max(1, round(p["img"].width * k)), max(1, round(p["img"].height * k))), Image.LANCZOS)
             reg = f"{rid}/{pname}"
@@ -87,12 +93,13 @@ def main(argv):
     placed, pages = rigkit.pack(images)
     pages = rigkit.trim_pages(pages)
     os.makedirs(rigkit.OUT_DIR, exist_ok=True)
-    for f in glob.glob(os.path.join(rigkit.OUT_DIR, "icons*.png")):
+    for f in glob.glob(os.path.join(rigkit.OUT_DIR, "icons*.png")) + glob.glob(os.path.join(rigkit.OUT_DIR, "icons*.webp")):
         os.remove(f)
-    page_names = ["icons.png"] + [f"icons_{i + 1}.png" for i in range(1, len(pages))]
+    # lossless WebP: the same pixels as the PNG, a good deal smaller
+    page_names = ["icons.webp"] + [f"icons_{i + 1}.webp" for i in range(1, len(pages))]
     lines = []
     for pi, (pg, pn) in enumerate(zip(pages, page_names)):
-        pg.save(os.path.join(rigkit.OUT_DIR, pn), optimize=True)
+        pg.save(os.path.join(rigkit.OUT_DIR, pn), "WEBP", lossless=True, method=6, exact=True)
         if pi: lines.append("")
         lines += [pn, f"size: {pg.width},{pg.height}", "format: RGBA8888", "filter: Linear,Linear", "repeat: none", "pma: false"]
         for reg, (p, x, y, w, h) in sorted(placed.items()):

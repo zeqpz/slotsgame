@@ -21,3 +21,14 @@ between rounds, `land` when a tile drops in, `win` when its cluster lights up.
 
 Style rules for clips: every clip starts and ends on the rest pose; `idle` 2-3 s, `land` 0.45-0.6 s,
 `win` 1.2-1.5 s; at most ~14 parts per symbol; motion stays within ~15 units of the icon's box.
+
+Tips the first 20 rigs taught (see their recipes for worked examples):
+- Hard seams between parts in flat paint: wrap a `poly`/`rect` in `("cc", mask, x, y)` to make it
+  binary, or the antialiased edge leaves a see-through hairline where two parts meet.
+- `("opaque",)` inside a part mask squares alpha at soft edges (the source is premultiplied); use
+  `("grow", ("opaque",), 2)`.
+- A part that only exists to repair a hole (cut with `fill`, left out of `draw`) costs no atlas
+  space; neither do helper bones made from tiny hidden sprites.
+- Large `fill` holes near the silhouette come out semi-transparent (the transparent outside counts
+  as known pixels); keep such moves small or cover them with a copy part.
+- The game plays transforms and opacity only (no shear preview, no blend modes): glints are sprites.
