@@ -1,4 +1,4 @@
-smukiez.webp
+smukiez.png
 size: 2048,2048
 format: RGBA8888
 filter: Linear,Linear
@@ -33,7 +33,7 @@ face_cash_show
   offset: 0, 0
   index: -1
 
-smukiez-2.webp
+smukiez-2.png
 size: 2048,2048
 format: RGBA8888
 filter: Linear,Linear
@@ -131,7 +131,7 @@ hand_left_release
   offset: 0, 0
   index: -1
 
-smukiez-3.webp
+smukiez-3.png
 size: 2048,256
 format: RGBA8888
 filter: Linear,Linear

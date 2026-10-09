@@ -742,7 +742,7 @@
   /* --- sound, music and information: sprayed boxes, each audio one opening a drag bar --- */
   .uibtn {
     position: relative; width: 38px; height: 38px; padding: 0; border: 0; font-size: 0;
-    background: url("assets/ui_box.png") center / 100% 100% no-repeat;
+    background: url("assets/ui_box.webp") center / 100% 100% no-repeat;
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
   /* this box is sprayed without a drip, so unlike the bet stepper its painted panel really
@@ -752,9 +752,9 @@
     background: center / contain no-repeat;
     filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
   }
-  .uibtn.snd::before { width: 60%; height: 60%; background-image: url("assets/icon_sound.png"); }
-  .uibtn.mus::before { width: 56%; height: 56%; background-image: url("assets/icon_music.png"); }
-  .uibtn.nfo::before { width: 56%; height: 56%; background-image: url("assets/icon_info.png"); }
+  .uibtn.snd::before { width: 60%; height: 60%; background-image: url("assets/icon_sound.webp"); }
+  .uibtn.mus::before { width: 56%; height: 56%; background-image: url("assets/icon_music.webp"); }
+  .uibtn.nfo::before { width: 56%; height: 56%; background-image: url("assets/icon_info.webp"); }
   .uibtn:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
   .uibtn:active:not(:disabled) { transform: scale(.93); }
   .uibtn.open { filter: brightness(1.18) saturate(1.08); }
@@ -900,7 +900,7 @@
   .prow .ptext { grid-column: 1 / -1; color: var(--ink); line-height: 1.55; font-family: var(--read); font-size: 13.5px; }
   .ptile { width: 48px; height: 48px; object-fit: contain; border: 1px solid var(--line); background: var(--panel2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--disp); box-sizing: border-box; }
   .ptile.wild { color: var(--spray); }  .ptile.char { color: var(--teal); }
-  .ptile.multi { background: var(--panel2) url("assets/M.png") center / 86% no-repeat; color: var(--fs-green); text-shadow: 0 1px 0 #000, 0 0 4px #000; }
+  .ptile.multi { background: var(--panel2) url("assets/flat/M.webp") center / 86% no-repeat; color: var(--fs-green); text-shadow: 0 1px 0 #000, 0 0 4px #000; }
   .ptile.multi small { color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 3px #000; }
   .ptile span { font-size: 14px; }  .ptile small { font-size: 8px; letter-spacing: .14em; color: var(--ink-soft); }
   .pname { font-weight: 600; }  .pname small { display: block; color: var(--ink-soft); font-weight: 400; font-size: 10px; letter-spacing: .12em; }
@@ -955,7 +955,7 @@
   .infoclose {
     font-family: var(--disp); font-size: 16px; letter-spacing: .08em; text-transform: uppercase;
     min-width: 150px; padding: 13px 30px 12px; border: 0;
-    background: url("assets/bonus_play.png") center / 100% 100% no-repeat;
+    background: url("assets/bonus_play.webp") center / 100% 100% no-repeat;
     color: #171203; text-shadow: 0 2px 0 rgba(255, 255, 255, .22);
     transition: transform .14s cubic-bezier(.3,.8,.4,1), filter .14s linear;
   }
@@ -964,7 +964,7 @@
   /* Close is a dismissal, not a go: the lime box, its corners kept by slicing */
   #infoClose {
     background: none; border: 16px solid transparent;
-    border-image: url("assets/skip_btn.png") 22% fill / 16px stretch;
+    border-image: url("assets/skip_btn.webp") 22% fill / 16px stretch;
     padding: 2px 16px; color: #152300; text-shadow: 0 2px 0 rgba(255, 255, 255, .25);
   }
   .infoclose.ghost { background: transparent; color: var(--ink-soft); border-color: var(--line); margin-left: 10px; }
@@ -1456,7 +1456,7 @@
   .wall { display: flex; gap: 4px; }
   .wall span {
     flex: 1; height: 26px; border: 2px solid var(--line);
-    background: var(--panel2) url("assets/brickwall.png") center / cover;
+    background: var(--panel2) url("assets/brickwall.webp") center / cover;
     filter: grayscale(1) brightness(.55); transition: filter .4s, box-shadow .4s;
   }
   .wall span.done {
@@ -1541,7 +1541,7 @@
   .sidestack { display: flex; flex-direction: column; gap: 7px; }
   .sidebtn {
     position: relative; width: 42px; height: 42px; padding: 0; border: 0; font-size: 0;
-    background: url("assets/ui_box.png") center / 100% 100% no-repeat;
+    background: url("assets/ui_box.webp") center / 100% 100% no-repeat;
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
   .sidebtn::before {
@@ -1549,8 +1549,8 @@
     background: center / contain no-repeat;
     filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.6)) drop-shadow(0 0 3px rgba(0,0,0,.45));
   }
-  .sidebtn.auto::before  { width: 58%; height: 58%; background-image: url("assets/icon_auto.png"); }
-  .sidebtn.rapid::before { width: 34%; height: 64%; background-image: url("assets/icon_rapid.png"); }
+  .sidebtn.auto::before  { width: 58%; height: 58%; background-image: url("assets/icon_auto.webp"); }
+  .sidebtn.rapid::before { width: 34%; height: 64%; background-image: url("assets/icon_rapid.webp"); }
   .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
   .sidebtn:active:not(:disabled) { transform: scale(.93); }
   /* armed: the box brightens and the glyph lights up in its own paint */
@@ -1603,7 +1603,7 @@
   .betbox button {
     position: relative;
     width: 46px; height: 46px; padding: 0; border: 0; font-size: 0;
-    background: url("assets/bet_box.png") center / 100% 100% no-repeat;
+    background: url("assets/bet_box.webp") center / 100% 100% no-repeat;
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
   /* The buttons still carry their - and + characters for anything reading the DOM without
@@ -1624,8 +1624,8 @@
   /* the bar and the cross are nothing like the same shape, so each gets its own box and
      `contain` letterboxes the art inside it - the bar reads heavy at matching size, so it
      runs smaller than the cross */
-  #betDown::before { width: 43%; height: 24%; background-image: url("assets/bet_minus.png"); }
-  #betUp::before   { width: 37%; height: 37%; background-image: url("assets/bet_plus.png"); }
+  #betDown::before { width: 43%; height: 24%; background-image: url("assets/bet_minus.webp"); }
+  #betUp::before   { width: 37%; height: 37%; background-image: url("assets/bet_plus.webp"); }
   /* the can presses into the wall and bounces back */
   .betbox button:hover:not(:disabled) { transform: scale(1.07); filter: brightness(1.12); }
   .betbox button:active:not(:disabled) { transform: scale(.93); }
@@ -1694,12 +1694,12 @@
   .bonuspanel h3 {
     position: relative; width: 186px; height: 120px; margin: -6px auto 10px;
     font-size: 0; color: transparent;
-    background: url("assets/bonus_btn_bg.png") center / contain no-repeat;
+    background: url("assets/bonus_btn_bg.webp") center / contain no-repeat;
     filter: drop-shadow(0 4px 7px rgba(0,0,0,.55));
   }
   .bonuspanel h3::after {
     content: ""; position: absolute; inset: 5% 6%;
-    background: url("assets/bonus_btn_text.png") center / contain no-repeat;
+    background: url("assets/bonus_btn_text.webp") center / contain no-repeat;
   }
   .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   /* Each card is just its scatter: FS for the standard feature, XXFS for extreme. The
@@ -1776,7 +1776,7 @@
   /* Play is the sprayed yellow plate with the word set into it */
   .bonusgo {
     display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
-    background: url("assets/bonus_play.png") center / 100% 100% no-repeat;
+    background: url("assets/bonus_play.webp") center / 100% 100% no-repeat;
     border: 0; padding: 0 12%;
     font-family: var(--disp); font-size: 27px; line-height: 1.15; letter-spacing: .1em;
     text-transform: uppercase; color: #171203; text-shadow: 0 2px 0 rgba(255, 255, 255, .22);
@@ -1805,12 +1805,12 @@
   }
   .spinbtn::before {
     content: ""; position: absolute; inset: 0;
-    background: url("assets/spin_plate.png") center/contain no-repeat;
+    background: url("assets/spin_plate.webp") center/contain no-repeat;
     transition: scale .18s ease;
   }
   .spinbtn::after {
     content: ""; position: absolute; inset: 20% 35%;
-    background: url("assets/spin_btn_arrows.png") center/contain no-repeat;
+    background: url("assets/spin_btn_arrows.webp") center/contain no-repeat;
     filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
     animation: btnFloat 3.8s ease-in-out infinite;
     transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
@@ -1827,12 +1827,12 @@
   }
   .bonusbtn::before {
     content: ""; position: absolute; inset: 0;
-    background: url("assets/bonus_btn_bg.png") center/contain no-repeat;
+    background: url("assets/bonus_btn_bg.webp") center/contain no-repeat;
     transition: scale .18s ease;
   }
   .bonusbtn::after {
     content: ""; position: absolute; inset: 5% 6%;
-    background: url("assets/bonus_btn_text.png") center/contain no-repeat;
+    background: url("assets/bonus_btn_text.webp") center/contain no-repeat;
     filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
     animation: btnFloat 4s ease-in-out infinite;
     transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
@@ -1888,6 +1888,11 @@
   .sidebtn::before { content: none; }   /* the bolt and the play arrow are in the art */
   .hudbtn:hover:not(:disabled), .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
   .hudbtn:active:not(:disabled), .sidebtn:active:not(:disabled) { transform: scale(.93); }
+  /* The bar's buttons are slanted art: a rectangular focus outline round them looked like a
+     glitch (it showed after the info panel handed focus back). Keyboard focus is a glow that
+     follows the art instead. */
+  .hud button:focus { outline: none; }
+  .hud button:focus-visible { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) drop-shadow(0 0 7px rgba(79, 232, 255, .95)); }
   .hudbtn.open, .hudbtn.open:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
   /* sound and music both at zero. Named with :hover too, or the plainer hover rule - which is
      the more specific of the two and sets the same property - lights the plate back up */
@@ -1970,7 +1975,7 @@
   .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; }
   .spinbtn::after {
     inset: 26% 27%;
-    background: url("assets/spin_btn_arrows.png") center / contain no-repeat;
+    background: url("assets/spin_btn_arrows.webp") center / contain no-repeat;
     /* black while the game waits, blue and slowly turning while a round is running (spinArrows
        drives --arrows); the press's own quick turn is the spin360 animation on top */
     filter: brightness(0) drop-shadow(0 2px 3px rgba(255,255,255,.25));
@@ -2020,7 +2025,7 @@
 <div id="app">
 <div class="main">
   <div class="stage">
-    <div class="board" id="board"><img id="paintframe" src="assets/frame.png" alt="" draggable="false"></div>
+    <div class="board" id="board"><img id="paintframe" src="assets/frame.webp" alt="" draggable="false"></div>
     <div class="ticker" id="ticker">Draws come from the optimized 96.5% RTP lookup tables — the real math.</div>
     <div class="banner" id="banner"><div class="big" id="bannerBig"></div><div class="sub2" id="bannerSub"></div><img id="bannerMural" class="muralimg" alt=""></div>
     <div class="tally" id="tally">0.00</div>
@@ -2099,13 +2104,13 @@
       <h3 id="bonusTitle">Bonus</h3>
       <div class="bonusgrid">
         <button type="button" class="bonuscard gold on" id="bonusStd" data-mode="bonus">
-          <img class="cardart" src="assets/BS.png" alt="" draggable="false">
+          <img class="cardart" src="assets/flat/BS.webp" alt="" draggable="false">
           <span class="ttl">Standard</span>
           <span class="mult" id="bonusStdCost"></span>
           <span class="desc" id="bonusStdDesc">10, 12 or 15 free spins. Multis land often and every value they leave stays on the board for the whole bonus. Tag Meter 4.</span>
         </button>
         <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
-          <img class="cardart" src="assets/ES.png" alt="" draggable="false">
+          <img class="cardart" src="assets/flat/ES.webp" alt="" draggable="false">
           <span class="ttl">Extreme</span>
           <span class="mult" id="bonusExtCost"></span>
           <span class="desc" id="bonusExtDesc">17 free spins. Every Multi is worth x2 or more, values stack across the feature, Tag Meter 3.</span>
@@ -2175,26 +2180,26 @@
 // a multiplier as the player should read it: 1.25, 5, 1000 - never 5.00
 const fmtMult = v => String(+(+v).toFixed(2));
 const SYM = {
-  M:  { label: "MULTI", sub: "",           cls: "booster", img: "assets/M.png" },   // the brick chunk, its value over it
-  BS: { label: "CREW",  sub: "BONUS",      cls: "scat",  img: "assets/BS.png" },
-  ES: { label: "PHNTM", sub: "EXTREME",    cls: "escat", img: "assets/ES.png" },
-  H1: { label: "CASH",  sub: "BAG",        cls: "high", img: "assets/H1.png" },
-  H2: { label: "GLOCK", sub: "CARTOON",    cls: "high", img: "assets/H2.png" },
-  H3: { label: "CHAIN", sub: "GOLD",       cls: "high", img: "assets/H3.png" },
-  H4: { label: "KICKS", sub: "FRESH",      cls: "high", img: "assets/H4.png" },
-  H5: { label: "BOOM",  sub: "BOX",        cls: "high", img: "assets/H5.png" },
-  L1: { label: "SPRAY", sub: "CAN",        cls: "low",  img: "assets/L1.png" },
-  L2: { label: "MRKR",  sub: "MARKERS",    cls: "low",  img: "assets/L2.png" },
-  L3: { label: "BEANIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/L3.png" },
-  L4: { label: "TAG",   sub: "HANGTAG",    cls: "low",  img: "assets/L4.png" },
-  L5: { label: "DICE",  sub: "PAIR",       cls: "low",  img: "assets/L5.png" },
-  H6: { label: "SK8",   sub: "BOARD",      cls: "high", img: "assets/H6.png" },
-  H7: { label: "DROP",  sub: "LIMITED",    cls: "high", img: "assets/H7.png" },
-  L6: { label: "SHIRT", sub: "SMUKIEZ",    cls: "low",  img: "assets/L6.png" },
-  L7: { label: "HOODIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/L7.png" },
-  L8: { label: "WEED",  sub: "BAG",        cls: "low",  img: "assets/L8.png" },
-  L9: { label: "TRAIN", sub: "FREIGHT",    cls: "low",  img: "assets/L9.png" },
-  L10:{ label: "LOW",   sub: "RIDER",      cls: "low",  img: "assets/L10.png" },
+  M:  { label: "MULTI", sub: "",           cls: "booster", img: "assets/flat/M.webp" },   // the brick chunk, its value over it
+  BS: { label: "CREW",  sub: "BONUS",      cls: "scat",  img: "assets/flat/BS.webp" },
+  ES: { label: "PHNTM", sub: "EXTREME",    cls: "escat", img: "assets/flat/ES.webp" },
+  H1: { label: "CASH",  sub: "BAG",        cls: "high", img: "assets/flat/H1.webp" },
+  H2: { label: "GLOCK", sub: "CARTOON",    cls: "high", img: "assets/flat/H2.webp" },
+  H3: { label: "CHAIN", sub: "GOLD",       cls: "high", img: "assets/flat/H3.webp" },
+  H4: { label: "KICKS", sub: "FRESH",      cls: "high", img: "assets/flat/H4.webp" },
+  H5: { label: "BOOM",  sub: "BOX",        cls: "high", img: "assets/flat/H5.webp" },
+  L1: { label: "SPRAY", sub: "CAN",        cls: "low",  img: "assets/flat/L1.webp" },
+  L2: { label: "MRKR",  sub: "MARKERS",    cls: "low",  img: "assets/flat/L2.webp" },
+  L3: { label: "BEANIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/flat/L3.webp" },
+  L4: { label: "TAG",   sub: "HANGTAG",    cls: "low",  img: "assets/flat/L4.webp" },
+  L5: { label: "DICE",  sub: "PAIR",       cls: "low",  img: "assets/flat/L5.webp" },
+  H6: { label: "SK8",   sub: "BOARD",      cls: "high", img: "assets/flat/H6.webp" },
+  H7: { label: "DROP",  sub: "LIMITED",    cls: "high", img: "assets/flat/H7.webp" },
+  L6: { label: "SHIRT", sub: "SMUKIEZ",    cls: "low",  img: "assets/flat/L6.webp" },
+  L7: { label: "HOODIE",sub: "SMUKIEZ",    cls: "low",  img: "assets/flat/L7.webp" },
+  L8: { label: "WEED",  sub: "BAG",        cls: "low",  img: "assets/flat/L8.webp" },
+  L9: { label: "TRAIN", sub: "FREIGHT",    cls: "low",  img: "assets/flat/L9.webp" },
+  L10:{ label: "LOW",   sub: "RIDER",      cls: "low",  img: "assets/flat/L10.webp" },
 };
 const FLAT = {};   // the flat icon pictures, kept: the paytable, the shards of a blown-out tile and the fallback all draw them
 for (const [k, def] of Object.entries(SYM)) {   // pre-warm icon cache
@@ -3293,7 +3298,13 @@ const sfxBuf = {};
 // Fetched as soon as the page loads, so the first press after the intro has its note ready;
 // only the decode waits for the context, which the browser will not open before a gesture.
 const sfxRaw = {}, sfxDecoding = {};
-for (const [name, url] of Object.entries(SFX)) sfxRaw[name] = fetch(url).then(r => r.arrayBuffer()).catch(() => null);
+// Each effect has an Opus copy beside its WAV (tools/encode_sfx.js; 0.6 MB for the lot against
+// 8.6 MB of WAV): taken wherever the browser plays Opus, the WAV if not, or if the copy fails.
+const wavOf = url => fetch(url).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
+const sfxFetch = url => OPUS_OK
+  ? fetch(url.replace(/\.wav$/, ".ogg")).then(r => r.ok ? r.arrayBuffer() : wavOf(url)).catch(() => wavOf(url))
+  : wavOf(url);
+for (const [name, url] of Object.entries(SFX)) sfxRaw[name] = sfxFetch(url);
 
 function bezierY(x1, y1, x2, y2) {          // CSS cubic-bezier as a function of progress
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
@@ -3352,6 +3363,7 @@ function audio() {
     applyVolumes();
     for (const name of Object.keys(SFX)) {
       sfxDecoding[name] = sfxRaw[name].then(b => b && actx.decodeAudioData(b))
+        .catch(() => wavOf(SFX[name]).then(b => b && actx.decodeAudioData(b)))   // an Opus copy that will not decode: the WAV
         .then(buf => { if (buf) sfxBuf[name] = buf; })
         .catch(() => {});   // a missing clip just means silence, never a broken round
     }
@@ -5362,7 +5374,7 @@ function bonusIntro(spins, extreme, why) {
     wrap.innerHTML =
       `<div class="wall"></div>` +
       `<div class="inner">` +
-        `<img class="blogo" src="assets/bonus_btn_text.png" alt="${T("Bonus")}" draggable="false">` +
+        `<img class="blogo" src="assets/bonus_btn_text.webp" alt="${T("Bonus")}" draggable="false">` +
         (kind ? `<div class="bkind"><span class="fill">${kind}</span><span class="line" aria-hidden="true">${kind}</span></div>` : "") +
         `<div class="byou">${T("You won")}</div>` +
         `<div class="bnum" aria-label="${spins}">${numeralRow(String(spins))}</div>` +

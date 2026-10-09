@@ -82,7 +82,7 @@ const RULES = (() => {
 
   function tile(sym, social) {
     if (sym === "M") return `<div class="ptile multi"><span>x5</span><small>MULTI</small></div>`;
-    return `<img class="ptile" src="assets/${sym}.png" alt="${esc(T(NAMES[sym], social))}" draggable="false">`;
+    return `<img class="ptile" src="assets/flat/${sym}.webp" alt="${esc(T(NAMES[sym], social))}" draggable="false">`;
   }
 
   /**
@@ -138,9 +138,9 @@ const RULES = (() => {
   <h4>${t("Special symbols")}</h4>
   <div class="prow">${tile("M")}<div class="pname">${t("Multi — Multiplier")}<small>M</small></div>
     <div class="ptext">${t(`Lands with a value from ${x(MULTI_MIN)} to ${x(MULTI_MAX)}, shown on the symbol. Every winning cluster on the board is paid first; only then does it blow out: the Multi and the four symbols sharing an edge with it are removed, each of those five cells keeps the Multi's value, and new symbols drop in on top. A winning cluster that covers one or more of those cells is multiplied by the SUM of the values on the cells it covers. When two Multis reach the same cell their values add. In the base game the values last for the rest of the spin, including every tumble; in a bonus they stay on the board for the whole feature. Crew Leader and The Phantom are never removed by a Multi. The Multi does not form clusters and has no value of its own.`)}</div></div>
-  <div class="prow"><img class="ptile" src="assets/BS.png" alt="Crew Leader" draggable="false"><div class="pname">${t("Crew Leader — Bonus Scatter")}<small>BS</small></div>
+  <div class="prow"><img class="ptile" src="assets/flat/BS.webp" alt="Crew Leader" draggable="false"><div class="pname">${t("Crew Leader — Bonus Scatter")}<small>BS</small></div>
     <div class="ptext">${t("Appears anywhere. 3, 4 or 5 Crew Leaders on one spin award 10, 12 or 15 free spins (the Standard Bonus). Crew Leader does not form clusters and has no value of its own.")}</div></div>
-  <div class="prow"><img class="ptile" src="assets/ES.png" alt="The Phantom" draggable="false"><div class="pname">${t("The Phantom — Extreme Scatter")}<small>ES</small></div>
+  <div class="prow"><img class="ptile" src="assets/flat/ES.webp" alt="The Phantom" draggable="false"><div class="pname">${t("The Phantom — Extreme Scatter")}<small>ES</small></div>
     <div class="ptext">${t("2 Phantoms anywhere on one spin award 17 free spins in the Extreme Bonus directly. 1 Phantom on the same spin as a Crew Leader trigger upgrades that trigger to the Extreme Bonus, keeping its spin count. The Phantom does not form clusters and has no value of its own.")}</div></div>
 </section>
 

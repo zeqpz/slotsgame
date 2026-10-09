@@ -124,12 +124,10 @@ def neck_fill(j):
     im = im.filter(ImageFilter.GaussianBlur(ss * 2)).resize((W, H), Image.LANCZOS)
     page = Image.open(os.path.join(SRC, "smoke-skull.png")).convert("RGBA")
     page.paste(im, NECK["at"], im)
-    page.save(os.path.join(os.path.dirname(OUT["smoke-skull"]), "smoke-skull.png"), optimize=True)
     atlas = open(os.path.join(SRC, "smoke-skull.atlas"), encoding="utf-8").read().replace("\r\n", "\n").rstrip("\n")
     atlas += (f"\nneck_fill\n  rotate: false\n  xy: {NECK['at'][0]}, {NECK['at'][1]}\n  size: {W}, {H}\n"
               f"  orig: {W}, {H}\n  offset: 0, 0\n  index: -1\n")
-    with open(os.path.join(os.path.dirname(OUT["smoke-skull"]), "smoke-skull.atlas"), "w", encoding="utf-8", newline="\n") as fh:
-        fh.write(atlas)
+    write_pages("smoke-skull", atlas, {"smoke-skull.png": page})
     # bone-local placement: the torso bone's setup world position, from the bone chain
     B = {b["name"]: b for b in j["bones"]}
     def world(n):
@@ -141,6 +139,27 @@ def neck_fill(j):
     cx, cy = NECK["centre"]
     j["slots"].insert(0, {"name": "neck_fill", "bone": "torso", "attachment": "neck_fill"})
     j["skins"][0]["attachments"]["neck_fill"] = {"neck_fill": {"x": cx - tx, "y": cy - ty, "width": W, "height": H}}
+
+
+def write_pages(name, atlas, images=None):
+    """Write a rig's atlas pages as WebP (quality 95, lossless alpha: under one level of average
+    colour error, about a fifth of the PNG's bytes) and point the atlas at them. Pages not
+    passed in come from the source PNGs."""
+    from PIL import Image
+    out_dir = os.path.dirname(OUT[name])
+    lines = atlas.replace("\r\n", "\n").split("\n")
+    for i, line in enumerate(lines):
+        if line.strip().lower().endswith(".png") and ":" not in line:
+            src = line.strip()
+            img = (images or {}).get(src) or Image.open(os.path.join(SRC, src)).convert("RGBA")
+            dst = src[:-4] + ".webp"
+            img.save(os.path.join(out_dir, dst), "WEBP", quality=95, method=6, alpha_quality=100)
+            stale = os.path.join(out_dir, src)
+            if os.path.exists(stale):
+                os.remove(stale)          # the page now ships as WebP only
+            lines[i] = dst
+    with open(os.path.join(out_dir, name + ".atlas"), "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(lines).rstrip("\n") + "\n")
 
 
 def skull(j):
@@ -164,6 +183,8 @@ def main():
     for name, fix in (("smukiez", boy), ("smoke-skull", skull)):
         j = json.load(open(os.path.join(SRC, name + ".json"), encoding="utf-8"))
         fix(j)
+        if name == "smukiez":
+            write_pages(name, open(os.path.join(SRC, "smukiez.atlas"), encoding="utf-8").read())
         with open(OUT[name], "w", encoding="utf-8", newline="\n") as fh:
             json.dump(j, fh, separators=(",", ":"))
         print(f"{name}: {os.path.getsize(os.path.join(SRC, name + '.json')) // 1024} KB -> {os.path.getsize(OUT[name]) // 1024} KB")
