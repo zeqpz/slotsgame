@@ -3,7 +3,7 @@
 import os, sys
 from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__))
-src = os.path.join(HERE, "..", "..", "frontend", "assets", sys.argv[1] + ".png")
+src = os.path.join(HERE, "..", "..", "art", "icons-src", sys.argv[1] + ".png")
 step = int(sys.argv[2]) if len(sys.argv) > 2 else 50
 im = Image.open(src).convert("RGBA"); W, H = im.size
 bg = Image.new("RGBA", im.size, (90, 90, 100, 255)); bg.alpha_composite(im)

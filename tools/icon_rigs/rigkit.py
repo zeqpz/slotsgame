@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SRC_DIR = os.path.join(ROOT, "frontend", "assets")
+SRC_DIR = os.path.join(ROOT, "art", "icons-src")      # the full-size icon art (the game ships flat/ WebP copies and the rigs)
 OUT_DIR = os.path.join(ROOT, "frontend", "assets", "icons")
 OUT_PX_PER_UNIT = 3.2      # atlas pixels per skeleton unit: a 100-unit icon is 320 px - sharp at 2x DPR with a win pop
 PAD = 2                    # transparent pixels round every atlas region
