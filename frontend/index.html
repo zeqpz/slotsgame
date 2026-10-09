@@ -1407,6 +1407,7 @@
   /* nothing can be played without a session: the connection error sits over everything,
      the opening screens included */
   #errorWrap { z-index: 70; }
+  #errorWrap .errcode { display: inline-block; margin-top: 6px; font-size: 11px; opacity: .65; letter-spacing: .02em; }
 
   /* banner overlay */
   .banner {
@@ -6292,8 +6293,11 @@ async function boot() {
     await RGS.authenticate();
   } catch (err) {
     // leave the controls locked and say so over everything; nothing can be staked without a session
+    // the small print says what actually failed - the code, and the server's answer or that
+    // there was none - so a screenshot of this panel is enough to tell an outage from a block
+    const detail = `${/^ERR_[A-Z_]+$/.test(err && err.code) ? err.code : "ERR"} · ${err && err.status ? "HTTP " + Number(err.status) : T("no answer from the game server")}`;
     fatal(T("Can't connect"), `<b>${RGS_MESSAGE[err.code] || T("Could not connect to the game server.")}</b><br>` +
-      T("Reopen the game from the lobby, or reload to try again."));
+      T("Reopen the game from the lobby, or reload to try again.") + `<br><small class="errcode">${detail}</small>`);
     return;
   }
 

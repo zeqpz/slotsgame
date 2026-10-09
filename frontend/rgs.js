@@ -121,9 +121,23 @@ const RGS = (() => {
     get state() { return state; },
     RgsError,
 
-    /** Must succeed before any other wallet call, or the rest return ERR_IS. */
+    /** Must succeed before any other wallet call, or the rest return ERR_IS. A launch can
+     *  meet a passing server error or a dropped connection on this very first call, so a
+     *  general error or a rate-limit is tried again - four tries over about 3.5 s - before
+     *  the player is told the game can't connect. Anything else (an expired session...) is
+     *  final at once. */
     async authenticate() {
-      const d = absorb(await call("/wallet/authenticate", {}));
+      let d = null, lastErr = null;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt) await new Promise(res => setTimeout(res, 500 * 2 ** (attempt - 1)));
+        try { d = absorb(await call("/wallet/authenticate", {})); lastErr = null; break; }
+        catch (e) {
+          lastErr = e;
+          console.warn(`authenticate try ${attempt + 1}: ${e.code}${e.status ? " (HTTP " + e.status + ")" : ""} ${e.message}`);
+          if (e.code !== "ERR_GEN" && e.code !== "ERR_ACT") throw e;
+        }
+      }
+      if (lastErr) throw lastErr;
       if (d.config) state.config = d.config;
       state.round = normalizeRound(d.round);
       state.authenticated = true;
