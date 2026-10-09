@@ -36,6 +36,8 @@ MIME = {
     ".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8", ".png": "image/png", ".mp4": "video/mp4",
     ".wav": "audio/wav", ".ttf": "font/ttf", ".otf": "font/otf", ".json": "application/json",
+    ".webp": "image/webp", ".jpg": "image/jpeg", ".ogg": "audio/ogg", ".aac": "audio/aac",
+    ".atlas": "text/plain; charset=utf-8",
 }
 
 with open(os.path.join(PUBLISH, "index.json"), encoding="utf-8") as fh:
