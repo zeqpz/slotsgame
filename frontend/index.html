@@ -1248,7 +1248,7 @@
   @keyframes drop { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
   /* cascade: only the winning symbols pop and vanish; per column the survivors above the
      gap fall, a new symbol drops in from the top, and each moving tile lands with a bounce. */
-  .cell.explode { animation: cellExplode calc(.3s * var(--tempo, 1)) cubic-bezier(.5,-0.25,.7,.5) forwards; z-index: 3; }
+  .cell.explode { animation: cellExplode calc(.4s * var(--tempo, 1)) cubic-bezier(.5,-0.25,.7,.5) forwards; z-index: 3; }
   @keyframes cellExplode {
     0%   { transform: scale(1); opacity: 1; filter: brightness(1); }
     30%  { transform: scale(1.34) rotate(-6deg); opacity: 1; filter: brightness(2.1) saturate(1.5); }
@@ -1317,8 +1317,20 @@
     84%  { transform: scale(1.23) rotate(-.2deg); }
     100% { transform: scale(1.2); }                    /* lands where the base rule leaves it */
   }
+  /* A Multi going off is spotlit like a cluster (booster()): the Multi itself punches up
+     harder and longer than a cluster tile, and the four cells it lands on take the cluster pop
+     drawn out a little; both come to rest at the lit 1.2 */
+  .cell.winhit.boom { animation: multiboomlit calc(.8s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.3); z-index: 2; }
+  .cell.winhit.hit  { animation: winpop calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1); }
+  @keyframes multiboomlit {
+    0%   { transform: scale(1); }
+    32%  { transform: scale(1.55) rotate(-4deg); filter: brightness(1.7); }
+    55%  { transform: scale(1.12) rotate(2deg); filter: brightness(1.2); }
+    75%  { transform: scale(1.3) rotate(-1deg); }
+    100% { transform: scale(1.2); }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .cell.winhit { animation: none; }
+    .cell.winhit, .cell.winhit.boom, .cell.winhit.hit { animation: none; }
   }
   /* the win chip - the cluster's amount (and its multiplier, when it has one) punched over
      the cluster's middle tile while the cluster is lit. placeWinChip() sets left/top from the
@@ -2674,6 +2686,14 @@ function rigBuild(rig) {
   return el;
 }
 const rigOf = cell => cell && cell.ico ? cell.ico.querySelector(".rig") : null;
+// How long the slowest of these cells' win performances runs, at tempo 1 (0 when none plays),
+// so a lit cluster or a Multi going off is held until every tile in it has played through.
+function winClipMs(cells) {
+  if (REDUCED_MOTION) return 0;
+  let ms = 0;
+  for (const c of cells) { const el = rigOf(c), w = el && el._rig.clips.win; if (w) ms = Math.max(ms, w.ms); }
+  return ms;
+}
 // Play one of a symbol's clips. Clips start and end on the rest pose, so a finished one simply
 // hands the parts back to it; a new clip cuts the running one. Rapid and Skip speed them up.
 function rigPlay(cell, clip, { loop = false } = {}) {
@@ -3938,7 +3958,10 @@ const handlers = {
       if (mult > 1) parts.push(`<b>x${fmtMult(mult)}</b>`);
       parts.push(`<b>${fmt(cents(w.win))}</b>`);
       tick(parts.join(" · "));
-      await hold(Math.max(600, drawMs + 260));   // the line finishes drawing and sits a beat; skip only quickens
+      // the line finishes drawing, every tile plays its win performance through, and it sits a
+      // beat - only then the next cluster (or the pop); skip only quickens
+      const lit = w.positions.map(p => cellEls[p.reel][p.row - 1]);
+      await hold(Math.max(600, drawMs + 260, winClipMs(lit) + 80));
     }
     await hold(180);
     clearFxWins();
@@ -3979,7 +4002,7 @@ const handlers = {
     });
     await new Promise(r => setTimeout(r, gap * (order.length - 1)));   // every scheduled pop has fired
     timers.forEach(clearTimeout);
-    await delay(300);                                // the last tile's pop tail
+    await delay(400);                                // the last tile's pop tail (cellExplode)
     // the bare cells show their multipliers at full strength: give them a beat to be read
     // before the drop covers them (longer when there is actually a number to read)
     const numbers = order.some(([r, y]) => ((state.grid[r] || [])[y] || 0) > 0);
@@ -4057,28 +4080,37 @@ const handlers = {
   },
 
   async booster(ev) {
-    // A Multi blows out - after every cluster on this board has been paid, never before. It
-    // lights up, then the four cells sharing an edge with it, its value lands on all five,
-    // and the tumbleBoard that follows clears them (together with the paid cluster symbols)
-    // and drops new symbols in on top of the numbers. Skipping shortens this; never hides it.
+    // A Multi blows out - after every cluster on this board has been paid, never before. The
+    // board spotlights it the way it does a cluster: everything else fades back, the Multi
+    // punches up and plays its win performance, then the four cells sharing an edge with it do
+    // the same, and only once they have all played through does its value land on the five.
+    // The tumbleBoard that follows clears them (together with the paid cluster symbols) and
+    // drops new symbols in on top of the numbers. Skipping shortens this; never hides it.
     clearFxWins();
-    $("board").classList.remove("spotlight");
+    $("board").classList.add("spotlight");
     for (const b of ev.boosters || []) {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
-      at(b).classList.add("boom");
+      const multi = at(b), hits = (b.cells || []).map(at).filter(c => c !== multi);
+      multi.classList.add("boom", "winhit");
+      rigPlay(multi, "win");
       // every Multi in a round rings a little higher than the one before, and a run of them
       // is its own event: the third, and every third after, gets the jackpot alert (A, B, A...)
       state.multiCount++; state.multiTotal++;
       sfx("multiHit", Math.min(1.9, 1 + .07 * (state.multiCount - 1)));
       if (state.multiCount >= 3 && state.multiCount % 3 === 0) sfx((state.multiCount / 3) % 2 ? "alertA" : "alertB");
       tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
-      await hold(260);
-      for (const c of b.cells || []) at(c).classList.add("hit");
-      await hold(320);
+      const lead = 360;   // the Multi's pop leads; its neighbours follow
+      await hold(lead);
+      for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "win"); }
+      // every performance - the Multi's and its neighbours' - plays through before anything moves on
+      await hold(Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - lead) + 80));
     }
     state.grid = (ev.gridMults || []).map(col => col.slice());
     paintGrid();
+    await hold(200);   // the values sit on the lit tiles a beat before they pop
     eachCell(el => el.classList.remove("boom", "hit"));
+    clearFxWins();
+    $("board").classList.remove("spotlight");
   },
 
   async setWin() { await delay(120); },
