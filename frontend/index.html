@@ -126,7 +126,7 @@
     position: fixed; inset: -4%; z-index: -1; pointer-events: none;   /* the bleed also covers the turned wall's far edge (to ~8deg) */
     background:
       linear-gradient(rgba(20,18,24,.78), rgba(20,18,24,.9)),
-      url("assets/bonus_wall.jpg") center / var(--wall-scale) no-repeat;
+      url("assets/bonus_wall.webp") center / var(--wall-scale) no-repeat;
     /* the scene's lean (--scene-yaw); the hop (bgbounce) is on translate/scale and rides on top */
     transform: perspective(2600px) rotateY(var(--scene-yaw));
   }
@@ -309,7 +309,7 @@
   }
   .bonusintro.black { opacity: 1; }
   .bonusintro .wall {
-    position: absolute; inset: 0; background: #2b2b2b url("assets/bonus_wall.jpg") center / cover no-repeat;
+    position: absolute; inset: 0; background: #2b2b2b url("assets/bonus_wall.webp") center / cover no-repeat;
     opacity: 0; transition: opacity .65s ease;
   }
   .bonusintro .wall::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .4); }
@@ -365,7 +365,7 @@
   .bonusintro .bnum {
     display: flex; align-items: flex-end; justify-content: center; gap: .4vw;
     padding: 3.2vh 7vw 3.6vh; margin: .4vh 0;
-    background: url("assets/total_bg.png") center / 100% 100% no-repeat;
+    background: url("assets/total_bg.webp") center / 100% 100% no-repeat;
     filter: drop-shadow(0 8px 18px rgba(0,0,0,.6));
   }
   .bonusintro .bnum img { height: clamp(56px, 12vh, 120px); width: auto; display: block; }
@@ -374,7 +374,7 @@
   .bonusintro .bhow {
     max-width: min(780px, 86vw); margin-top: 2.4vh; padding: 1.2vh 1.6vw;
     background: none; border: 20px solid transparent;
-    border-image: url("assets/info_panel.png") 4.9% 6.25% fill / 20px stretch;
+    border-image: url("assets/info_panel.webp") 4.9% 6.25% fill / 20px stretch;
     box-shadow: 0 14px 34px rgba(0, 0, 0, .6);
     --ink: #17161c; --ink-soft: #46434f;
     font-family: var(--legible); font-size: clamp(14px, 2.05vh, 19px); line-height: 1.45; color: var(--ink);
@@ -413,7 +413,7 @@
   .totalwin.up .twin { opacity: 1; transform: none; }
   /* The headline sits above the figure without taking any room from it, and overlays the
      figure's purple sweep where the two meet. BIG / MEGA / XTREME stand on their own bright
-     splash (tier_bg.png), with the lettering laid over it; the head is cut to the splash's own
+     splash (tier_bg.webp), with the lettering laid over it; the head is cut to the splash's own
      900:254 shape so the splash never stretches, and the lettering is centred inside it. */
   .totalwin .twhead {
     --lw: min(78vw, 70vh, 640px);   /* the lettering's width */
@@ -430,7 +430,7 @@
      transform; with nothing written, everything sits still. */
   .totalwin .twhead.tier::before {   /* the tier's bright splash: a layer of its own under the lettering */
     content: ""; position: absolute; inset: 0; z-index: -1;
-    background: url("assets/tier_bg.png") center / 100% 100% no-repeat;
+    background: url("assets/tier_bg.webp") center / 100% 100% no-repeat;
     translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
   }
   .totalwin .twlogo {
@@ -464,7 +464,7 @@
   }
   .totalwin .twamount::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
-    background: url("assets/total_bg.png") center / 100% 100% no-repeat;
+    background: url("assets/total_bg.webp") center / 100% 100% no-repeat;
     translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
   }
   .totalwin .twfig {
@@ -515,7 +515,7 @@
   .fboxes { display: flex; gap: 2.4vw; align-items: stretch; justify-content: center; flex-wrap: wrap; width: 100%; }
   .fbox {
     position: relative; width: clamp(150px, 26vw, 340px); aspect-ratio: 560 / 716; flex: none; container-type: inline-size;
-    background: url("assets/feature_box.png") center / 100% 100% no-repeat;
+    background: url("assets/feature_box.webp") center / 100% 100% no-repeat;
     filter: drop-shadow(0 10px 18px rgba(0,0,0,.65));
     transition: scale .25s cubic-bezier(.2,.9,.3,1.3), filter .25s ease;
     animation: fdrift 4.6s ease-in-out infinite;
@@ -541,8 +541,8 @@
     content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
     background: radial-gradient(circle at calc(50% + var(--mx) * 100%) calc(50% + var(--my) * 100%),
       rgba(255,255,255,.32) 0%, rgba(255,255,255,.1) 26%, rgba(255,255,255,0) 56%);
-    -webkit-mask: url("assets/feature_box.png") center / 100% 100% no-repeat;
-    mask: url("assets/feature_box.png") center / 100% 100% no-repeat;
+    -webkit-mask: url("assets/feature_box.webp") center / 100% 100% no-repeat;
+    mask: url("assets/feature_box.webp") center / 100% 100% no-repeat;
     mix-blend-mode: screen; opacity: var(--glare);
   }
   /* percentages here are of the plate itself, so the band and the frayed edge stay clear */
@@ -706,7 +706,7 @@
   #autoPop {
     background: none; box-shadow: none;
     border: 0 solid transparent; border-width: 22px;
-    border-image: url("assets/auto_box.png") 9% fill / 22px stretch;
+    border-image: url("assets/auto_box.webp") 9% fill / 22px stretch;
     padding: 4px 8px 8px;
     filter: drop-shadow(0 10px 22px rgba(0,0,0,.6));
   }
@@ -796,7 +796,7 @@
   }
   .vframe {
     position: absolute; inset: -6.6% -26.7%; pointer-events: none;
-    background: url("assets/vol_frame.png") center / 100% 100% no-repeat;
+    background: url("assets/vol_frame.webp") center / 100% 100% no-repeat;
     filter: drop-shadow(0 6px 12px rgba(0,0,0,.6));
     transform-origin: 50% 90%;   /* it rocks about its foot, the way a filled tube would */
   }
@@ -804,7 +804,7 @@
      more of it rather than stretching what is already there */
   .vfill {
     position: absolute; left: 0; right: 0; bottom: 0; height: 0;
-    background: url("assets/vol_fill.png") center bottom / 100% 150px no-repeat;
+    background: url("assets/vol_fill.webp") center bottom / 100% 150px no-repeat;
     pointer-events: none;   /* every pointer event belongs to the bar itself */
     transition: height var(--vdur) cubic-bezier(.18, 1.3, .32, 1);
   }
@@ -874,7 +874,7 @@
   .infopanel {
     max-width: 780px; width: 100%; max-height: 86vh; overflow: auto;
     padding: 24px 28px; background: none; border: 20px solid transparent;
-    border-image: url("assets/info_panel.png") 4.9% 6.25% fill / 20px stretch;
+    border-image: url("assets/info_panel.webp") 4.9% 6.25% fill / 20px stretch;
     box-shadow: 0 14px 34px rgba(0, 0, 0, .6);
     color: var(--ink);                  /* whatever has no colour of its own inherits from here,
                                            not from the dark game underneath */
@@ -924,7 +924,7 @@
      until picked - the pick comes up to full brightness with a cyan glow */
   .autoopts button {
     flex: 1; padding: 6px 0; border: 10px solid transparent; background: none;
-    border-image: url("assets/auto_box.png") 9% fill / 10px stretch;
+    border-image: url("assets/auto_box.webp") 9% fill / 10px stretch;
     color: #fff; -webkit-text-stroke: 1.6px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.6);
     font-family: var(--mono); font-size: 15px; font-weight: 700;
     filter: brightness(.72);
@@ -1156,8 +1156,10 @@
   }
   .spraylayer .spuff { width: 46px; height: auto; margin: -18px 0 0 -23px; }
   /* it blows out: the Multi itself, then the four cells it hits */
-  .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
-  .cell.hit  { animation: multihit calc(.5s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1); }
+  /* every part of a Multi's show - the spray, the blow-out, the value landing - runs
+     --multi-rate times as fast as it was first timed (MULTI_RATE in the script) */
+  .cell.boom { animation: multiboom calc(.55s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.2,.9,.3,1.4); z-index: 2; }
+  .cell.hit  { animation: multihit calc(.5s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.25,.85,.35,1); }
   @keyframes multiboom {
     0%   { transform: scale(1); }
     40%  { transform: scale(1.4) rotate(-4deg); filter: brightness(1.7); }
@@ -1195,7 +1197,7 @@
   /* a value comes into the open (the tile over it has just come apart): it pops in - small
      and bright, past full size, and settles - rather than simply being there. The idle
      stretch is on scale/rotate, so this transform rides on top of it */
-  .multlayer .gmult.bare { opacity: .95; animation: gmultIn calc(.42s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.35); }
+  .multlayer .gmult.bare { opacity: .95; animation: gmultIn calc(.42s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.2,.9,.3,1.35); }
   /* the idle wander runs on transform (on the compositor), so the pop and the fade use scale */
   @keyframes gmultIn {
     0%   { scale: .3; filter: brightness(2.2); }
@@ -1320,8 +1322,8 @@
   /* A Multi going off is spotlit like a cluster (booster()): the Multi itself punches up
      harder and longer than a cluster tile, and the four cells it lands on take the cluster pop
      drawn out a little; both come to rest at the lit 1.2 */
-  .cell.winhit.boom { animation: multiboomlit calc(.8s * var(--tempo, 1)) cubic-bezier(.2,.9,.3,1.3); z-index: 2; }
-  .cell.winhit.hit  { animation: winpop calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1); }
+  .cell.winhit.boom { animation: multiboomlit calc(.8s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.2,.9,.3,1.3); z-index: 2; }
+  .cell.winhit.hit  { animation: winpop calc(.7s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.25,.85,.35,1); }
   @keyframes multiboomlit {
     0%   { transform: scale(1); }
     32%  { transform: scale(1.55) rotate(-4deg); filter: brightness(1.7); }
@@ -1365,7 +1367,7 @@
      random path, the figure a beat behind - see hoverWin and the .twhead rules */
   .winpop::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
-    background: url("assets/win_box.png") center / 100% 100% no-repeat;
+    background: url("assets/win_box.webp") center / 100% 100% no-repeat;
     opacity: .8;
     translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
   }
@@ -1432,7 +1434,7 @@
     content: ""; position: absolute; left: 50%; top: 50%; z-index: -1;
     width: min(94%, 680px); aspect-ratio: 960 / 388;
     transform: translate(-50%, -50%);
-    background: url("assets/banner_box.png") center / 100% 100% no-repeat;
+    background: url("assets/banner_box.webp") center / 100% 100% no-repeat;
     opacity: .9;
     filter: drop-shadow(0 8px 18px rgba(0,0,0,.6));
   }
@@ -1699,7 +1701,7 @@
        Stretched rather than tiled, because a painted frame reads fine stretched and the
        content inside is what sets the height. */
     width: min(560px, 92vw); border: 0;
-    background: url("assets/bonus_panel.png") center / 100% 100% no-repeat;
+    background: url("assets/bonus_panel.webp") center / 100% 100% no-repeat;
     padding: 36px 46px 60px; filter: drop-shadow(0 18px 44px rgba(0,0,0,.6));
     animation: bonusdrift 9s ease-in-out infinite;
   }
@@ -1781,8 +1783,8 @@
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
   .bonusbet button::before { content: none; }   /* the glyph is in the art */
-  #bonusBetUp   { background-image: url("assets/hud_plus.png"); }
-  #bonusBetDown { background-image: url("assets/hud_minus.png"); }
+  #bonusBetUp   { background-image: url("assets/hud_plus.webp"); }
+  #bonusBetDown { background-image: url("assets/hud_minus.webp"); }
   .bonusbet button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
   .bonusbet button:active:not(:disabled) { transform: scale(.9); }
   .bonusbet button:disabled { filter: grayscale(.9) brightness(.7); opacity: .6; cursor: default; }
@@ -1903,10 +1905,10 @@
     cursor: pointer; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
-  .hudbtn.menu   { background-image: url("assets/hud_menu.png");  background-position: right center; }
-  .hudbtn.audio  { background-image: url("assets/hud_audio.png"); background-position: right center; }
-  .sidebtn.rapid { background-image: url("assets/hud_rapid.png"); background-position: left center; }
-  .sidebtn.auto  { background-image: url("assets/hud_auto.png");  background-position: left center; }
+  .hudbtn.menu   { background-image: url("assets/hud_menu.webp");  background-position: right center; }
+  .hudbtn.audio  { background-image: url("assets/hud_audio.webp"); background-position: right center; }
+  .sidebtn.rapid { background-image: url("assets/hud_rapid.webp"); background-position: left center; }
+  .sidebtn.auto  { background-image: url("assets/hud_auto.webp");  background-position: left center; }
   .sidebtn::before { content: none; }   /* the bolt and the play arrow are in the art */
   .hudbtn:hover:not(:disabled), .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
   .hudbtn:active:not(:disabled), .sidebtn:active:not(:disabled) { transform: scale(.93); }
@@ -1922,7 +1924,7 @@
   .sidebtn.on, .sidebtn.on:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
   /* Rapid has a lit plate of its own - the bolt in yellow - so it swaps the art rather than
      tinting the one it has; same box, so nothing shifts as it changes */
-  .sidebtn.rapid.on, .sidebtn.rapid.on:hover { background-image: url("assets/hud_rapid_on.png"); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+  .sidebtn.rapid.on, .sidebtn.rapid.on:hover { background-image: url("assets/hud_rapid_on.webp"); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
   .sidebtn.rapid.on:hover:not(:disabled) { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
   .sidebtn.rapid.on:disabled { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
   /* nothing greys during a round: a button that cannot act simply does not act */
@@ -1940,7 +1942,7 @@
     /* the left end is under the chevron, the right end under the hexagon */
     padding: calc(9px * var(--u)) calc(44px * var(--u)) calc(9px * var(--u)) calc(72px * var(--u));
     border: 0 solid transparent; border-width: 0 calc(20px * var(--u));
-    border-image: url("assets/hud_bar.png") 0 6% 0 6% fill / 0 calc(20px * var(--u)) stretch;
+    border-image: url("assets/hud_bar.webp") 0 6% 0 6% fill / 0 calc(20px * var(--u)) stretch;
     filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
   }
   .hudstat { display: flex; flex-direction: column; justify-content: center; gap: calc(4px * var(--hs, 1)); line-height: 1; }
@@ -1975,8 +1977,8 @@
     filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
     transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
   }
-  #betUp   { background-image: url("assets/hud_plus.png"); }
-  #betDown { background-image: url("assets/hud_minus.png"); }
+  #betUp   { background-image: url("assets/hud_plus.webp"); }
+  #betDown { background-image: url("assets/hud_minus.webp"); }
   .betstep button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
   .betstep button:active:not(:disabled) { transform: scale(.9); }
   .betstep button:disabled { cursor: default; opacity: 1; }   /* the page-wide disabled dimming does not apply here */
@@ -1994,7 +1996,7 @@
     width: calc(108px * var(--hs, 1)); height: calc(94px * var(--hs, 1));
     clip-path: polygon(24.4% 0, 75.6% 0, 100% 50%, 75.6% 100%, 24.4% 100%, 0 50%);
   }
-  .spinbtn::before { background: url("assets/hud_hex.png") center / contain no-repeat; }
+  .spinbtn::before { background: url("assets/hud_hex.webp") center / contain no-repeat; }
   .spinbtn::after {
     inset: 26% 27%;
     background: url("assets/spin_btn_arrows.webp") center / contain no-repeat;
@@ -2040,7 +2042,7 @@
 </style>
 </head>
 <body>
-<div id="bgwall"><img id="walltag" src="assets/wall_tag.webp" width="2202" height="1116" alt="" draggable="false"></div>
+<div id="bgwall"><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"></div>
 <div id="charfx" class="charfx" aria-hidden="true"></div>
 <div id="charfx2" class="charfx" aria-hidden="true"></div>
 
@@ -2153,7 +2155,7 @@
 
 <div class="intro" id="intro">
   <canvas class="introicons" id="introIcons" aria-hidden="true"></canvas>
-  <img class="intrologo" id="introLogo" src="assets/logo_intro.webp" width="1300" height="504" alt="Smukiez">
+  <img class="intrologo" id="introLogo" src="assets/logo_intro.webp" width="1950" height="756" alt="Smukiez">
   <div class="introbar" id="introBar"><i class="introfill" id="introFill"></i></div>
   <p class="intromsg" id="introMsg">Malfunction voids all wins and plays. A consistent internet
   connection is required. In the event of a disconnection, reload the game to finish any
@@ -2273,6 +2275,11 @@ const cents = c => Math.round(c / 100 * bet());
 // nothing is over at once, a spin that hits plays its hits at pace.
 const TEMPO_FAST = .4;
 const tempo = () => (state.skip || $("turbo").checked) ? TEMPO_FAST : 1;
+// The Multi's whole show - the can spraying its value on, the blow-out and its neighbours' pops,
+// the value landing - plays this many times faster than it was first timed (owner, 2026-10-22:
+// "speed the pop up time for the multiplier up by 1.5x"). The CSS reads it as --multi-rate.
+const MULTI_RATE = 1.5;
+document.documentElement.style.setProperty("--multi-rate", MULTI_RATE);
 // a landing tile's note: the higher up the pile it lands, the higher it rings
 const dropPitch = row => .85 + .09 * (ROWS - 1 - row);
 // Every falling icon keeps its own pace, a touch either side of the usual - a duration
@@ -2474,7 +2481,7 @@ function setCell(r, y, sym) {
 
 /* ---------- animated symbols ---------- */
 // Every symbol is a Spine 4.2 skeleton: tools/icon_rigs cuts the icon art into parts, packs
-// them into one atlas (assets/icons/icons.png) and authors each icon's clips - "idle" (its own
+// them into one atlas (assets/icons/icons*.webp) and authors each icon's clips - "idle" (its own
 // performance, played as the symbol drops in and every so often between rounds: the lowrider
 // hops on its hydraulics, the spray can's cloud billows and sheds puffs, the marker redraws its
 // line...), "land" (a spare, for a rig without an idle) and "win". The Spine runtime
@@ -2489,6 +2496,61 @@ const RIG_FX = typeof KeyframeEffect === "function" && typeof Animation === "fun
 const RIGS = {};             // symbol -> { w, h, parts: [{ w, h, bg, m, a }], clips: { name: { ms, kf: [keyframes | null per part] } } }
 let rigsReady = null;
 const rigPages = [];         // the atlas pages, decoded and held for as long as the page is up
+// The atlas ships at several densities (tools/icon_rigs/build.py: d10/ = 1.0 atlas px per rig
+// unit ... d48/, and the full 6.4 at the top). Every part is drawn in rig units, so a density is
+// only a different picture behind the same numbers. The game takes the one that matches the
+// screen: while a symbol animates the browser draws it with plain bilinear filtering (no
+// mipmaps), so pages several times denser than the screen went jagged and shimmered whenever a
+// symbol moved, and pages thinner than the screen go soft. Picked so a symbol at rest is drawn
+// at about its own pixels (a touch over, for the win pops), and picked again when the window's
+// size changes the board's.
+const RIG_DENSITY = [1, 1.2, 1.4, 1.6, 2, 2.4, 3.2, 4, 4.8, 6.4];
+const RIG_HEADROOM = 1.5;    // atlas px per screen px at rest: crisp at rest and through the lit hold (x1.2), and
+                             // measured (scratch animq.js, 1080p): 1.5-1.7x still draws clean in motion, 3x+ goes jagged
+let rigDensity = 6.4, rigPageNames = [];
+const rigPageUrl = (name, d = rigDensity) => "assets/icons/" + (d >= 6.4 ? "" : "d" + Math.round(d * 10) + "/") + name;
+// device px per rig unit for the biggest symbol at rest, times the headroom -> the density to load
+function rigWantDensity() {
+  const c = cellEls[0] && cellEls[0][0], dpr = window.devicePixelRatio || 1;
+  let px = dpr;   // no board laid out yet: about a css px per unit
+  if (c && c.offsetWidth && c.offsetHeight) {
+    const bw = c.clientWidth * .88, bh = c.clientHeight * .88;   // the rig's box (measureRigBox)
+    let unit = 0;
+    for (const r of Object.values(RIGS)) unit = Math.max(unit, Math.min(bw / r.w, bh / r.h));
+    if (!unit) unit = Math.max(bw, bh) / 100;   // before the rigs are baked: the widest a 100-unit icon can be drawn
+    const fit = c.getBoundingClientRect().width / c.offsetWidth;   // #app's fit-to-screen scale (and the board's)
+    px = unit * (fit > 0 ? fit : 1) * dpr;
+  }
+  const force = +new URLSearchParams(location.search).get("atlas");   // QA: ?atlas=1.6 pins a density
+  if (RIG_DENSITY.includes(force)) return force;
+  const need = px * RIG_HEADROOM;
+  return RIG_DENSITY.find(d => d >= need - 1e-6) || RIG_DENSITY[RIG_DENSITY.length - 1];
+}
+// A new window size can call for another density: fetch and decode its pages first, then point
+// every symbol (the templates and the cells on the board) at them in one go.
+let rigDensityBusy = false;
+async function rigCheckDensity() {
+  if (rigDensityBusy || !rigPageNames.length) return;
+  const want = rigWantDensity();
+  if (want === rigDensity) return;
+  rigDensityBusy = true;
+  try {
+    const pics = rigPageNames.map(n => { const im = new Image(); im.src = rigPageUrl(n, want); return im; });
+    await Promise.all(pics.map(im => im.decode().catch(() => {})));
+    const from = rigDensity;
+    rigDensity = want;
+    const swap = el => { const b = el.style.backgroundImage; if (b) el.style.backgroundImage = b.replace(/assets\/icons\/(?:d\d+\/)?/, "assets/icons/" + (want >= 6.4 ? "" : "d" + Math.round(want * 10) + "/")); };
+    for (const r of Object.values(RIGS)) {
+      r.parts.forEach(pt => { if (pt.bg) pt.bg = pt.bg.replace(rigPageUrl("", from), rigPageUrl("", want)); });
+      if (r.tpl) r.tpl.querySelectorAll(".part").forEach(swap);
+    }
+    document.querySelectorAll(".rig .part").forEach(swap);
+    rigPages.length = 0; rigPages.push(...pics);
+  } finally { rigDensityBusy = false; }
+  rigCheckDensity();   // the window may have moved on while the pages loaded
+}
+let rigDensityTimer = 0;
+addEventListener("resize", () => { clearTimeout(rigDensityTimer); rigDensityTimer = setTimeout(rigCheckDensity, 400); });
 function loadRigs() {
   if (rigsReady) return rigsReady;
   rigsReady = (async () => {
@@ -2498,9 +2560,11 @@ function loadRigs() {
       fetch("assets/icons/icons.json").then(r => r.ok ? r.json() : Promise.reject(new Error("rigs " + r.status))),
     ]);
     const atlas = new spine.TextureAtlas(atlasText);
+    rigPageNames = atlas.pages.map(p => p.name);
+    rigDensity = rigWantDensity();
     // the pages are drawn by CSS, not by Spine: have them decoded before a cell shows them, and
     // keep hold of them so the decoded pictures are never let go and fetched in again mid-spin
-    await Promise.all(atlas.pages.map(p => { const im = new Image(); im.src = "assets/icons/" + p.name; rigPages.push(im); return im.decode().catch(() => {}); }));
+    await Promise.all(rigPageNames.map(n => { const im = new Image(); im.src = rigPageUrl(n); rigPages.push(im); return im.decode().catch(() => {}); }));
     const json = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas));
     for (const [name, data] of Object.entries(bundle)) {
       try { RIGS[name] = bakeRig(json.readSkeletonData(data)); }
@@ -2541,7 +2605,7 @@ function bakeRig(data) {
     if (!reg) return { w: 0, h: 0, bg: "", ...rest[i] };
     const k = att.width / reg.width;                              // skeleton units per atlas pixel
     return { w: att.width, h: att.height, ...rest[i],
-      bg: `url("assets/icons/${reg.page.name}") ${(-reg.x * k).toFixed(3)}px ${(-reg.y * k).toFixed(3)}px / ${(reg.page.width * k).toFixed(3)}px ${(reg.page.height * k).toFixed(3)}px no-repeat` };
+      bg: `url("${rigPageUrl(reg.page.name)}") ${(-reg.x * k).toFixed(3)}px ${(-reg.y * k).toFixed(3)}px / ${(reg.page.width * k).toFixed(3)}px ${(reg.page.height * k).toFixed(3)}px no-repeat` };
   });
   const clips = {};
   for (const anim of data.animations) {
@@ -2696,13 +2760,13 @@ function winClipMs(cells) {
 }
 // Play one of a symbol's clips. Clips start and end on the rest pose, so a finished one simply
 // hands the parts back to it; a new clip cuts the running one. Rapid and Skip speed them up.
-function rigPlay(cell, clip, { loop = false } = {}) {
+function rigPlay(cell, clip, { loop = false, speed = 1 } = {}) {
   const el = rigOf(cell);
   if (!el || REDUCED_MOTION) return null;
   const c = el._rig.clips[clip];
   if (!c) return null;
   rigStop(el);
-  const rate = 1 / tempo();
+  const rate = speed / tempo();
   const anims = [];
   el._parts.forEach((p, i) => {
     if (!c.kf[i]) return;
@@ -2787,6 +2851,7 @@ function startRigs() {
   loadRigs().then(ok => {
     if (!ok) return;
     measureRigBox();
+    rigCheckDensity();   // the pick at load may have come before the board was fitted to the screen
     // the board is already showing flat icons: swap every cell for its animated self
     for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
       const sym = shownSym[r] && shownSym[r][y];
@@ -2850,9 +2915,21 @@ function bareMulti(cell) {
 }
 function sprayDue(cell) { if (cell && cell._spray === "due") sprayMulti(cell); }
 // Every bare Multi painted: one whose landing went unseen (a drop cut short) is sent its can now.
+// The round can never be held hostage by it: a can that cannot run (a hidden tab, a cell whose
+// symbol changed, art that never loaded) just leaves the value painted on, and however the jobs
+// turn out the wait gives up after a few seconds and paints every bare Multi there is.
 async function spraysDone() {
   eachCell(sprayDue);
-  while (sprayJobs.size) await Promise.all([...sprayJobs]);
+  const deadline = Date.now() + 6000;
+  while (sprayJobs.size && Date.now() < deadline) {
+    await Promise.race([Promise.all([...sprayJobs]), new Promise(r => setTimeout(r, 250))]);
+  }
+  sprayJobs.clear();
+  eachCell(c => {
+    if (c._spray) c._spray = null;
+    const m = c.ico && c.ico.querySelector(".multface.bare");
+    if (m) m.classList.remove("bare");
+  });
 }
 // An element's resting place on the board, from offsets - whatever transform it is animating
 // through right now, this is where it sits (the same walk placeMultLayer does for the cells).
@@ -2884,8 +2961,8 @@ async function sprayRun(cell) {
   // the tints are made behind the loading screen; a page that skipped it waits a beat for them
   if (!Object.keys(sprayPics).length) await Promise.race([prepareSpray(), new Promise(r => setTimeout(r, 1500))]);
   const pics = sprayPicsFor(m._mult || 2);
-  if (!pics || document.hidden || cell._spray !== "on") return;
-  const t = tempo(), rnd = (a, b) => a + Math.random() * (b - a);
+  if (!pics || document.hidden || cell._spray !== "on") { m.classList.remove("bare"); return; }   // no can: the value is simply there
+  const t = tempo() / MULTI_RATE, rnd = (a, b) => a + Math.random() * (b - a);
   const T = { in: 300 * t, rattle: 210 * t, sweep: 580 * t, out: 340 * t };
   const sweepAt = T.in + T.rattle, sweepEnd = sweepAt + T.sweep, total = sweepEnd + T.out;
   // where the figure sits, in board px: the can sweeps along it, a little under its middle
@@ -4092,22 +4169,22 @@ const handlers = {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
       const multi = at(b), hits = (b.cells || []).map(at).filter(c => c !== multi);
       multi.classList.add("boom", "winhit");
-      rigPlay(multi, "win");
+      rigPlay(multi, "win", { speed: MULTI_RATE });
       // every Multi in a round rings a little higher than the one before, and a run of them
       // is its own event: the third, and every third after, gets the jackpot alert (A, B, A...)
       state.multiCount++; state.multiTotal++;
       sfx("multiHit", Math.min(1.9, 1 + .07 * (state.multiCount - 1)));
       if (state.multiCount >= 3 && state.multiCount % 3 === 0) sfx((state.multiCount / 3) % 2 ? "alertA" : "alertB");
       tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
-      const lead = 360;   // the Multi's pop leads; its neighbours follow
+      const lead = 360 / MULTI_RATE;   // the Multi's pop leads; its neighbours follow
       await hold(lead);
-      for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "win"); }
+      for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "win", { speed: MULTI_RATE }); }
       // every performance - the Multi's and its neighbours' - plays through before anything moves on
-      await hold(Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - lead) + 80));
+      await hold((Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - 360) + 80)) / MULTI_RATE);
     }
     state.grid = (ev.gridMults || []).map(col => col.slice());
     paintGrid();
-    await hold(200);   // the values sit on the lit tiles a beat before they pop
+    await hold(200 / MULTI_RATE);   // the values sit on the lit tiles a beat before they pop
     eachCell(el => el.classList.remove("boom", "hit"));
     clearFxWins();
     $("board").classList.remove("spotlight");
@@ -5145,10 +5222,10 @@ function assetUrls() {
     try { walk(sheet.cssRules); } catch (err) { /* a sheet from elsewhere: nothing to read */ }
   }
   for (const def of Object.values(SYM)) if (def.img) urls.add(def.img);
-  for (const n of ["0","1","2","3","4","5","6","7","8","9","dot","comma"]) urls.add("assets/num/" + n + ".png");
+  for (const n of ["0","1","2","3","4","5","6","7","8","9","dot","comma"]) urls.add("assets/num/" + n + ".webp");
   // the win screen's lettering, named rather than read off WIN_TIERS: that list is declared
   // further down the file than this screen runs
-  for (const n of ["total_win", "big_win", "mega_win", "xtreme_win"]) urls.add("assets/" + n + ".png");
+  for (const n of ["total_win", "big_win", "mega_win", "xtreme_win"]) urls.add("assets/" + n + ".webp");
   urls.add("assets/wall_tag.webp");   // the tag on the wall is an <img>, so no rule names it
   return [...urls];
 }
@@ -5406,7 +5483,7 @@ function numeralRow(text) {
   const flush = () => { if (sym) { html += `<span class="sym">${sym.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</span>`; sym = ""; } };
   for (const ch of String(text)) {
     const name = /[0-9]/.test(ch) ? ch : NUMERAL[ch];
-    if (name) { flush(); html += `<img src="assets/num/${name}.png" alt="${ch}" draggable="false">`; }
+    if (name) { flush(); html += `<img src="assets/num/${name}.webp" alt="${ch}" draggable="false">`; }
     else if (ch === " ") { flush(); }
     else sym += ch;
   }
@@ -5421,9 +5498,9 @@ function numeralRow(text) {
 // The marks the headline climbs through, in multiples of the bet - the same three the base
 // game and the bonus share.
 const WIN_TIERS = [
-  { at: 15,  art: "big_win.png",    label: "Big win",    rate: 1 },
-  { at: 40,  art: "mega_win.png",   label: "Mega win",   rate: 1.22 },
-  { at: 100, art: "xtreme_win.png", label: "Xtreme win", rate: 1.5 },
+  { at: 15,  art: "big_win.webp",    label: "Big win",    rate: 1 },
+  { at: 40,  art: "mega_win.webp",   label: "Mega win",   rate: 1.22 },
+  { at: 100, art: "xtreme_win.webp", label: "Xtreme win", rate: 1.5 },
 ];
 const OVER_BOARD_AT = 10;   // a spin has to pay MORE than this many times the bet for the popup
 for (const t of WIN_TIERS) { const i = new Image(); i.src = "assets/" + t.art; }   // ready before it is wanted
@@ -5567,7 +5644,7 @@ function totalWinScreen(amount, { total = true } = {}) {
     wrap.innerHTML =
       `<div class="twin">` +
         `<div class="twhead blank">` +   // every headline the popup can show, stacked, so a swap is instant
-          [...WIN_TIERS.map(t => t.art), "total_win.png"].map(art =>
+          [...WIN_TIERS.map(t => t.art), "total_win.webp"].map(art =>
             `<img class="twlogo" data-art="${art}" src="assets/${art}" alt="" draggable="false">`).join("") +
         `</div>` +
         `<div class="twamount"><div class="twfig">${numeralRow(fmt(0))}</div></div>` +
@@ -5715,7 +5792,7 @@ function totalWinScreen(amount, { total = true } = {}) {
           wrap.classList.add("swap");           // the counting screen fades out
           step(REDUCED_MOTION ? 0 : 360, () => {
             if (phase !== 1) return;
-            showArt("total_win.png", T("Total win"));
+            showArt("total_win.webp", T("Total win"));
             head.classList.remove("blank", "tier");   // TOTAL WIN is its own art: no tier splash under it
             wrap.setAttribute("aria-label", T("Total win") + " " + fmt(amount));
             amountEl.innerHTML = numeralRow(fmt(amount));

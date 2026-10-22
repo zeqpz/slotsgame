@@ -26,8 +26,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SRC_DIR = os.path.join(ROOT, "art", "icons-src")      # the full-size icon art (the game ships flat/ WebP copies and the rigs)
 OUT_DIR = os.path.join(ROOT, "frontend", "assets", "icons")
-OUT_PX_PER_UNIT = 3.2      # atlas pixels per skeleton unit: a 100-unit icon is 320 px - sharp at 2x DPR with a win pop
-PAD = 2                    # transparent pixels round every atlas region
+OUT_PX_PER_UNIT = 6.4      # atlas pixels per skeleton unit: a 100-unit icon is 640 px - drawn at or under its own pixels on a 2x-DPR (Retina / 4K) screen, win pop included (measured 2026-10-22: 3.2 was stretched 2x there)
+PAD = 12                   # transparent pixels round every atlas region: 1.9 px even on the smallest density (1/6.4 of this)
 
 # ------------------------------------------------------------------ masks
 class Canvas:
@@ -500,10 +500,11 @@ def pack(images, page=2048):
 
 
 def trim_pages(pages):
-    """Crop each page to its used height (rounded up to a multiple of 4)."""
+    """Crop each page to its used height, rounded up to a multiple of 32 so every density the
+    pages are scaled down to (n/32 of full, build.py DENSITIES) comes out a whole number of pixels."""
     out = []
     for p in pages:
-        bb = p.getbbox() or (0, 0, 4, 4)
-        h = min(p.height, ((bb[3] + PAD + 3) // 4) * 4)
+        bb = p.getbbox() or (0, 0, 32, 32)
+        h = min(p.height, ((bb[3] + PAD + 31) // 32) * 32)
         out.append(p.crop((0, 0, p.width, h)))
     return out

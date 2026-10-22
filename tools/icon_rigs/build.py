@@ -5,7 +5,7 @@
   python tools/icon_rigs/build.py --preview-only L10   # just the preview sheet, nothing written to the game
 
 Writes:
-  frontend/assets/icons/icons.webp (+ icons_2.webp ...), icons.atlas  one shared Spine atlas (lossless WebP)
+  frontend/assets/icons/icons.webp (+ icons_2.webp ...), icons.atlas  one shared Spine atlas (WebP q95, lossless alpha)
   frontend/assets/icons/icons.json                                    {ID: Spine 4.2 skeleton}  (what the game loads)
   art/icons-spine/<ID>.json                                           the same skeletons one per file (Spine editor import)
   tools/icon_rigs/_preview/<ID>_<clip>.png                            Pillow preview sheets (not shipped)
@@ -19,6 +19,25 @@ HERE = rigkit.HERE
 RECIPES = os.path.join(HERE, "recipes")
 PREVIEW = os.path.join(HERE, "_preview")
 ART = os.path.join(rigkit.ROOT, "art", "icons-spine")
+
+
+# the lower densities the atlas also ships at (px per rig unit; full is rigkit.OUT_PX_PER_UNIT = 6.4).
+# Each is n/32 of full, so a page height that is a multiple of 32 scales to whole pixels. Keep in
+# step with RIG_DENSITY in frontend/index.html.
+DENSITIES = (1.0, 1.2, 1.4, 1.6, 2.0, 2.4, 3.2, 4.0, 4.8)
+
+
+def downscale(im, size):
+    """Lanczos with premultiplied alpha: transparent padding never darkens the parts' edges."""
+    import numpy as np
+    a = np.asarray(im.convert("RGBA")).astype(np.float32)
+    al = a[..., 3:4] / 255.0
+    pm = np.concatenate([a[..., :3] * al, a[..., 3:4]], -1)
+    ch = [np.asarray(Image.fromarray(pm[..., i], "F").resize(size, Image.LANCZOS), np.float32) for i in range(4)]
+    out = np.stack(ch, -1)
+    alpha = out[..., 3:4].clip(0, 255)
+    rgb = np.where(alpha > .5, out[..., :3] * 255.0 / np.maximum(alpha, 1e-3), 0)
+    return Image.fromarray(np.concatenate([rgb, alpha], -1).clip(0, 255).round().astype(np.uint8), "RGBA")
 
 
 def load_recipe(path):
@@ -95,16 +114,33 @@ def main(argv):
     os.makedirs(rigkit.OUT_DIR, exist_ok=True)
     for f in glob.glob(os.path.join(rigkit.OUT_DIR, "icons*.png")) + glob.glob(os.path.join(rigkit.OUT_DIR, "icons*.webp")):
         os.remove(f)
-    # lossless WebP: the same pixels as the PNG, a good deal smaller
+    # WebP at quality 95 with lossless alpha: at 6.4 px per unit (double what any screen shows on a
+    # 1x display) the lossy error (mean 1.4 levels) is far below what reaches the screen, and the
+    # pages weigh half the lossless ones
     page_names = ["icons.webp"] + [f"icons_{i + 1}.webp" for i in range(1, len(pages))]
     lines = []
     for pi, (pg, pn) in enumerate(zip(pages, page_names)):
-        pg.save(os.path.join(rigkit.OUT_DIR, pn), "WEBP", lossless=True, method=6, exact=True)
+        pg.save(os.path.join(rigkit.OUT_DIR, pn), "WEBP", quality=95, alpha_quality=100, method=6)
         if pi: lines.append("")
         lines += [pn, f"size: {pg.width},{pg.height}", "format: RGBA8888", "filter: Linear,Linear", "repeat: none", "pma: false"]
         for reg, (p, x, y, w, h) in sorted(placed.items()):
             if p != pi: continue
             lines += [reg, "  rotate: false", f"  xy: {x}, {y}", f"  size: {w}, {h}", f"  orig: {w}, {h}", "  offset: 0, 0", "  index: -1"]
+    # The same pages at lower densities, one folder each (d10/ = 1.0 px per unit, ... d48/), laid
+    # out identically - the game draws every part in rig units, so a density is only a different
+    # picture behind the same numbers. The game loads the one that matches the screen: a symbol
+    # that animates is drawn with plain bilinear filtering (no mipmaps), so a page much denser
+    # than the screen shimmers and goes jagged while it moves, and one much thinner goes soft.
+    for d in DENSITIES:
+        sub = os.path.join(rigkit.OUT_DIR, f"d{round(d * 10)}")
+        os.makedirs(sub, exist_ok=True)
+        for f in glob.glob(os.path.join(sub, "icons*.webp")):
+            os.remove(f)
+        k = d / rigkit.OUT_PX_PER_UNIT
+        for pg, pn in zip(pages, page_names):
+            size = (round(pg.width * k), round(pg.height * k))
+            assert abs(size[0] - pg.width * k) < 1e-6 and abs(size[1] - pg.height * k) < 1e-6, (pn, d, size)
+            downscale(pg, size).save(os.path.join(sub, pn), "WEBP", quality=95, alpha_quality=100, method=6)
     with open(os.path.join(rigkit.OUT_DIR, "icons.atlas"), "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(lines) + "\n")
     bundle = {}
