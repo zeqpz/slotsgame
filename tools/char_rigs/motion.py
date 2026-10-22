@@ -24,7 +24,8 @@ import animkit as ak2
 from animkit import sample, write, duration, delay, spring, settle, accel, smooth, DEFAULT
 
 KNEE_MAX = 60.0          # deg: deepest knee bend the boy's trousers are asked to make
-FOOT_KEEP = .3           # share of the skull's independent foot/leg shuffling that is kept
+FOOT_KEEP = .3           # share of the skull's foot/leg motion kept (what both feet do together)
+FOOT_APART = .12         # ... and of what they do against each other (the shoes overlap)
 
 
 def ch_get(ch, n, bone, comp):
@@ -177,11 +178,24 @@ def skull_reaction(j, name, take=True):
     D = duration(a)
     t, ch = sample(a, D)
     n = len(t)
-    # planted feet: keep only a little of each foot's and leg's own shuffling
-    for b in ("leg_left", "leg_right", "foot_left", "foot_right"):
+    # planted feet: the shoes overlap, so they move together - what the two feet do in common is
+    # kept at FOOT_KEEP, what they do against each other at FOOT_APART
+    for kind in ("leg", "foot"):
+        L, R = f"{kind}_left", f"{kind}_right"
         for c in ("x", "y", "rotate"):
-            if b in ch and c in ch[b]:
-                ch[b][c] = ch[b][c] * FOOT_KEEP
+            l = ch_get(ch, n, L, c); r = ch_get(ch, n, R, c)
+            if not (np.ptp(l) or np.ptp(r)): continue
+            d0 = DEFAULT[c]
+            com = ((l - d0) + (r - d0)) / 2; dif = ((l - d0) - (r - d0)) / 2
+            keep, apart = FOOT_KEEP, FOOT_APART
+            if kind == "foot":
+                # the front shoe overlaps the back one: any difference between them - even the
+                # same tilt about two different heels - slides one over the other and shows the
+                # join. The shoes move as one, by translation only.
+                apart = 0.0
+                if c == "rotate": keep = 0.0
+            ch_set(ch, L, c, d0 + com * keep + dif * apart)
+            ch_set(ch, R, c, d0 + com * keep - dif * apart)
     W = fk(j, ch, n, ["motion", "torso"])
     my = smooth(W["motion"][5], t, .04)
     ay = smooth(accel(my, t), t, .03)

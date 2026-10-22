@@ -27,6 +27,7 @@ import meshkit as mk
 import atlaskit as ak
 
 BODY = ["shoe_left", "shoe_right", "leg_left", "leg_right", "torso", "arm_left", "arm_right", "pocket"]
+OUTLINE_REACH = 22                # px: the drawing's thickest outlines between parts
 BOX = (-430, -20, 350, 1000)      # world rect holding the whole body (x0, y0, x1, y1)
 
 # Rough part areas (world units, y up) used only to say which painted area belongs to what.
@@ -126,11 +127,25 @@ def segment(cv, comp, black_lum=24, min_comp=40):
     todo = (rgba[..., 3] > 0) & (label < 0)
     out = label.copy()
     out[todo] = nearest[todo]
-    # an outline between two parts belongs to the one in front
+    # An outline between two parts belongs to the one in front, all the way across: a back part
+    # left holding part of its neighbour's outline showed it as a ragged black edge whenever the
+    # two moved apart (the shoes in big_win). The back part runs on, painted, beneath instead.
     blk = todo & black
     for p in PRIORITY[::-1]:          # back first, so the front-most claim wins
-        claim = blk & (dist[p] <= np.minimum(dmin + 9, 14))
+        claim = blk & (dist[p] <= np.minimum(dmin + 20, OUTLINE_REACH))
         out[claim] = p
+    # ...and so does the anti-aliased rim where the back part's paint meets that outline (left
+    # with the back part it read as a dark hairline along the old boundary)
+    from scipy import ndimage
+    deep = (out >= 0) & ~black & (cv2.distanceTransform((~black).astype(np.uint8), cv2.DIST_L2, 5) > 3)
+    _, (iy, ix) = ndimage.distance_transform_edt(~deep, return_indices=True)
+    paint_lum = lum[iy, ix]
+    for q in PRIORITY:
+        qb = (out == q) & black
+        if not qb.any(): continue
+        near_q = cv2.distanceTransform((~qb).astype(np.uint8), cv2.DIST_L2, 5) <= 2.5
+        rim = near_q & (out > q) & ~black & (lum < paint_lum - 20)
+        out[rim] = q
     # the soft outer edge of the sticker border counts as border too
     border |= (rgba[..., 3] > 0) & (rgba[..., 3] < 255) & (lum > 200)
     # The delivered sticker outline steps and thins where the old rectangle cuts crossed it (the
@@ -223,6 +238,34 @@ def nearest_fill(rgb, known):
 BORDER_W = 10.0           # the white sticker outline round the figure, px (measured median 11)
 
 
+HOOD_RGB = (26, 26, 30)
+
+
+def hood_backing(j, atlas, pages, W, cv, comp):
+    """The inside of the hood: wherever the hoodie art was cut away for the face. The face
+    covers it in the setup pose, but a turn of the head opened slivers of wall between the jaw
+    and the hood (worst beside the cigar). A dark backing filling exactly that opening, a few px
+    under the hood's edge, hangs on the torso behind everything. Returns (mask, RGBA image,
+    pixel offset of the image on the canvas)."""
+    from scipy import ndimage
+    _, _, lay = master(j, atlas, pages, W, slots=["face"])
+    body = comp[..., 3] > .5
+    face = lay["face"][0][..., 3] > .3
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
+    closed = cv2.morphologyEx((body | face).astype(np.uint8), cv2.MORPH_CLOSE, k).astype(bool)
+    filled = ndimage.binary_fill_holes(closed)
+    wy = cv.oy - (np.arange(cv.h)[:, None] + .5) * np.ones((1, cv.w))
+    inner = filled & ~body & (wy > 640)
+    inner = cv2.dilate(inner.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))).astype(bool) & filled
+    a = cv2.GaussianBlur(inner.astype(np.float32), (0, 0), 1.2)
+    ys, xs = np.nonzero(a > .01)
+    x0, y0 = max(0, xs.min() - 2), max(0, ys.min() - 2)
+    x1, y1 = min(cv.w, xs.max() + 3), min(cv.h, ys.max() + 3)
+    img = np.zeros((y1 - y0, x1 - x0, 4), np.uint8)
+    img[..., :3] = HOOD_RGB; img[..., 3] = (a[y0:y1, x0:x1] * 255).astype(np.uint8)
+    return inner, img, (x0, y0)
+
+
 def head_cover(j, atlas, pages, W, cv, grow=14):
     """Where the face (and the hood backing behind it) covers the body in the setup pose: the
     hood's opening is not an outline, so no part lays a sticker outline there."""
@@ -279,6 +322,8 @@ def build_parts(cv, rgba, lab, border, no_sticker=None):
             ext = shift_union(src, 0, -1, 34) & (masks[1] | masks[2])
             if p == 4:
                 ext |= (shift_union(src, 1, 0, 34) | shift_union(src, 1, -1, 24)) & masks[3]
+        if p:   # whatever the direction, a back part always runs on a little under the parts in front
+            ext |= (ndimage.distance_transform_edt(~m) <= 7) & front
         # its own pixels, and the true drawing for 2 px past each cut, anti-aliased (a hard-edged
         # bleed showed as a jagged staircase whenever the part moved off its neighbour)
         # - but only the drawing's outline ink: a neighbour's paint carried along on the edge
@@ -287,7 +332,7 @@ def build_parts(cv, rgba, lab, border, no_sticker=None):
         d_m = ndimage.distance_transform_edt(~m)
         ink = lum < 80
         cut_a = np.where(ink, np.clip(2.5 - d_m, 0, 1), np.clip(1.2 - d_m, 0, 1))
-        own = (cut_a > 0) & A
+        own = (cut_a > 0) & A & (m | ~front)     # never into a part in front (it runs on under that)
         img = np.zeros((cv.h, cv.w, 4), np.uint8)
         edge_rgb = np.where((ink | m)[..., None], rgb, nearest_fill(rgb, m))
         img[own, :3] = edge_rgb[own]; img[own, 3] = (rgba[own, 3] * cut_a[own]).astype(np.uint8)
@@ -300,6 +345,10 @@ def build_parts(cv, rgba, lab, border, no_sticker=None):
             if p in (3, 4):
                 fill[ext & (masks[1] | masks[2])] = SOCK     # under a cuff: dark sock
             fill = cv2.GaussianBlur(fill, (5, 5), 0)
+            # under the front part's outline the run-on is that outline's ink: if the parts drift
+            # apart, black meets black instead of opening a line of paint between them
+            under_ink = ext & (lum < 80) & A
+            fill[under_ink] = rgb[under_ink]
             # the run-on fades out over its last few px instead of ending in a hard edge
             d_out = cv2.distanceTransform((ext | own).astype(np.uint8), cv2.DIST_L2, 5)
             fade = np.clip(d_out / 7., 0, 1)
@@ -446,8 +495,19 @@ def fix(j, atlas, pages, extra_regions=None):
     cv, comp, layers = master(j, atlas, pages, W)
     lab, rgba, border = segment(cv, comp)
     field = weight_field(cv, layers, len(bones))
-    parts = build_parts(cv, rgba, lab, border, head_cover(j, atlas, pages, W, cv))
+    hood, hood_img, (hx, hy) = hood_backing(j, atlas, pages, W, cv, comp)
+    # the hood's opening is not the figure's edge: no part lays a sticker outline along it
+    parts = build_parts(cv, rgba, lab, border, hood)
     parts[5] = crotch_fill(cv)
+    # the hood backing replaces the delivered ellipse (neck_fill): same slot, behind everything
+    if "neck_fill" in j["skins"][0]["attachments"]:
+        hh, hw = hood_img.shape[:2]
+        cx, cy = cv.to_world(np.array([[hx + hw / 2, hy + hh / 2]]))[0]
+        tb = W["torso"]
+        assert abs(tb[2]) < 1e-6 and abs(tb[0] - 1) < 1e-6
+        lx, ly = mk.to_local(tb, (cx, cy))
+        j["skins"][0]["attachments"]["neck_fill"] = {"neck_fill": {"x": round(lx, 2), "y": round(ly, 2), "width": hw, "height": hh}}
+        extra_regions = dict(extra_regions or {}, neck_fill=Image.fromarray(hood_img, "RGBA"))
 
     def field_at(world):
         px = np.clip(np.floor(cv.to_px(world)).astype(int), 0, [cv.w - 1, cv.h - 1])

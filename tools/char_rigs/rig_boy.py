@@ -23,7 +23,8 @@ import atlaskit as ak
 
 KNEE_BLEND = 118     # half-width (skeleton units) of the thigh -> knee -> shin blend
 HIP_BAND = (-30, 75)  # torso holds the waistband: full above the first value, none below the second
-GRID = 25            # mesh spacing in atlas px (the boy's atlas is about 1 px per skeleton unit)
+WHOLE_ARM_FRONT = True   # left arm: one layer in front of the shirt, under its own sleeve slot
+GRID = 25           # mesh spacing in atlas px (the boy's atlas is about 1 px per skeleton unit)
 
 
 def add_knee_helpers(j):
@@ -83,6 +84,45 @@ def rebuild_leg(j, side, atlas, pages, W):
     return len(P), len(T)
 
 
+# The lower part of the left sleeve, in the torso image's px: everything the forearm slides
+# under. Its top and right edges lie on solid shirt (drawn over the same shirt, so they never
+# show); its bottom is the sleeve's own drawn hem.
+SLEEVE = [(0, 104), (131, 104), (128, 140), (126, 160), (124, 172), (121, 177), (117, 181), (113, 183.5),
+          (110, 184), (100, 185), (60, 186), (20, 189), (0, 190)]   # the seam ends in a point at the hem
+
+
+def split_sleeve(j, atlas, pages):
+    """The forearm was drawn as two layers cut along a straight diagonal (elbow behind the
+    torso, forearm in front), so whenever the arm turned, that straight cut slid across the
+    sleeve - a hard diagonal edge of skin over the shirt. Now the whole arm is one layer in front
+    of the shirt and the sleeve's hem is lifted out of the torso art into its own slot in front of
+    the arm: the arm slides under the hem the way it does in the drawing."""
+    T = np.asarray(ak.crop(pages, atlas, "torso")).copy()
+    h, w = T.shape[:2]
+    S = 8                                                    # anti-aliased mask
+    big = np.zeros((h * S, w * S), np.uint8)
+    cv2.fillPoly(big, [np.round(np.array(SLEEVE, float) * S).astype(np.int32)], 255)
+    m = cv2.resize(big.astype(np.float32) / 255., (w, h), interpolation=cv2.INTER_AREA)
+    ys, xs = np.nonzero((m > 0) & (T[..., 3] > 0))
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    img = T.copy(); img[..., 3] = (img[..., 3] * m + .5).astype(np.uint8)
+    img = img[y0:y1, x0:x1]
+    sw, sh = x1 - x0, y1 - y0
+    pg = atlas.pages[-1]["name"]
+    spot = ak.free_spot(atlas, pg, sw, sh)
+    assert spot, "no room for the sleeve"
+    atlas.add(pg, "sleeve_left", spot[0], spot[1], sw, sh)
+    ak.paste(pages, atlas, "sleeve_left", Image.fromarray(img, "RGBA"))
+    ta = j["skins"][0]["attachments"]["torso"]["torso"]
+    assert not any(k in ta for k in ("rotation", "scaleX", "scaleY"))
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    j["skins"][0]["attachments"]["sleeve_left"] = {"sleeve_left": {
+        "x": round(ta.get("x", 0) + cx - ta["width"] / 2, 2), "y": round(ta.get("y", 0) - (cy - ta["height"] / 2), 2),
+        "width": int(sw), "height": int(sh)}}
+    # appended last: the draw-order keys of the cash clips address slots by index
+    j["slots"].append({"name": "sleeve_left", "bone": "torso", "attachment": "sleeve_left"})
+
+
 def merge_arm(atlas, pages, overlap=3):
     """The left arm is drawn as two layers cut along one diagonal: arm_upper (elbow, behind the
     torso) and arm_left (forearm, in front). Both cut edges are anti-aliased, and two half-covered
@@ -100,6 +140,9 @@ def merge_arm(atlas, pages, overlap=3):
     seam = (up[..., 3] > .02) & (fo[..., 3] > .02)
     whole[seam] = whole[seam] / np.maximum(whole[seam][:, 3:4], 1e-6)   # fully covered along the cut
     ak.paste(pages, atlas, "arm_upper", Image.fromarray(mk.unpremul(whole), "RGBA"))
+    if WHOLE_ARM_FRONT:     # the sleeve is its own slot over the arm (split_sleeve): no cut at all
+        ak.paste(pages, atlas, "arm_left", Image.fromarray(mk.unpremul(whole), "RGBA"))
+        return
     core = (fo[..., 3] > .5).astype(np.uint8)
     d = cv2.distanceTransform(1 - core, cv2.DIST_L2, 5)
     run = (d <= overlap) & (up[..., 3] > .02) & (fo[..., 3] < .995)
@@ -305,6 +348,8 @@ def fix(j, atlas, pages):
     stats = {s: rebuild_leg(j, s, atlas, pages, W) for s in ("left", "right")}
     stats["inner thigh px"] = inner
     stats["shoe holes px"] = fill_shoe_holes(atlas, pages)
+    if WHOLE_ARM_FRONT:
+        split_sleeve(j, atlas, pages)
     merge_arm(atlas, pages)
     fix_wrists(j, atlas, pages, W)
     return stats

@@ -193,3 +193,10 @@ arm_upper
   orig: 214, 150
   offset: 0, 0
   index: -1
+sleeve_left
+  rotate: false
+  xy: 1344, 4
+  size: 132, 87
+  orig: 132, 87
+  offset: 0, 0
+  index: -1
