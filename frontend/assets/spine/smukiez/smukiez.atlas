@@ -130,6 +130,13 @@ hand_left_release
   orig: 230, 200
   offset: 0, 0
   index: -1
+hand_left_release_wrist
+  rotate: false
+  xy: 1556, 4
+  size: 230, 200
+  orig: 230, 200
+  offset: 0, 0
+  index: -1
 
 smukiez-3.webp
 size: 2048,256

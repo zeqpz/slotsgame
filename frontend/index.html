@@ -4849,6 +4849,14 @@ async function loadSpine(base, name) {
     source.autoGarbageCollect = false;   // a page a rare clip uses must never be dropped and uploaded again mid-game
     pages.push(source);
     page.setTexture(spine.SpineTexture.from(source));
+    // Trilinear (mipmapped) sampling: on a 1080p screen the rigs are drawn at a third to a half
+    // of their atlas size, and plain bilinear sampling skipped texels - outlines shimmered as
+    // the figures moved. Set after setTexture, whose atlas filter (Linear) turns mipmaps off.
+    // The pages are 2048 px squares (power of two), so WebGL1 can mip them too.
+    source.autoGenerateMipmaps = true;
+    source.style.minFilter = "linear";
+    source.style.magFilter = "linear";
+    source.style.mipmapFilter = "linear";
   }));
   const data = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
   return { data, pages };
@@ -4955,10 +4963,12 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
     if (oneShot(clip, want)) armFlavour();   // push the next break out past the reaction
   };
 
+  let fadeTimer = 0;   // the walk-off's fade, timed to its last beat (see exit)
   const enter = () => {
     if (!away) return;
     away = false;
     rank = -1; until = 0;
+    clearTimeout(fadeTimer);
     app.canvas.classList.add("on");
     if (REDUCED_MOTION) { actor.state.timeScale = 0; actor.skeleton.setToSetupPose(); return; }
     if (!oneShot("enter", CHAR_RANK.enter) && has("idle")) actor.state.setAnimation(0, "idle", true);
@@ -4969,10 +4979,16 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
     if (away) return;
     away = true;
     clearTimeout(timer);
+    // The whole figure fades as one layer (the canvas, .charfx canvas.on) rather than part by
+    // part - per-part fades let every part show through the next. The walk-off plays, and the
+    // canvas fade (--char-fade) covers its last beat; the next walk-on fades it back in.
+    clearTimeout(fadeTimer);
     if (REDUCED_MOTION || !has("exit")) { app.canvas.classList.remove("on"); return; }
     // exit ends on the hidden pose and holds it, so nothing is queued behind it
     actor.state.setAnimation(0, "exit", false);
     rank = CHAR_RANK.exit; until = performance.now() + lengthOf("exit");
+    const fade = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
+    fadeTimer = setTimeout(() => app.canvas.classList.remove("on"), Math.max(0, lengthOf("exit") - fade));
   };
 
   // a backgrounded tab throttles rAF; Pixi resumes on its own, but re-fit in case the
