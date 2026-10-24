@@ -10,9 +10,14 @@ bends like a soft tube of cloth instead of hinging. The waistband is held by the
 stays tucked under the shirt hem while the thighs swing.
 
 Left arm: drawn as two layers cut along one diagonal (arm_upper behind the torso, arm_left in
-front) with identical meshes and weights. Both cut edges are anti-aliased, so where they meet the
-background bled through as a thin pink line across the elbow. The back layer now carries the
-whole arm, so the front layer's soft edge always sits over the same arm.
+front). Both cut edges were anti-aliased, so the wall bled through as a hairline across the
+elbow, and the straight cut slid across the sleeve whenever the arm turned. The arm is now one
+whole layer in front of the shirt, and the sleeve's lower part is lifted out of the torso art
+into its own slot (sleeve_left) in front of the arm: the arm slides under the sleeve's hem.
+
+Also: the cash hands' wrists are rebuilt onto the forearm (fix_wrists), leg_right's inner edge
+below the crotch is redrawn as one smooth curve (fix_inner_thigh), and the front sneaker's
+see-through stitching is filled (fill_shoe_holes).
 """
 import math
 import numpy as np
@@ -24,7 +29,9 @@ import atlaskit as ak
 KNEE_BLEND = 118     # half-width (skeleton units) of the thigh -> knee -> shin blend
 HIP_BAND = (-30, 75)  # torso holds the waistband: full above the first value, none below the second
 WHOLE_ARM_FRONT = True   # left arm: one layer in front of the shirt, under its own sleeve slot
-GRID = 25           # mesh spacing in atlas px (the boy's atlas is about 1 px per skeleton unit)
+IK_SOFT = 30         # units: the legs' IK eases straight over the last this-much of reach
+CUFF_BAND = 90       # units above the foot over which the trouser hands over from shin to cuff bone
+GRID = 25          # mesh spacing in atlas px (the boy's atlas is about 1 px per skeleton unit)
 
 
 def add_knee_helpers(j):
@@ -40,6 +47,31 @@ def add_knee_helpers(j):
                   "mixRotate": 0.5, "mixX": 0, "mixY": 0, "mixScaleX": 0, "mixScaleY": 0, "mixShearY": 0})
         order += 1
     return [(f"knee_{s}", f"shin_{s}", 0.5) for s in ("left", "right")]
+
+
+def soften_ik(j, W):
+    """IK softness and a cuff that stays on the shoe.
+
+    A two-bone IK snaps as the hip-to-foot distance reaches the bones' full length: the knee
+    angle runs to zero in a frame or two (on every hop of win / big win the trouser legs visibly
+    kinked straight). With softness the knee eases straight over the last IK_SOFT units of
+    reach instead. The price is that a nearly straight leg now falls a little short of its foot -
+    so the trouser cuff is weighted to a cuff bone that rides the shin's rotation but is pinned
+    to the foot's position (a translate-only transform constraint): the cuff stays on the shoe."""
+    for ik in j.get("ik", []):
+        if ik["name"] in ("leg_left", "leg_right"):
+            ik["softness"] = IK_SOFT
+    B = {b["name"]: b for b in j["bones"]}
+    t = j.setdefault("transform", [])
+    order = 1 + max([c.get("order", 0) for c in j.get("ik", [])] + [c.get("order", 0) for c in t] + [0])
+    for side in ("left", "right"):
+        name = f"cuff_{side}"
+        if name in B: continue
+        lx, ly = mk.to_local(W[f"shin_{side}"], W[f"foot_{side}"][4:6])
+        j["bones"].append({"name": name, "parent": f"shin_{side}", "x": round(lx, 3), "y": round(ly, 3), "length": 30})
+        t.append({"name": name, "order": order, "bones": [name], "target": f"foot_{side}",
+                  "mixRotate": 0, "mixX": 1, "mixY": 1, "mixScaleX": 0, "mixScaleY": 0, "mixShearY": 0})
+        order += 1
 
 
 def rebuild_leg(j, side, atlas, pages, W):
@@ -67,6 +99,7 @@ def rebuild_leg(j, side, atlas, pages, W):
     inner = mk.interior(poly, spacing=GRID, margin=.5)
     P, T, nh = mk.triangulate(poly, inner)
     world = mk.apply_affine(A, P)
+    F = np.array(W[f"cuff_{side}"][4:6]) if f"cuff_{side}" in W else None
     weights = []
     for p in world:
         z = float((p - K) @ ax)
@@ -74,7 +107,11 @@ def rebuild_leg(j, side, atlas, pages, W):
         w_kn = 1 - w_th - w_sh
         zh = float((p - Hp) @ ut)                     # distance down the thigh from the hip
         hold = 1 - float(mk.smoothstep(HIP_BAND[0], HIP_BAND[1], zh))
-        ws = {f"thigh_{side}": w_th * (1 - hold), "torso": w_th * hold, f"knee_{side}": w_kn, f"shin_{side}": w_sh}
+        c = 0.0
+        if F is not None:                             # the cuff rides the cuff bone (pinned to the foot)
+            c = float(mk.smoothstep(-CUFF_BAND, -12, float((p - F) @ us)))
+        ws = {f"thigh_{side}": w_th * (1 - hold), "torso": w_th * hold, f"knee_{side}": w_kn,
+              f"shin_{side}": w_sh * (1 - c), f"cuff_{side}": w_sh * c}
         weights.append(ws)
     verts, uvs = mk.weighted_mesh(P, (rw, rh), world, weights, bidx, W)
     new = {"type": "mesh", "uvs": uvs, "triangles": [int(i) for i in T.flatten()], "vertices": verts,
@@ -344,7 +381,9 @@ def fix(j, atlas, pages):
             b["y"] = round(b.get("y", 0) - t.get("y", 0), 3)
     helpers = add_knee_helpers(j)
     W = mk.setup_world(j["bones"], helpers)
-    inner = fix_inner_thigh(atlas, pages)          # before the mesh, so the mesh hugs the new edge
+    soften_ik(j, W)
+    W = mk.setup_world(j["bones"], helpers)
+    inner = fix_inner_thigh(atlas, pages)        # before the mesh, so the mesh hugs the new edge
     stats = {s: rebuild_leg(j, s, atlas, pages, W) for s in ("left", "right")}
     stats["inner thigh px"] = inner
     stats["shoe holes px"] = fill_shoe_holes(atlas, pages)

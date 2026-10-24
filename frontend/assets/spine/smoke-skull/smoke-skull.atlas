@@ -14,8 +14,8 @@ smoke
 torso
   rotate: false
   xy: 318, 10
-  size: 576, 511
-  orig: 576, 511
+  size: 576, 521
+  orig: 576, 521
   offset: 0, 0
   index: -1
 shoe_left
@@ -46,13 +46,6 @@ leg_left
   orig: 218, 293
   offset: 0, 0
   index: -1
-ember_glow
-  rotate: false
-  xy: 1968, 337
-  size: 58, 65
-  orig: 58, 65
-  offset: 0, 0
-  index: -1
 ash_0
   rotate: false
   xy: 1336, 339
@@ -60,60 +53,67 @@ ash_0
   orig: 355, 299
   offset: 0, 0
   index: -1
-ash_1
+neck_fill
   rotate: false
   xy: 914, 365
+  size: 411, 292
+  orig: 411, 292
+  offset: 0, 0
+  index: -1
+ash_1
+  rotate: false
+  xy: 318, 541
   size: 273, 260
   orig: 273, 260
   offset: 0, 0
   index: -1
-crotch_fill
-  rotate: false
-  xy: 1208, 365
-  size: 117, 183
-  orig: 117, 183
-  offset: 0, 0
-  index: -1
 ash_2
   rotate: false
-  xy: 318, 531
+  xy: 612, 541
   size: 207, 209
   orig: 207, 209
   offset: 0, 0
   index: -1
-neck_fill
+ember_glow
   rotate: false
-  xy: 546, 531
-  size: 340, 190
-  orig: 340, 190
+  xy: 840, 541
+  size: 58, 65
+  orig: 58, 65
   offset: 0, 0
   index: -1
-cigar_clean
+crotch_fill
   rotate: false
   xy: 10, 564
-  size: 200, 182
-  orig: 200, 182
+  size: 117, 183
+  orig: 117, 183
   offset: 0, 0
   index: -1
 smoke_wisp
   rotate: false
-  xy: 906, 635
+  xy: 148, 564
   size: 160, 170
   orig: 160, 170
   offset: 0, 0
   index: -1
-ash_3
+cigar_clean
   rotate: false
-  xy: 1086, 635
-  size: 148, 158
-  orig: 148, 158
+  xy: 1712, 640
+  size: 200, 182
+  orig: 200, 182
   offset: 0, 0
   index: -1
 ash_4
   rotate: false
-  xy: 1712, 640
+  xy: 1932, 640
   size: 101, 97
   orig: 101, 97
+  offset: 0, 0
+  index: -1
+ash_3
+  rotate: false
+  xy: 1346, 648
+  size: 148, 158
+  orig: 148, 158
   offset: 0, 0
   index: -1
 

@@ -1,8 +1,28 @@
 """Character rig pass: art/characters-src/<rig>.json (the rigs as delivered) -> frontend/assets/spine/.
 
-  python tools/char_rigs/enhance.py [--out <dir>]
+  python tools/char_rigs/enhance.py [--out <dir>] [--only smukiez|smoke-skull]
 
-(work in progress - see the module docstrings of rig_boy.py / rig_skull.py)
+Needs PIL, numpy, scipy and OpenCV (smukiez-slot/.venv has them). Runs in about two minutes.
+Real-ESRGAN (.tools/realesrgan) is only needed the first time: its x4 faces are cached as
+source art in art/characters-src/hires/.
+
+The pass, in order (each module's docstring says why):
+- rig_boy.py - SMUKIEZ joints: thighs hang from the torso, leg IK stretches, knee helper bones
+  (half-angle transform constraints), both trouser legs rebuilt as contour meshes with smooth
+  thigh->knee->shin weights; leg_right's inner edge redrawn; the front sneaker's see-through
+  stitching filled; the left arm one layer under its own sleeve slot (sleeve_left); the cash
+  hands' wrists rebuilt onto the forearm.
+- rig_skull.py - SMOKE SKULL re-cut: the body as hoodie / two trouser legs / two rigid shoes cut
+  along the drawing's outlines, hidden parts painted underneath, an even sticker outline per
+  part, a crotch backing and a hood backing that bridges jaw and hood; faces at 1.45x from
+  Real-ESRGAN on their own page.
+- boy_anims / skull_anims (below) - the re-authored idles and the reactions played bigger.
+- motion.py - overlap, follow-through, squash and settle on every reaction; knees kept within
+  60 degrees; the skull's shoes move as one; the faces relax to idle under a head take before
+  each reaction ends; the skull's smoke trails the head (smoke_lag bone); every clip re-keyed
+  as sparse eased beziers (lengths and names unchanged); the walk-on/off part fades removed
+  (the game fades the whole canvas instead).
+- atlaskit.write_pages - every page as WebP (quality 95, lossless alpha) plus the atlas.
 """
 import json, os, sys, copy, argparse
 from PIL import Image
@@ -148,15 +168,16 @@ def main():
             neck = neck_fill(j)
             pages, stats, _ = rig_skull.fix(j, atlas, pages, {"neck_fill": neck})
             skull_anims(j)
+            motion.add_smoke_lag(j)
             for r in ("anticipation", "win", "big_win", "lose"):
                 motion.skull_reaction(j, r)
-            motion.skull_compact(j, "idle", loop=True)
+            motion.skull_compact(j, "idle", loop=True, smoke=True, feet=True)
             for r in ("smoke_loop", "ember_loop"):
                 motion.skull_compact(j, r, loop=True)
-            motion.skull_compact(j, "ash_break")
+            motion.skull_compact(j, "ash_break", smoke=True, take=True)
             motion.strip_fades(j)
             for r in ("enter", "exit"):
-                motion.skull_compact(j, r)
+                motion.skull_compact(j, r, smoke=True)
             print("skull parts (verts):", stats)
         ak.write_pages(out_dir, name, atlas, pages)
         with open(os.path.join(out_dir, name + ".json"), "w", encoding="utf-8", newline="\n") as fh:

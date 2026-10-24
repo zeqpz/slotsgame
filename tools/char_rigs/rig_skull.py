@@ -88,7 +88,7 @@ def rough_part(x, y):
     return part
 
 
-def segment(cv, comp, black_lum=24, min_comp=40):
+def segment(cv, comp, black_lum=24, min_comp=40, no_ring=None):
     """Per-pixel part labels (-1 = empty) following the drawing's outlines."""
     rgba = mk.unpremul(comp)
     A = rgba[..., 3] > 127
@@ -154,7 +154,9 @@ def segment(cv, comp, black_lum=24, min_comp=40):
     core = (rgba[..., 3] > 127) & ~border
     d = cv2.distanceTransform((~core).astype(np.uint8), cv2.DIST_L2, 5)
     wy = cv.oy - (np.arange(cv.h)[:, None] + .5) * np.ones((1, cv.w))
-    ring = (d <= BORDER_W) & ~core & ((rgba[..., 3] < 250) | border) & (wy < HEM_Y)   # legs and shoes only
+    ring = (d <= BORDER_W) & ~core & ((rgba[..., 3] < 250) | border)
+    if no_ring is not None:      # never along the hood's opening (it is not the figure's edge)
+        ring &= ~no_ring
     if ring.any():
         from scipy import ndimage
         _, (iy, ix) = ndimage.distance_transform_edt(~core, return_indices=True)
@@ -185,14 +187,14 @@ def vertex_weights(att, n_bones):
     return Wm
 
 
-def weight_field(cv, layers, n_bones):
+def weight_field(cv, layers, n_bones, slots=BODY):
     """Per pixel, the weights of whatever slot is drawn on top there (barycentric within its
     triangle); pixels nothing covers take the nearest covered pixel's weights."""
     from scipy import ndimage
     H, Wd = cv.h, cv.w
     field = np.zeros((H, Wd, n_bones), np.float32)
     have = np.zeros((H, Wd), bool)
-    for s in BODY:                            # bottom to top: later slots overwrite
+    for s in slots:                           # bottom to top: later slots overwrite
         layer, world, uv, tris, att = layers[s]
         Wv = vertex_weights(att, n_bones)
         P = cv.to_px(world)
@@ -239,6 +241,9 @@ BORDER_W = 10.0           # the white sticker outline round the figure, px (meas
 
 
 HOOD_RGB = (26, 26, 30)
+HOOD_GAP = 40        # px: the face reaching down to within this of the hoodie's top edge = the opening
+HOOD_UNDER = 70      # px: the backing runs this far up under the face
+HOOD_EDGE_Y = 735    # world y of the hood's opening: the backing follows the hoodie below, the head above
 
 
 def hood_backing(j, atlas, pages, W, cv, comp):
@@ -247,16 +252,27 @@ def hood_backing(j, atlas, pages, W, cv, comp):
     and the hood (worst beside the cigar). A dark backing filling exactly that opening, a few px
     under the hood's edge, hangs on the torso behind everything. Returns (mask, RGBA image,
     pixel offset of the image on the canvas)."""
-    from scipy import ndimage
     _, _, lay = master(j, atlas, pages, W, slots=["face"])
     body = comp[..., 3] > .5
     face = lay["face"][0][..., 3] > .3
-    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
-    closed = cv2.morphologyEx((body | face).astype(np.uint8), cv2.MORPH_CLOSE, k).astype(bool)
-    filled = ndimage.binary_fill_holes(closed)
-    wy = cv.oy - (np.arange(cv.h)[:, None] + .5) * np.ones((1, cv.w))
-    inner = filled & ~body & (wy > 640)
-    inner = cv2.dilate(inner.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))).astype(bool) & filled
+    # per column: from the hoodie's top edge (scanning up from the chest) to HOOD_UNDER px
+    # above the face's lowest point - wherever the face comes down to the hood (the opening)
+    row_chest = int(round(cv.oy - 650 * cv.s))
+    inner = np.zeros_like(body)
+    for x in range(cv.w):
+        if not body[row_chest, x]: continue
+        r = row_chest
+        while r > 0 and body[r - 1, x]: r -= 1          # r: top-most row of the chest run
+        fr = np.nonzero(face[:, x])[0]
+        if not len(fr): continue
+        f_low = fr.max()                                 # lowest face pixel (largest row)
+        if f_low < r - HOOD_GAP: continue                # the face stops well above: not the opening
+        top = max(0, min(r, f_low) - HOOD_UNDER)
+        col = np.zeros(cv.h, bool)
+        col[top: r + 6] = True                           # 6 px tucked under the hood's edge
+        col[:min(r, f_low)] &= face[:min(r, f_low), x]   # above the gap: only under the face itself
+        inner[:, x] = col
+    inner = cv2.morphologyEx(inner.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((1, 9), np.uint8)).astype(bool)
     a = cv2.GaussianBlur(inner.astype(np.float32), (0, 0), 1.2)
     ys, xs = np.nonzero(a > .01)
     x0, y0 = max(0, xs.min() - 2), max(0, ys.min() - 2)
@@ -493,20 +509,33 @@ def fix(j, atlas, pages, extra_regions=None):
     bidx = {n: i for i, n in enumerate(bones)}
     W = mk.setup_world(j["bones"])
     cv, comp, layers = master(j, atlas, pages, W)
-    lab, rgba, border = segment(cv, comp)
-    field = weight_field(cv, layers, len(bones))
     hood, hood_img, (hx, hy) = hood_backing(j, atlas, pages, W, cv, comp)
+    lab, rgba, border = segment(cv, comp, no_ring=hood)
+    field = weight_field(cv, layers, len(bones))
     # the hood's opening is not the figure's edge: no part lays a sticker outline along it
     parts = build_parts(cv, rgba, lab, border, hood)
     parts[5] = crotch_fill(cv)
-    # the hood backing replaces the delivered ellipse (neck_fill): same slot, behind everything
+    # The hood backing replaces the delivered ellipse (neck_fill): same slot, behind everything,
+    # now a mesh that bridges the opening - its top half rides the head, its bottom the hoodie -
+    # so however the head turns, the gap between jaw and hood is lined with the hood's inside.
     if "neck_fill" in j["skins"][0]["attachments"]:
-        hh, hw = hood_img.shape[:2]
-        cx, cy = cv.to_world(np.array([[hx + hw / 2, hy + hh / 2]]))[0]
-        tb = W["torso"]
-        assert abs(tb[2]) < 1e-6 and abs(tb[0] - 1) < 1e-6
-        lx, ly = mk.to_local(tb, (cx, cy))
-        j["skins"][0]["attachments"]["neck_fill"] = {"neck_fill": {"x": round(lx, 2), "y": round(ly, 2), "width": hw, "height": hh}}
+        # the upper part follows the face exactly as the face moves (head, and the jaw where the
+        # jaw carries the face), the lower part the hoodie
+        _, _, flay = master(j, atlas, pages, W, slots=["face"])
+        ffield = weight_field(cv, flay, len(bones), slots=["face"])
+
+        def neck_weights(world):
+            out = []
+            px = np.clip(np.floor(cv.to_px(world)).astype(int), 0, [cv.w - 1, cv.h - 1])
+            for (x, y), (qx, qy) in zip(world, px):
+                h = float(mk.smoothstep(HOOD_EDGE_Y, HOOD_EDGE_Y + 55, y))
+                fw = ffield[qy, qx] * h
+                fw[bidx["torso"]] += 1 - h
+                out.append(top_bones(fw, bones))
+            return out
+        m, _ = part_mesh(hood_img, (hx, hy), cv, neck_weights, bidx, W, grid=22)
+        m["path"] = "neck_fill"
+        j["skins"][0]["attachments"]["neck_fill"] = {"neck_fill": m}
         extra_regions = dict(extra_regions or {}, neck_fill=Image.fromarray(hood_img, "RGBA"))
 
     def field_at(world):

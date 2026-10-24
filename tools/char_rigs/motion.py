@@ -21,7 +21,7 @@ length and its name; on top of it:
 import math
 import numpy as np
 import animkit as ak2
-from animkit import sample, write, duration, delay, spring, settle, accel, smooth, DEFAULT
+from animkit import sample, write, duration, delay, spring, spring_loop, settle, accel, smooth, DEFAULT
 
 KNEE_MAX = 60.0          # deg: deepest knee bend the boy's trousers are asked to make
 FOOT_KEEP = .3           # share of the skull's foot/leg motion kept (what both feet do together)
@@ -72,12 +72,35 @@ def lag_chain(t, parent_world, local, d, freq, zeta, rest=0.0):
     return settle(out, t, rest, .22)
 
 
-def face_take(t, amp=1.0):
-    """head (scaleX, scaleY) for a quick squash-stretch-settle as a new face comes in"""
-    keys_t = np.array([0, .06, .15, .27, .4])
+def face_take(t, amp=1.0, at=0.0):
+    """head (scaleX, scaleY) for a quick squash-stretch-settle as a new face comes in at `at`
+    (the squash bottoms out on the swap)"""
+    keys_t = np.array([0, .06, .15, .27, .4]) + at - (.06 if at > 0 else 0)
     sy = np.interp(t, keys_t, [1, 1 - .07 * amp, 1 + .035 * amp, 1 - .008 * amp, 1])
     sx = np.interp(t, keys_t, [1, 1 + .05 * amp, 1 - .02 * amp, 1 + .004 * amp, 1])
     return smooth(sx, t, .02), smooth(sy, t, .02)
+
+
+RELAX = .36       # s before a reaction ends: its face relaxes back to the idle face
+
+
+def face_swaps(anim, slot, D, idle_face="face_idle"):
+    """Every face change inside the clip gets a take; a reaction's own face relaxes back to the
+    idle face just before the end, under a take, so the hand-over to idle never swaps the face
+    with nothing moving. Returns the swap times after t=0."""
+    keys = anim.get("slots", {}).get(slot, {}).get("attachment")
+    if not keys: return []
+    if keys[-1].get("name") != idle_face and D > 1.0:
+        keys.append({"time": round(D - RELAX, 4), "name": idle_face})
+    return [k["time"] for k in keys if k.get("time", 0) > 0]
+
+
+def takes(t, swaps, amp):
+    sx = np.ones_like(t); sy = np.ones_like(t)
+    for at in [0.0] + list(swaps):
+        a, b = face_take(t, amp, at)
+        sx *= a; sy *= b
+    return sx, sy
 
 
 # ---------------------------------------------------------------- the boy
@@ -157,7 +180,7 @@ def boy_reaction(j, name, take=True, knees=True):
         loc = ch_get(ch, n, b, "rotate")
         ch_set(ch, b, "rotate", lag_chain(t, grip_w, loc, .03 + .012 * i, 3.4 - .2 * i, .38))
     if take:
-        hx, hyy = face_take(t)
+        hx, hyy = takes(t, face_swaps(a, "head", D), 1.0)
         ch_set(ch, "head", "sx", ch_get(ch, n, "head", "sx") * hx)
         ch_set(ch, "head", "sy", ch_get(ch, n, "head", "sy") * hyy)
     write(a, t, ch)
@@ -173,11 +196,7 @@ def boy_compact(j, name, loop=False):
 
 # ---------------------------------------------------------------- the skull
 
-def skull_reaction(j, name, take=True):
-    a = j["animations"][name]
-    D = duration(a)
-    t, ch = sample(a, D)
-    n = len(t)
+def plant_feet(ch, n):
     # planted feet: the shoes overlap, so they move together - what the two feet do in common is
     # kept at FOOT_KEEP, what they do against each other at FOOT_APART
     for kind in ("leg", "foot"):
@@ -196,6 +215,14 @@ def skull_reaction(j, name, take=True):
                 if c == "rotate": keep = 0.0
             ch_set(ch, L, c, d0 + com * keep + dif * apart)
             ch_set(ch, R, c, d0 + com * keep - dif * apart)
+
+
+def skull_reaction(j, name, take=True):
+    a = j["animations"][name]
+    D = duration(a)
+    t, ch = sample(a, D)
+    n = len(t)
+    plant_feet(ch, n)
     W = fk(j, ch, n, ["motion", "torso"])
     my = smooth(W["motion"][5], t, .04)
     ay = smooth(accel(my, t), t, .03)
@@ -223,16 +250,78 @@ def skull_reaction(j, name, take=True):
     jaw = ch_get(ch, n, "jaw", "rotate") + settle(spring(np.clip(ay * .0009, 0, 3), t, 3.0, .5), t, 0)
     ch_set(ch, "jaw", "rotate", np.maximum(jaw, 0))
     if take:
-        hx, hyy = face_take(t, .8)
+        hx, hyy = takes(t, face_swaps(a, "face", D), .8)
         ch_set(ch, "head", "sx", ch_get(ch, n, "head", "sx") * hx)
         ch_set(ch, "head", "sy", ch_get(ch, n, "head", "sy") * hyy)
+    smoke_follow(j, t, ch)
     write(a, t, ch)
 
 
-def skull_compact(j, name, loop=False):
+def skull_compact(j, name, loop=False, smoke=False, take=False, feet=False):
     a = j["animations"][name]
-    t, ch = sample(a, duration(a))
+    D = duration(a)
+    t, ch = sample(a, D)
+    n = len(t)
+    if feet:
+        plant_feet(ch, n)
+    if take:
+        swaps = face_swaps(a, "face", D)
+        if swaps:
+            hx, hyy = 1, 1
+            for at in swaps:
+                x_, y_ = face_take(t, .8, at); hx = hx * x_; hyy = hyy * y_
+            ch_set(ch, "head", "sx", ch_get(ch, n, "head", "sx") * hx)
+            ch_set(ch, "head", "sy", ch_get(ch, n, "head", "sy") * hyy)
+    if smoke:
+        smoke_follow(j, t, ch, loop)
     write(a, t, ch, loop)
+
+
+SMOKE_BONE = "smoke_lag"
+
+
+def add_smoke_lag(j):
+    """A bone between the cigar and the smoke plume, at the ember: the body clips swing it so
+    the smoke trails the head and settles (smoke_loop keeps animating the plume's own bones on
+    its own track, untouched). Inserted before smoke_base, so weighted meshes are re-indexed."""
+    names = [b["name"] for b in j["bones"]]
+    if SMOKE_BONE in names: return
+    i = names.index("smoke_base")
+    sb = j["bones"][i]
+    j["bones"].insert(i, {"name": SMOKE_BONE, "parent": sb["parent"], "x": sb.get("x", 0), "y": sb.get("y", 0), "length": 30})
+    sb["parent"] = SMOKE_BONE; sb["x"] = 0; sb["y"] = 0
+    for sk in j["skins"]:
+        for atts in sk["attachments"].values():
+            for att in atts.values():
+                if att.get("type") != "mesh" or len(att["vertices"]) == len(att["uvs"]): continue
+                v = att["vertices"]; k = 0; nv = len(att["uvs"]) // 2; c = 0
+                while c < nv:
+                    m = int(v[k]); k += 1
+                    for _ in range(m):
+                        if v[k] >= i: v[k] = int(v[k]) + 1
+                        k += 4
+                    c += 1
+
+
+def smoke_follow(j, t, ch, loop=False):
+    """Keys smoke_lag: the plume keeps its own heading while the head turns and catches up
+    (a loose spring), leans away from sideways motion, and squashes/stretches a little with
+    vertical motion of the body."""
+    n = len(t)
+    names = [b["name"] for b in j["bones"]]
+    if SMOKE_BONE not in names: return
+    W = fk(j, ch, n, ["cigar"])
+    cw = world_rot(W["cigar"])
+    cx = smooth(W["cigar"][4], t, .03); cy = smooth(W["cigar"][5], t, .03)
+    vx = np.gradient(cx, t); vy = np.gradient(cy, t)
+    sp = (lambda v: spring_loop(v, t, 1.4, .45)) if loop else (lambda v: settle(spring(v, t, 1.4, .45), t, v[-1], .3))
+    lag = sp(cw) - cw
+    lag = lag + sp(np.clip(-vx * .045, -6, 6))
+    sy = 1 + sp(np.clip(-vy * .00035, -.07, .07))
+    if not loop:
+        lag = settle(lag, t, 0, .3); sy = settle(sy, t, 1, .3)
+    ch_set(ch, SMOKE_BONE, "rotate", lag)
+    ch_set(ch, SMOKE_BONE, "sy", sy)
 
 
 # ---------------------------------------------------------------- enter / exit
