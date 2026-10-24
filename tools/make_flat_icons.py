@@ -5,8 +5,9 @@ loading-screen icon rain, the feature plates, the bonus cards and the shards of 
 
 art/icons-src/<ID>.png (the full-size icon art, also the rig sources) -> frontend/assets/flat/<ID>.webp
 at 400 px on the long side (sharp at 2x DPR wherever they appear), WebP quality 95 with lossless alpha.
-The two scatters are 800 px: the bonus-buy cards show them up to 790 device px wide on a phone. Their
-sources are only 512 px wide, so they go through the Real-ESRGAN x4 pass first (tools/hires).
+The two scatters are 800 px: the bonus-buy cards show them up to 790 device px wide on a phone. They
+come from their 1024 px renders in art/letters/ (tools/letter_art/make.py); any other source smaller
+than its size goes through the Real-ESRGAN x4 pass first (tools/hires).
 """
 import os, sys
 from PIL import Image
@@ -25,6 +26,9 @@ for f in sorted(os.listdir(SRC)):
         continue
     im = Image.open(os.path.join(SRC, f)).convert("RGBA")
     size = BIG.get(f[:-4], SIZE)
+    hi = os.path.join(ROOT, "art", "letters", f[:-4] + "_traced.png")   # the scatters' 2x renders (tools/letter_art)
+    if os.path.exists(hi):
+        im = Image.open(hi).convert("RGBA")
     if max(im.size) < size:
         import upscale
         im = upscale.esrgan(upscale.bleed(im), upscale.A)

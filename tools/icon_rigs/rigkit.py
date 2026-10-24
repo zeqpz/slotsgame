@@ -195,7 +195,36 @@ def sprite_streak(w=120, h=18, color=(255, 255, 255)):
     return im.filter(ImageFilter.GaussianBlur(ss * .6)).resize((w, h), Image.LANCZOS)
 
 
-SPRITES = {"sparkle": sprite_sparkle, "puff": sprite_puff, "streak": sprite_streak}
+def sprite_mist(size=96, color=(0, 255, 61), seed=0, dots=140):
+    """A puff of spray-paint mist: a soft cloud of the paint colour, densest in the middle, with
+    a speckle of fine droplets thinning out to its edge (the way an aerosol's overspray lands),
+    and a light core. No outline: it is paint in the air, not a cartoon smoke puff."""
+    ss = 4; S = size * ss
+    rng = np.random.default_rng(seed)
+    base = Image.new("RGBA", (S, S), (0, 0, 0, 0)); d = ImageDraw.Draw(base)
+    c = S / 2
+    # the soft body: a few overlapping discs, blurred
+    for _ in range(5):
+        r = S * rng.uniform(.18, .27); ox, oy = rng.normal(0, S * .06, 2)
+        d.ellipse([c + ox - r, c + oy - r, c + ox + r, c + oy + r], fill=color + (150,))
+    body = base.filter(ImageFilter.GaussianBlur(S * .07))
+    # the droplets
+    dots_im = Image.new("RGBA", (S, S), (0, 0, 0, 0)); dd = ImageDraw.Draw(dots_im)
+    light = tuple(min(255, int(v + (255 - v) * .45)) for v in color)
+    for _ in range(dots):
+        rr = abs(rng.normal(0, S * .2)); th = rng.uniform(0, 2 * np.pi)
+        x, y = c + rr * np.cos(th), c + rr * np.sin(th)
+        if rr > S * .47: continue
+        r = S * rng.uniform(.006, .02) * (1.2 - rr / (S * .5))
+        dd.ellipse([x - r, y - r, x + r, y + r], fill=(light if rng.random() < .3 else color) + (255,))
+    core = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    ImageDraw.Draw(core).ellipse([c - S * .12, c - S * .14, c + S * .1, c + S * .06], fill=light + (120,))
+    core = core.filter(ImageFilter.GaussianBlur(S * .05))
+    out = Image.alpha_composite(Image.alpha_composite(body, core), dots_im)
+    return out.resize((size, size), Image.LANCZOS)
+
+
+SPRITES = {"sparkle": sprite_sparkle, "puff": sprite_puff, "streak": sprite_streak, "mist": sprite_mist}
 
 
 # ------------------------------------------------------------------ easing -> spine curves

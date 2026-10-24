@@ -3,7 +3,7 @@
 # little bounce. Land: both letters squash and the drips whip down and spring back. Win: F then S
 # hop and slam down, the drips stretch on every landing, and the piece sparkles. (The page adds a
 # glow and a landing punch on top of this, so it stays lively but not busy.)
-BLOB = ("grow", ("cc", ("opaque",), 125, 150), 2)   # the whole piece (letters + drips, with its soft edge) - not the loose spatter
+BLOB = ("grow", ("opaque",), 2)   # the whole piece (letters + drips, with its soft edge); the cartoon art (tools/letter_art) has no loose spatter
 # (the loose spatter dots ride with the letter on their side)
 
 # F and S share their black outline: split along the middle of it - between the F's green rim

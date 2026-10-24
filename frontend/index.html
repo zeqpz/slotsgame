@@ -1011,6 +1011,16 @@
   }
   /* the sprayed outline: a thin band that runs 1% to 4% in from the art's edge, so a 10px
      overhang lands it in the board's own padding, just outside the icons, on every side */
+  /* the grey plate behind the reels: the bonus panel's texture, see-through, so the wall and
+     its SMUKIEZ tag still show through it; it reaches the middle of the sprayed band */
+  .boardplate {
+    position: absolute; inset: 14px; z-index: -1; pointer-events: none; border-radius: 12px;
+    background: url("assets/plate_grey.webp") center / cover no-repeat; opacity: .58;
+  }
+  /* the live spray rim (sprayrim.js) draws the outline: the picture stays as the fallback */
+  .board.livefx #paintframe { visibility: hidden; }
+  .board .sprayrim.framefx { translate: var(--fx, 0px) var(--fy, 0px); rotate: var(--fr, 0deg); scale: var(--fsx, 1) var(--fsy, 1); }
+  .bonuspanel.livefx { background-image: url("assets/bonus_plate.webp"); filter: none; }
   #paintframe {
     position: absolute; left: -10px; top: -10px;
     width: calc(100% + 20px); height: calc(100% + 20px);
@@ -1700,7 +1710,7 @@
     /* the panel is a sprayed plate: magenta at the top, a darker band across the bottom.
        Stretched rather than tiled, because a painted frame reads fine stretched and the
        content inside is what sets the height. */
-    width: min(560px, 92vw); border: 0;
+    width: min(560px, 92vw); border: 0; position: relative;
     background: url("assets/bonus_panel.webp") center / 100% 100% no-repeat;
     padding: 36px 46px 60px; filter: drop-shadow(0 18px 44px rgba(0,0,0,.6));
     animation: bonusdrift 9s ease-in-out infinite;
@@ -2049,7 +2059,7 @@
 <div id="app">
 <div class="main">
   <div class="stage">
-    <div class="board" id="board"><img id="paintframe" src="assets/frame.webp" alt="" draggable="false"></div>
+    <div class="board" id="board"><div class="boardplate" aria-hidden="true"></div><img id="paintframe" src="assets/frame.webp" alt="" draggable="false"></div>
     <div class="ticker" id="ticker">Draws come from the optimized 96.5% RTP lookup tables — the real math.</div>
     <div class="banner" id="banner"><div class="big" id="bannerBig"></div><div class="sub2" id="bannerSub"></div><img id="bannerMural" class="muralimg" alt=""></div>
     <div class="tally" id="tally">0.00</div>
@@ -2198,6 +2208,7 @@
 <script src="strips.js"></script>
 <script src="rgs.js"></script>
 <script src="rules.js"></script>
+<script src="sprayrim.js"></script>
 <script>
 "use strict";
 
@@ -2335,6 +2346,7 @@ function buildBoard() {
   board.addEventListener("animationend", e => { if (e.animationName === "tumbleDrop") sprayDue(e.target); });
   prepareSpray();   // normally already under way behind the loading screen
   idleStretch();
+  startRims();
   frameIdle();
   startRigs();
 }
@@ -2420,11 +2432,27 @@ function idleStretch() {
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
 // icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
 // hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never repeats.
+// The board's sprayed outline and the bonus panel's rim, drawn live (sprayrim.js): sharp at any
+// size, the edges boiling like a redrawn cartoon line, spray-paint flames licking off them. Where
+// WebGL is missing the pictures stay.
+function startRims() {
+  if (typeof SprayRim !== "function") return;
+  const board = $("board");
+  const fr = SprayRim(board, { kind: "box", grow: 10, margin: 80, inset: .01, band: .03, radius: .022, flame: 44, z: 3, className: "framefx",
+    onLost: () => board.classList.remove("livefx") });
+  if (fr) board.classList.add("livefx");
+  const panel = document.querySelector(".bonuspanel");
+  if (!panel) return;
+  const pr = SprayRim(panel, { kind: "sdf", sdf: "assets/bonus_plate_sdf.png", sdfSourceWidth: 900, sdfSourceHeight: 604, sdfStep: .75,
+    margin: 70, band: .045, flame: 40, z: -1, className: "panelfx", active: () => !$("bonusWrap").hidden,
+    onLost: () => panel.classList.remove("livefx") });
+  if (pr) panel.classList.add("livefx");
+}
 function frameIdle() {
   const frame = $("paintframe");
   if (REDUCED_MOTION || !frame) return;
   const dx = drift(2.5, 4.5), dy = drift(2.5, 4.5), dr = drift(3, 5), dsx = drift(2.5, 4.5), dsy = drift(2.5, 4.5);
-  wander(() => [frame], t => ({
+  wander(() => [frame, document.querySelector("#board .sprayrim")].filter(Boolean), t => ({
     transform: `translate(${(5 * dx(t)).toFixed(2)}px, ${(5 * dy(t)).toFixed(2)}px) rotate(${(.35 * dr(t)).toFixed(3)}deg) scale(${(1 + .004 * dsx(t)).toFixed(4)}, ${(1 + .004 * dsy(t)).toFixed(4)})`,
   }), { seg: 30, rate: 6 });
 }
@@ -2963,7 +2991,7 @@ async function sprayRun(cell) {
   const pics = sprayPicsFor(m._mult || 2);
   if (!pics || document.hidden || cell._spray !== "on") { m.classList.remove("bare"); return; }   // no can: the value is simply there
   const t = tempo() / MULTI_RATE, rnd = (a, b) => a + Math.random() * (b - a);
-  const T = { in: 300 * t, rattle: 210 * t, sweep: 580 * t, out: 340 * t };
+  const T = { in: 400 * t, rattle: 210 * t, sweep: 580 * t, out: 380 * t };
   const sweepAt = T.in + T.rattle, sweepEnd = sweepAt + T.sweep, total = sweepEnd + T.out;
   // where the figure sits, in board px: the can sweeps along it, a little under its middle
   const [fx, fy] = boardXY(mv), w = mv.offsetWidth, h = mv.offsetHeight;
@@ -2980,22 +3008,29 @@ async function sprayRun(cell) {
   const pose = (x, yy, r, s) => `translate(${(x + SPRAY.aim[0] - nx).toFixed(1)}px, ${(yy + SPRAY.aim[1] - ny).toFixed(1)}px) rotate(${r}deg) scale(${s})`;
   const o = ms => ms / total;
   const rat = i => o(T.in + T.rattle * i / 5);
+  // The can is brought in to the wall the way a hand brings it: from out in front of the wall
+  // (bigger, below and to the right), fading in as it closes in, and tilting over as it gets
+  // there - the top leaning in, as a can is held to spray. It keeps that lean through the shake
+  // and the sweep (easing off a touch as the hand travels), then is taken away again: back out
+  // toward us, straightening up, fading.
+  const TILT = -15;
   anims.push(can.animate([
-    // in from the side, upright but for a lean that it settles out of
-    { offset: 0, transform: pose(x0 + 110, y - 30, 9, .86), opacity: 0, easing: "cubic-bezier(.2,.85,.3,1)" },
-    { offset: o(T.in * .45), opacity: 1 },
-    { offset: o(T.in), transform: pose(x0, y, -1.5, 1), opacity: 1 },
-    // the shake: up and down, the mixing ball knocking about inside
-    { offset: rat(1), transform: pose(x0, y - 6, 1.5, 1) },
-    { offset: rat(2), transform: pose(x0, y + 3, -1, 1) },
-    { offset: rat(3), transform: pose(x0, y - 5, 1, 1) },
-    { offset: rat(4), transform: pose(x0, y + 2, 0, 1) },
-    { offset: o(sweepAt), transform: pose(x0, y, 0, 1) },
+    { offset: 0, transform: pose(x0 + 64, y + 58, 7, 1.42), opacity: 0, easing: "cubic-bezier(.22,.8,.3,1)" },
+    { offset: o(T.in * .35), opacity: .55, easing: "ease-out" },
+    { offset: o(T.in * .7), opacity: 1 },
+    { offset: o(T.in), transform: pose(x0, y, TILT, 1), opacity: 1 },
+    // the shake: up and down, the mixing ball knocking about inside, the lean held
+    { offset: rat(1), transform: pose(x0, y - 6, TILT + 3, 1) },
+    { offset: rat(2), transform: pose(x0, y + 3, TILT - 2, 1) },
+    { offset: rat(3), transform: pose(x0, y - 5, TILT + 2, 1) },
+    { offset: rat(4), transform: pose(x0, y + 2, TILT, 1) },
+    { offset: o(sweepAt), transform: pose(x0, y, TILT, 1) },
     // the sweep along the figure, with the slightest dip of a hand
-    { offset: o(sweepAt + T.sweep / 2), transform: pose((x0 + x1) / 2, y + 2, 0, 1) },
-    { offset: o(sweepEnd), transform: pose(x1, y, 0, 1), opacity: 1, easing: "cubic-bezier(.45,0,.7,.5)" },
-    // and away: it lifts off and fades out
-    { offset: 1, transform: pose(x1 + 34, y - 60, 4, .92), opacity: 0 },
+    { offset: o(sweepAt + T.sweep / 2), transform: pose((x0 + x1) / 2, y + 2, TILT + 3, 1) },
+    { offset: o(sweepEnd), transform: pose(x1, y, TILT + 5, 1), opacity: 1, easing: "cubic-bezier(.45,0,.6,1)" },
+    // and away: taken back out toward us, straightening up, fading
+    { offset: o(sweepEnd + T.out * .55), opacity: .5 },
+    { offset: 1, transform: pose(x1 + 46, y + 36, 3, 1.3), opacity: 0 },
   ], { duration: total, fill: "both" }));
   // the paint: it builds up from the left, just behind the nozzle, as the can goes over it
   const pad = 24;
