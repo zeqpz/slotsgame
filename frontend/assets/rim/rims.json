@@ -1,0 +1,122 @@
+{
+ "bonus_panel": {
+  "w": 900,
+  "h": 604,
+  "pad": 250,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 24.0
+ },
+ "feature_box": {
+  "w": 560,
+  "h": 716,
+  "pad": 200,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 39.0
+ },
+ "info_panel": {
+  "w": 640,
+  "h": 814,
+  "pad": 227,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 16.0
+ },
+ "auto_box": {
+  "w": 420,
+  "h": 416,
+  "pad": 117,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 32.97
+ },
+ "win_box": {
+  "w": 720,
+  "h": 387,
+  "pad": 201,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 19.99
+ },
+ "vol_frame": {
+  "w": 200,
+  "h": 637,
+  "pad": 178,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 18.39
+ },
+ "hud_bar": {
+  "w": 1400,
+  "h": 209,
+  "pad": 250,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 20.0
+ },
+ "hud_menu": {
+  "w": 320,
+  "h": 142,
+  "pad": 89,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 13.0
+ },
+ "hud_audio": {
+  "w": 320,
+  "h": 148,
+  "pad": 89,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 10.0
+ },
+ "hud_rapid": {
+  "w": 320,
+  "h": 148,
+  "pad": 89,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 12.0
+ },
+ "hud_rapid_on": {
+  "w": 320,
+  "h": 148,
+  "pad": 89,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 12.19
+ },
+ "hud_auto": {
+  "w": 320,
+  "h": 140,
+  "pad": 89,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 13.0
+ },
+ "hud_minus": {
+  "w": 200,
+  "h": 181,
+  "pad": 56,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 15.59
+ },
+ "hud_plus": {
+  "w": 200,
+  "h": 194,
+  "pad": 56,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 16.0
+ },
+ "hud_hex": {
+  "w": 480,
+  "h": 415,
+  "pad": 134,
+  "step": 2.0,
+  "scale": 0.5,
+  "band": 27.39
+ }
+}

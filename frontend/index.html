@@ -1020,7 +1020,43 @@
   /* the live spray rim (sprayrim.js) draws the outline: the picture stays as the fallback */
   .board.livefx #paintframe { visibility: hidden; }
   .board .sprayrim.framefx { translate: var(--fx, 0px) var(--fy, 0px); rotate: var(--fr, 0deg); scale: var(--fsx, 1) var(--fsy, 1); }
-  .bonuspanel.livefx { background-image: url("assets/bonus_plate.webp"); filter: none; }
+  /* the live outlines (sprayrim.js) take over from the painted ones: each art without its outline */
+  html.sprayfx .bonuspanel { background-image: url("assets/rim/bonus_panel.webp"); }
+  html.sprayfx .fbox { background-image: url("assets/rim/feature_box.webp"); }
+  html.sprayfx .fbox::after { -webkit-mask-image: url("assets/rim/feature_box.webp"); mask-image: url("assets/rim/feature_box.webp"); }
+  html.sprayfx .infopanel, html.sprayfx .bonusintro .bhow { border-image-source: url("assets/rim/info_panel.webp"); }
+  html.sprayfx #autoPop, html.sprayfx .autoopts button { border-image-source: url("assets/rim/auto_box.webp"); }
+  html.sprayfx .winpop::before { background-image: url("assets/rim/win_box.webp"); }
+  html.sprayfx .vframe { background-image: url("assets/rim/vol_frame.webp"); }
+  html.sprayfx .hudbar { border-image-source: url("assets/rim/hud_bar.webp"); }
+  html.sprayfx .hudbtn.menu { background-image: url("assets/rim/hud_menu.webp"); }
+  html.sprayfx .hudbtn.audio { background-image: url("assets/rim/hud_audio.webp"); }
+  html.sprayfx .sidebtn.rapid { background-image: url("assets/rim/hud_rapid.webp"); }
+  html.sprayfx .sidebtn.rapid.on, html.sprayfx .sidebtn.rapid.on:hover { background-image: url("assets/rim/hud_rapid_on.webp"); }
+  html.sprayfx .sidebtn.auto { background-image: url("assets/rim/hud_auto.webp"); }
+  html.sprayfx #betUp, html.sprayfx #bonusBetUp { background-image: url("assets/rim/hud_plus.webp"); }
+  html.sprayfx #betDown, html.sprayfx #bonusBetDown { background-image: url("assets/rim/hud_minus.webp"); }
+  html.sprayfx .spinbtn::before { background-image: url("assets/rim/hud_hex.webp"); }
+  html.rimmeasure .sprayrim { display: none !important; }
+  /* No CSS drop-shadow on anything carrying a live rim: Chromium paints a drop-shadow-filtered
+     element that holds one of these canvases in the wrong place (the whole HUD came out a few
+     hundred px off). The rims draw the shadow themselves; the other filters stay. */
+  html.sprayfx .hudbtn, html.sprayfx .sidebtn, html.sprayfx .hudbar, html.sprayfx .betstep button, html.sprayfx .bonusbet button,
+  html.sprayfx #autoPop, html.sprayfx .bonuspanel, html.sprayfx .fbox, html.sprayfx .vframe, html.sprayfx .winpop, html.sprayfx .spinwrap { filter: none; }
+  html.sprayfx .hudbtn:hover:not(:disabled), html.sprayfx .sidebtn:hover:not(:disabled) { filter: brightness(1.12); }
+  html.sprayfx .hudbtn.open, html.sprayfx .hudbtn.open:hover { filter: brightness(1.18) saturate(1.08); }
+  html.sprayfx .hudbtn.off, html.sprayfx .hudbtn.off:hover { filter: grayscale(1) brightness(.6); }
+  html.sprayfx .sidebtn.on, html.sprayfx .sidebtn.on:hover { filter: brightness(1.25) saturate(1.2); }
+  html.sprayfx .sidebtn.rapid.on, html.sprayfx .sidebtn.rapid.on:hover { filter: none; }
+  html.sprayfx .sidebtn.rapid.on:hover:not(:disabled) { filter: brightness(1.12); }
+  html.sprayfx .sidebtn.rapid.on:disabled { filter: none; }
+  html.sprayfx .hudbtn:disabled, html.sprayfx .sidebtn:disabled { filter: none; }
+  html.sprayfx .sidebtn.on:disabled { filter: brightness(1.25) saturate(1.2); }
+  html.sprayfx .betstep button:hover:not(:disabled), html.sprayfx .bonusbet button:hover:not(:disabled) { filter: brightness(1.15); }
+  html.sprayfx .vbar:focus-visible .vframe { filter: brightness(1.25); }
+  html.sprayfx .fbox:hover { filter: none; }
+  /* the win popup's plate wanders on --p*: its outline goes with it */
+  .winpop > .sprayrim.winbox { translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1); }
   #paintframe {
     position: absolute; left: -10px; top: -10px;
     width: calc(100% + 20px); height: calc(100% + 20px);
@@ -1221,23 +1257,34 @@
   /* paint splats: one canvas over the board, hanging past its edges so the spray can fly
      over the frame; above the tiles, below nothing that matters */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
-  /* the win line: sprayed orange dots laid along the cluster, each fading in a beat after
-     the last, so the stroke is drawn on as the player watches */
+  /* the win line: puffs of orange spray paint (tools/sprayrim/make_line_dabs.py) laid along the
+     cluster, overlapping into one sprayed stroke, each puffing on a beat after the last so the
+     stroke is drawn on as the player watches; a few runs of paint drip off it */
   .lineLayer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
   .lineLayer i {
-    position: absolute; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; border-radius: 50%;
-    background: radial-gradient(circle, var(--orange) 0 42%, rgba(255, 138, 42, .55) 60%, transparent 72%);
-    filter: drop-shadow(0 0 5px rgba(255, 138, 42, .8));
-    opacity: 0; transform: scale(var(--s, 1));
+    position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+    background: url("assets/fx/line_dab_0.webp") center / contain no-repeat;
+    opacity: 0; transform: rotate(var(--r, 0deg)) scale(var(--s, 1));
     animation: dotIn calc(.3s * var(--tempo, 1)) ease-out both;
     animation-delay: calc(var(--d, 0ms) * var(--tempo, 1));
   }
-  @keyframes dotIn {
-    0%   { opacity: 0; transform: scale(.25); }
-    55%  { opacity: 1; transform: scale(calc(var(--s, 1) * 1.3)); }
-    100% { opacity: 1; transform: scale(var(--s, 1)); }
+  .lineLayer i.v1 { background-image: url("assets/fx/line_dab_1.webp"); }
+  .lineLayer i.v2 { background-image: url("assets/fx/line_dab_2.webp"); }
+  .lineLayer i.v3 { background-image: url("assets/fx/line_dab_3.webp"); }
+  .lineLayer b {
+    position: absolute; width: 9px; height: var(--len, 24px); margin: -4px 0 0 -4.5px;
+    background: url("assets/fx/line_drip.webp") center top / 100% 100% no-repeat;
+    transform-origin: 50% 0; transform: scaleY(0);
+    animation: lineDrip calc(1.1s * var(--tempo, 1)) cubic-bezier(.5, 0, .8, .6) both;
+    animation-delay: calc(var(--d, 0ms) * var(--tempo, 1));
   }
-  @media (prefers-reduced-motion: reduce) { .lineLayer i { animation: none; opacity: 1; } }
+  @keyframes lineDrip { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+  @keyframes dotIn {
+    0%   { opacity: 0; transform: rotate(var(--r, 0deg)) scale(.25); }
+    55%  { opacity: 1; transform: rotate(var(--r, 0deg)) scale(calc(var(--s, 1) * 1.15)); }
+    100% { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--s, 1)); }
+  }
+  @media (prefers-reduced-motion: reduce) { .lineLayer i { animation: none; opacity: 1; } .lineLayer b { animation: none; transform: none; } }
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -2432,21 +2479,37 @@ function idleStretch() {
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
 // icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
 // hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never repeats.
-// The board's sprayed outline and the bonus panel's rim, drawn live (sprayrim.js): sharp at any
-// size, the edges boiling like a redrawn cartoon line, spray-paint flames licking off them. Where
-// WebGL is missing the pictures stay.
+// Every sprayed blue outline is drawn live (sprayrim.js): the board's, the HUD's, the bet
+// steppers', the spin hexagon's, the bonus panel's, the intro plates', the rules panel's, the
+// autoplay picker's, the win popup's, the volume tubes'. Sharp at any size, the edges boiling like
+// a redrawn cartoon line, spray-paint flames licking up off them. Where WebGL is missing the
+// art keeps its painted outlines.
+const RIM_SLICE_INFO = [.049, .0625, .049, .0625], RIM_SLICE_AUTO = [.09, .09, .09, .09];
+const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art had in CSS
+  { sel: ".bonuspanel", art: "bonus_panel", fit: "stretch", flameK: 1.7, shadow: [18, 40, .6] },
+  { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65] },
+  { sel: ".infopanel", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, host: el => el.parentElement, flameK: 1.9, shadow: [14, 30, .55] },   // it scrolls: its rim lives beside it
+  { sel: ".bonusintro .bhow", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, flameK: 1.9, shadow: [14, 30, .55] },
+  { sel: "#autoPop", art: "auto_box", fit: "slice", slice: RIM_SLICE_AUTO, shadow: [10, 22, .6] },
+  { sel: ".autoopts button", art: "auto_box", fit: "slice", slice: RIM_SLICE_AUTO, flameK: 1.5, glow: .6 },
+  { sel: ".winpop", art: "win_box", fit: "stretch", cls: "winbox", shadow: [5, 8, .35], flameK: 1.2 },
+  { sel: ".vframe", art: "vol_frame", fit: "stretch", shadow: [6, 12, .6] },
+  { sel: ".hudbar", art: "hud_bar", fit: "slice", slice: [0, .06, 0, .06], shadow: [4, 8, .5] },
+  { sel: ".hudbtn.menu", art: "hud_menu", fit: "contain", pos: [1, .5], shadow: [3, 5, .5] },
+  { sel: ".hudbtn.audio", art: "hud_audio", fit: "contain", pos: [1, .5], shadow: [3, 5, .5] },
+  { sel: ".sidebtn.rapid", art: "hud_rapid", fit: "contain", pos: [0, .5], shadow: [3, 5, .5] },
+  { sel: ".sidebtn.auto", art: "hud_auto", fit: "contain", pos: [0, .5], shadow: [3, 5, .5] },
+  { sel: "#betUp, #bonusBetUp", art: "hud_plus", fit: "contain", shadow: [2, 3, .5] },
+  { sel: "#betDown, #bonusBetDown", art: "hud_minus", fit: "contain", shadow: [2, 3, .5] },
+  { sel: "#spinBtn", art: "hud_hex", fit: "contain", host: el => el.parentElement, shadow: [4, 8, .5] },   // it is clipped to the hexagon
+];
 function startRims() {
-  if (typeof SprayRim !== "function") return;
-  const board = $("board");
-  const fr = SprayRim(board, { kind: "box", grow: 10, margin: 80, inset: .01, band: .03, radius: .022, flame: 44, z: 3, className: "framefx",
-    onLost: () => board.classList.remove("livefx") });
-  if (fr) board.classList.add("livefx");
-  const panel = document.querySelector(".bonuspanel");
-  if (!panel) return;
-  const pr = SprayRim(panel, { kind: "sdf", sdf: "assets/bonus_plate_sdf.png", sdfSourceWidth: 900, sdfSourceHeight: 604, sdfStep: .75,
-    margin: 70, band: .045, flame: 40, z: -1, className: "panelfx", active: () => !$("bonusWrap").hidden,
-    onLost: () => panel.classList.remove("livefx") });
-  if (pr) panel.classList.add("livefx");
+  if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
+  SprayFX.start({
+    boxes: [{ sel: "#board", box: true, grow: 10, inset: .01, band: .03, radius: .022, flameK: 1.76, z: 3, cls: "framefx",
+              onAttach: el => el.classList.add("livefx") }],
+    rules: RIM_RULES,
+  });
 }
 function frameIdle() {
   const frame = $("paintframe");
@@ -4304,8 +4367,9 @@ const handlers = {
 };
 function clearFxWins() { eachCell(el => el.classList.remove("winhit")); clearWinChip(); clearWinLine(); }
 
-// The win line: sprayed orange dots laid along the cluster, each one fading in after the
-// last, so the stroke is drawn on as the player watches. The path starts at the cluster's
+// The win line: puffs of orange spray paint laid along the cluster, overlapping into one stroke,
+// each puffing on after the last, so the stroke is drawn on as the player watches; now and then
+// a run of paint drips off it. The path starts at the cluster's
 // top-left cell and steps to the nearest cell it has not visited, so it threads through
 // the shape rather than hopping across it. Returns how long the draw takes at tempo 1.
 const LINE_DOT_STEP = 11, LINE_DOT_GAP = 14, LINE_DRAW_MAX = 800;   // px per dot, ms per dot, ms cap on a draw
@@ -4340,7 +4404,16 @@ function drawWinLine(positions) {
       d.style.left = (a.x + (b.x - a.x) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
       d.style.top = (a.y + (b.y - a.y) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
       d.style.setProperty("--d", (n * gap).toFixed(1) + "ms");
-      d.style.setProperty("--s", (.8 + Math.random() * .5).toFixed(2));
+      d.style.setProperty("--s", (.85 + Math.random() * .4).toFixed(2));
+      d.style.setProperty("--r", Math.round(Math.random() * 360) + "deg");
+      const v = Math.floor(Math.random() * 4); if (v) d.className = "v" + v;
+      if (Math.random() < .12) {   // a run of paint, drawn down once the puff above it is on; under the stroke
+        const r = document.createElement("b");
+        r.style.left = d.style.left; r.style.top = d.style.top;
+        r.style.setProperty("--d", (n * gap + 120).toFixed(1) + "ms");
+        r.style.setProperty("--len", (18 + Math.random() * 24).toFixed(0) + "px");
+        frag.appendChild(r);
+      }
       frag.appendChild(d);
       n++;
     }
@@ -5082,7 +5155,11 @@ function fitToScreen() {
       const needW = stage.offsetWidth + 40;                   // .main's side padding
       const fitW = Math.min(1, W / needW);
       app.style.width = (W / fitW) + "px";
-      return Math.max(.05, Math.min(fitW, H / app.scrollHeight));   // reading it flushes layout; never 0
+      // the live rims' canvases hang past their elements: they must not count as page height
+      document.documentElement.classList.add("rimmeasure");
+      const sh = app.scrollHeight;
+      document.documentElement.classList.remove("rimmeasure");
+      return Math.max(.05, Math.min(fitW, H / sh));   // reading it flushes layout; never 0
     };
     // The bar keeps a readable size: wherever the page fits below ~0.72 of full HD, the bar is
     // raised (--hs) so its readouts land near that size on screen - by at most half again, and
