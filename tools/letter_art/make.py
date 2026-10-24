@@ -21,14 +21,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 FONTS = {"comic": ("C:/Windows/Fonts/comicbd.ttf", False), "segoe": ("C:/Windows/Fonts/seguibl.ttf", False), "arial": ("C:/Windows/Fonts/ariblk.ttf", False), "jraot": (os.path.join(ROOT, "frontend/assets/jraot-hollow.ttf"), True)}
 
 LIME = dict(fill=(.64, .91, .10), shade=(.39, .64, .05), block=(.22, .40, .03), hi=(.86, 1.0, .52))
+# the scatters' griddy texture, in source px: coarse and bold enough to survive the board's
+# downscale (a symbol is ~150 css px there; a 9 px grid of 1 px lines washed out to nothing)
+GRID = dict(cell=13, line=1.6, dark=.5)
 PURPLE = dict(fill=(.69, .31, .90), shade=(.47, .17, .68), block=(.28, .07, .43), hi=(.91, .72, 1.0))
 
 PIECES = {
     # name: (text, output size, palette, letter jitter [(dx, dy, angle, scale)...], drips per letter)
     "FS": ("FS", (1024, 772), LIME, [(-14, 6, 4, 1.0), (14, -6, -5, 1.0)],
            [[(.22, .42), (.78, .26)], [(.16, .34), (.84, .22)]]),
-    "XXFS": ("XXFS", (1280, 760), PURPLE, [(-18, 4, 5, 1.0), (-6, -6, -4, 1.0), (8, 6, 4, .98), (18, -4, -5, .98)],
-             [[(.14, .34)], [(.86, .40)], [(.22, .38)], [(.18, .26), (.84, .32)]]),
+    "XFS": ("XFS", (1100, 760), PURPLE, [(-14, 4, 5, 1.0), (2, -6, -4, 1.0), (14, 6, 4, .98)],
+            [[(.14, .34), (.86, .40)], [(.22, .38)], [(.18, .26), (.84, .32)]]),
     "BONUS": ("BONUS", (1520, 1012), LIME, [(-20, 10, 5, 1.0), (-10, -6, -3, 1.0), (0, 4, 2, 1.0), (10, -8, -4, 1.0), (20, 6, 4, 1.0)],
               [[(.25, .36)], [(.5, .44)], [(.18, .28), (.84, .4)], [(.3, .3)], [(.2, .38)]]),
 }
@@ -139,10 +142,15 @@ def plate(src=os.path.join(ROOT, "art/ui-src/bonus_btn_bg.png"), out_dir=None, o
 # seams and drip cuts still land on them); only the painting changes. Drips: (x, bottom y) in
 # source px, chosen from the original's drips (fewer, cleaner).
 TRACED = {
-    "BS": dict(src="art/ui-src/BS_orig.png", t=13, pal=LIME, out=2, grow=1.0, smooth=3.0, crack=2.5,
+    "BS": dict(src="art/ui-src/BS_orig.png", t=13, pal=LIME, out=2, grow=1.0, smooth=3.0, crack=2.5, grid=True,
                drips=[(75, 340), (93, 368), (137, 305), (151, 352), (205, 258), (265, 330), (282, 362),
                       (390, 335), (401, 378), (440, 322), (466, 362)]),
     "ES": dict(src="art/ui-src/ES_orig.png", t=11, pal=PURPLE, out=2, grow=1.0, smooth=2.5, crack=2.5,
+               # XFS, not XXFS (owner, 2026-10-24): everything left of the seam between the two X's
+               # goes, and what is left is centred on a canvas XFS_W source px wide
+               cut_left=[(168, 0), (168, 56), (163, 62), (160, 67), (157, 71), (155, 77), (155, 95), (158, 140), (160, 166),
+                         (162, 176), (163, 182), (166, 186), (168, 190), (171, 194), (174, 198), (176, 202), (175, 210), (176, 216), (177, 302)],
+               width=420, grid=True,
                drips=[(48, 258), (75, 290), (145, 276), (186, 263), (238, 268), (256, 258), (330, 262),
                       (346, 252), (410, 266), (425, 290), (442, 284)]),
     "BONUS": dict(src="art/ui-src/bonus_btn_text.png", t=8, pal=LIME, out=1.5, grow=6.0, smooth=7.0, crack=10.0,
@@ -158,12 +166,29 @@ def traced(name, out_dir=None, seed=11):
     S = C.SS
     k = cfg["out"] * S                              # working px per source px
     face, _, (SW, SH) = T.trace(src, k, cfg["t"], crack_src=cfg["crack"], grow_src=cfg["grow"], smooth_src=cfg["smooth"])
+    drips_src = list(cfg["drips"])
+    shift = 0.0
+    if cfg.get("cut_left"):
+        import cv2
+        poly = np.array([(0, 0)] + [(x * k, y * k) for x, y in cfg["cut_left"]] + [(0, face.shape[0])], np.int32)
+        kill = np.zeros(face.shape, np.uint8); cv2.fillPoly(kill, [poly], 1)
+        face = face & ~kill.astype(bool)
+        # the rest, centred on the new width
+        xs = np.nonzero(face.any(0))[0]
+        W2 = int(round(cfg["width"] * k))
+        shift = (W2 - (xs.max() - xs.min() + 1)) / 2 - xs.min()
+        M = np.float32([[1, 0, shift], [0, 1, 0]])
+        face = cv2.warpAffine(face.astype(np.uint8), M, (W2, face.shape[0]), flags=cv2.INTER_NEAREST).astype(bool)
+        seam_x = lambda y: np.interp(y, [p[1] for p in cfg["cut_left"]], [p[0] for p in cfg["cut_left"]])
+        drips_src = [(x + shift / k, y) for x, y in drips_src if x > seam_x(y) + 4]
+        SW = cfg["width"]
+        print(f"{name}: cut at the seam, shifted {shift / k:+.1f} source px, canvas {SW}x{SH}")
     H, W = face.shape
     parts = T.letters(face, (12 * k) ** 2)
     rng = np.random.default_rng(seed)
     letters = [{"body": m, "drips": np.zeros_like(m)} for m in parts]
     # each drip hangs from the letter right above it
-    for x, yb in cfg["drips"]:
+    for x, yb in drips_src:
         X = x * k
         col = int(round(X))
         best = None
@@ -179,6 +204,9 @@ def traced(name, out_dir=None, seed=11):
     hh = SH * k
     P = dict(cfg["pal"], ink=hh * .017, sticker=hh * .009, depth=hh * .02, shade_w=hh * .03, hi_w=hh * .012,
              hi_inset=hh * .012, gloss_period=hh * .05, light=255)
+    if cfg.get("grid"):   # the griddy texture (cartoon.render), GRID in source px
+        P["grid"] = dict(spacing=max(6, int(round(GRID["cell"] * k))), width=max(1, int(round(GRID["line"] * k))), dark=GRID["dark"],
+                         inset=hh * .012, dots=True)
     OW, OH = round(SW * cfg["out"]), round(SH * cfg["out"])
     full, layers = C.render(letters, P, (OW, OH))
     out_dir = out_dir or os.path.join(ROOT, "art", "letters")

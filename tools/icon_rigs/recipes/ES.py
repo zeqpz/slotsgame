@@ -1,28 +1,33 @@
-# ES - Extreme scatter: "XXFS" in purple dripping graffiti. Like the bonus scatter, the paint is
-# still wet: the drips under each letter ooze longer and snap back in turn, and a little ripple
-# runs through the word. Land: the letters squash left to right and the drips whip down and spring
-# back. Win: a wave - X, X, F, S hop and slam down one after another, flinging their drips, and
-# the piece sparkles. (The page adds a glow and a landing punch on top, so it stays lively, not busy.)
+# ES - Extreme scatter: "XFS" in purple dripping graffiti (it was XXFS until 2026-10-24: the first X
+# is cut away in tools/letter_art/make.py). Like the bonus scatter, the paint is still wet: the
+# drips under each letter ooze longer and snap back in turn, and a little ripple runs through the
+# word. Land: the letters squash left to right and the drips whip down and spring back. Win: a
+# wave - X, F, S hop and slam down one after another, flinging their drips, and the piece
+# sparkles. (The page adds a glow and a landing punch on top, so it stays lively, not busy.)
+# Written in 1x px of the 420x302 canvas; the source is the 2x render (840x604), see src_scale.
 BLOB = ("grow", ("opaque",), 2)   # the whole piece (letters + drips, with its soft edge); the cartoon art (tools/letter_art) has no loose spatter
 # (the loose spatter dots ride with the letter on their side)
 H = 302
 
-# the four letters share one black outline: split along the dark seams between them
-SEAM_XX = [(168, 0), (168, 56), (163, 62), (160, 67), (157, 71), (155, 77), (155, 95), (158, 140), (160, 166), (162, 176),
-           (163, 182), (166, 186), (168, 190), (171, 194), (174, 198), (176, 202), (175, 210), (176, 216), (177, H)]   # the line between the X's arms, through the diamond
-SEAM_XF = [(281, 0), (281, 150), (286, 170), (292, 185), (293, 240), (290, H)]                          # down the gap
-SEAM_FS = [(395, 0), (395, 62), (393, 70), (391, 76), (389, 84), (381, 92), (380, 112), (380, 125), (385, 135), (386, 145),
-           (380, 155), (377, 170), (377, 215), (383, 240), (383, H)]                                    # F's bar end, round the S's bowl
+W = 420
+
+# the three letters share one black outline: split along the dark seams between them
+SEAM_XF = [(168.8, 0), (168.8, 150), (173.8, 170), (179.8, 185), (180.8, 240), (177.8, H)]              # down the gap
+# F/S (measured on the XFS render): down the notch between the F's bar and the S's top, across
+# the short stretch where their paint runs together, down the middle of the black line they share,
+# then along the middle of the gap between the F's stem and the S's bowl
+SEAM_FS = [(276, 0), (276, 30), (283, 42), (283, 72), (276, 88), (268, 96), (266.5, 102), (267, 114), (268, 120), (271, 128),
+           (276, 138), (266.5, 144), (254, 150), (252, 162), (250.5, 174), (250, 186), (252, 198), (257, 210), (259, 222),
+           (265, 234), (266, 252), (262, 270), (262, H)]
 SIDES = {
-    "x1": ("poly", [(0, 0)] + SEAM_XX + [(0, H)]),
-    "x2": ("poly", SEAM_XX + SEAM_XF[::-1]),
+    "x": ("poly", [(0, 0)] + SEAM_XF + [(0, H)]),
     "f": ("poly", SEAM_XF + SEAM_FS[::-1]),
-    "s": ("poly", SEAM_FS + [(512, H), (512, 0)]),
+    "s": ("poly", SEAM_FS + [(W, H), (W, 0)]),
 }
 CUT = 230                  # the drips hang below this line; each letter's run stretches from its middle
-PIVOTS = {"x1": (100, 228), "x2": (225, 226), "f": (330, 240), "s": (430, 236)}   # letter bottoms
-RUN_X = {"x1": 95, "x2": 230, "f": 325, "s": 435}
-LOWER = ("rect", -10, CUT, 530, H + 10)
+PIVOTS = {"x": (112.8, 226), "f": (217.8, 240), "s": (317.8, 236)}   # letter bottoms
+RUN_X = {"x": 117.8, "f": 212.8, "s": 322.8}
+LOWER = ("rect", -10, CUT, W + 18, H + 10)
 
 
 def twinkle(t0, t1, t2, spin=90, peak=1.2):
@@ -67,19 +72,20 @@ L = list(SIDES)
 parts = [{"name": "drip_" + k, "mask": ("and", SIDES[k], LOWER, BLOB), "pivot": (RUN_X[k], CUT), "parent": "letter_" + k} for k in L]
 parts += [{"name": "letter_" + k, "mask": SIDES[k], "pivot": PIVOTS[k]} for k in L]
 parts += [
-    {"name": "glint_a", "sprite": "sparkle", "size": 15, "at": (60, 70), "hidden": True, "parent": "letter_x1"},
-    {"name": "glint_b", "sprite": "sparkle", "size": 12, "at": (330, 62), "hidden": True, "parent": "letter_f"},
-    {"name": "glint_c", "sprite": "sparkle", "size": 13, "at": (470, 120), "hidden": True, "parent": "letter_s"},
+    {"name": "glint_a", "sprite": "sparkle", "size": 15, "at": (72, 62), "hidden": True, "parent": "letter_x"},
+    {"name": "glint_b", "sprite": "sparkle", "size": 12, "at": (217.8, 62), "hidden": True, "parent": "letter_f"},
+    {"name": "glint_c", "sprite": "sparkle", "size": 13, "at": (357.8, 120), "hidden": True, "parent": "letter_s"},
 ]
 
 RIG = {
     "id": "ES",
+    "src_scale": 2,
     "parts": parts,
     "draw": ["drip_" + k for k in L] + ["letter_" + k for k in L] + ["glint_a", "glint_b", "glint_c"],
     "anims": {
         # wet paint: each letter's drips ooze and snap back in turn; one ripple runs along the word
         "idle": {"dur": 2.6, "bones": {
-            "drip_x1": ooze(.05), "drip_f": ooze(.4, 1.25), "drip_x2": ooze(.8, 1.2, .6), "drip_s": ooze(1.2, 1.24),
+            "drip_x": ooze(.05), "drip_f": ooze(.55, 1.25), "drip_s": ooze(1.1, 1.24),
             **{"letter_" + k: bob(1.55 + .1 * i) for i, k in enumerate(L)},
         }},
         # dropped in: the letters squash left to right, every run of drips whips down and springs back
@@ -89,10 +95,10 @@ RIG = {
                for i, k in enumerate(L)},
             **{"drip_" + k: whip(.04 + .02 * i, 1.22, .42) for i, k in enumerate(L)},
         }},
-        # a wave: X, X, F, S hop one after another; each slam flings its drips; sparkles
+        # a wave: X, F, S hop one after another; each slam flings its drips; sparkles
         "win": {"dur": 1.45, "bones": {
-            **{"letter_" + k: hop(.13 * i, 3.6) for i, k in enumerate(L)},
-            **{"drip_" + k: whip(.13 * i + .35, 1.3) for i, k in enumerate(L)},
+            **{"letter_" + k: hop(.16 * i, 3.6) for i, k in enumerate(L)},
+            **{"drip_" + k: whip(.16 * i + .35, 1.3) for i, k in enumerate(L)},
             "glint_a": GA, "glint_b": GB, "glint_c": GC,
         }, "alpha": {"glint_a": GA_ALPHA, "glint_b": GB_ALPHA, "glint_c": GC_ALPHA}},
     },

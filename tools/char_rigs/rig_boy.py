@@ -365,6 +365,88 @@ def fill_shoe_holes(atlas, pages, region="shoe_left", ref="shoe_right"):
     return int(holes.sum())
 
 
+FACES = ("face_idle", "face_win", "face_big_win", "face_lose", "face_anticipation", "face_cash_show", "face_cash_count")
+
+
+def fix_faces(atlas, pages):
+    """Every face pose: the beanie's hanging tip gets the hair under it that the other side of
+    his head has (the wedge of wall between tip and cheek read as the beanie chopped off), and
+    the jaw's broken lower-right corner is redrawn round (artfix.py)."""
+    import artfix
+    done = {}
+    for n in FACES:
+        img = np.asarray(ak.crop(pages, atlas, n)).copy()
+        img, a = artfix.beanie_tip(img)
+        img, b = artfix.jaw_corner(img)
+        ak.paste(pages, atlas, n, Image.fromarray(img, "RGBA"))
+        done[n] = (a, b)
+    return done
+
+
+# The stripe of wall between the legs up to the shirt hem read as a cut in the jeans. A backing
+# in the jeans' colour sits behind both legs: its top under the hem, its sides under each leg, and
+# its lower edge - with the drawing's outline - is the crotch seam where the inner leg lines meet.
+# It also runs on to the right under the shirt's flared hem, where a sliver of wall showed between
+# the hem and the right hip (the jeans' waistband belongs there).
+CROTCH = {"x": (-78, 74), "y_top": 500,
+          "seam": [(-78, 446), (-52, 432), (-38, 427), (-24, 429), (14, 446), (44, 462), (74, 474)],
+          "ink": 5.5}
+
+
+def crotch_backing(j, atlas, pages, W):
+    from scipy import ndimage
+    bones = [b["name"] for b in j["bones"]]
+    bidx = {n: i for i, n in enumerate(bones)}
+    # the jeans' colours, sampled from the legs near the crotch
+    legs = [np.asarray(ak.crop(pages, atlas, n)).astype(np.float32) for n in ("leg_left", "leg_right")]
+    px = np.concatenate([L[L[..., 3] > 250][:, :3] for L in legs])
+    lum = px.mean(-1)
+    jeans = np.median(px[(lum > 45) & (lum < 110)], 0)
+    inkc = np.median(px[lum < 30], 0) if (lum < 30).any() else np.zeros(3)
+    x0, x1 = CROTCH["x"]; yt = CROTCH["y_top"]
+    sx = np.array([p[0] for p in CROTCH["seam"]], float); sy = np.array([p[1] for p in CROTCH["seam"]], float)
+    yb = int(sy.min()) - 8
+    S = 4
+    w, h = (x1 - x0), (yt - yb)
+    xs = x0 + (np.arange(w * S) + .5) / S
+    ys = yt - (np.arange(h * S) + .5) / S
+    X, Y = np.meshgrid(xs, ys)
+    seam = np.interp(X, sx, sy)
+    inside = Y > seam
+    # ink band along the seam, the drawing's weight
+    dist = ndimage.distance_transform_edt(inside) / S
+    cov = cv2.resize(inside.astype(np.float32), (w, h), interpolation=cv2.INTER_AREA)
+    d1 = cv2.resize(dist.astype(np.float32), (w, h), interpolation=cv2.INTER_AREA)
+    ink_a = np.clip(CROTCH["ink"] + .5 - d1, 0, 1)[..., None]
+    rgb = jeans * (1 - ink_a) + inkc * ink_a
+    img = np.concatenate([rgb, cov[..., None] * 255], -1).clip(0, 255).astype(np.uint8)
+    # region on the boy's second page
+    pg = "smukiez-2.png" if "smukiez-2.png" in pages else atlas.pages[0]["name"]
+    spot = ak.free_spot(atlas, pg, w, h)
+    assert spot, "no room for crotch_fill"
+    atlas.add(pg, "crotch_fill", spot[0], spot[1], w, h)
+    ak.paste(pages, atlas, "crotch_fill", Image.fromarray(img, "RGBA"))
+    # mesh: left part follows the left thigh, right part the right thigh, the top the torso
+    L_in, R_in = -38.0, -24.0            # the two legs' inner edges at the crotch
+    poly = mk.outline(img[..., 3], pad=1, step=12, tol=.8, thresh=1)
+    poly = np.clip(poly, 0, [w, h])
+    inner = mk.interior(poly, spacing=12, margin=.5)
+    P, T, nh = mk.triangulate(poly, inner)
+    world = np.stack([x0 + P[:, 0], yt - P[:, 1]], 1)
+    weights = []
+    for xw, yw in world:
+        r = float(mk.smoothstep(L_in - 6, R_in + 6, xw))        # 0 = left thigh, 1 = right thigh
+        hold = float(mk.smoothstep(yt - 46, yt - 6, yw))          # under the hem: the torso
+        weights.append({"thigh_left": (1 - r) * (1 - hold), "thigh_right": r * (1 - hold), "torso": hold})
+    verts, uvs = mk.weighted_mesh(P, (w, h), world, weights, bidx, W)
+    j["skins"][0]["attachments"]["crotch_fill"] = {"crotch_fill": {
+        "type": "mesh", "path": "crotch_fill", "uvs": uvs, "triangles": [int(i) for i in T.flatten()],
+        "vertices": verts, "hull": nh, "width": w, "height": h}}
+    # first in the draw order: behind everything (offsets in the draw-order keys stay valid)
+    j["slots"].insert(0, {"name": "crotch_fill", "bone": "root", "attachment": "crotch_fill"})
+    return len(P)
+
+
 def fix(j, atlas, pages):
     for ik in j.get("ik", []):
         if ik["name"] in ("leg_left", "leg_right"):
@@ -391,4 +473,6 @@ def fix(j, atlas, pages):
         split_sleeve(j, atlas, pages)
     merge_arm(atlas, pages)
     fix_wrists(j, atlas, pages, W)
+    stats["faces (hair px, jaw px)"] = fix_faces(atlas, pages)
+    stats["crotch_fill verts"] = crotch_backing(j, atlas, pages, W)
     return stats

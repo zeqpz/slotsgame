@@ -227,6 +227,48 @@ def sprite_mist(size=96, color=(0, 255, 61), seed=0, dots=140):
 SPRITES = {"sparkle": sprite_sparkle, "puff": sprite_puff, "streak": sprite_streak, "mist": sprite_mist}
 
 
+def scale_mask(m, k):
+    """A mask expression with every source-px number in it multiplied by k (see src_scale)."""
+    if not isinstance(m, tuple):
+        return m
+    op = m[0]
+    pts = lambda q: [(x * k, y * k) for x, y in q]
+    if op == "poly":
+        return ("poly", pts(m[1]))
+    if op in ("disc", "rect"):
+        return (op,) + tuple(v * k for v in m[1:])
+    if op == "ellipse":
+        return ("ellipse",) + tuple(v * k for v in m[1:5]) + tuple(m[5:])
+    if op in ("grow", "shrink", "blur"):
+        return (op, scale_mask(m[1], k), m[2] * k)
+    if op == "along":
+        return ("along", scale_mask(m[1], k), pts(m[2])) + tuple(m[3:])
+    if op == "cc":
+        return ("cc", scale_mask(m[1], k), m[2] * k, m[3] * k)
+    if op in ("or", "and", "minus"):
+        return (op,) + tuple(scale_mask(q, k) for q in m[1:])
+    return m                                            # color / ink / opaque: no numbers in px
+
+
+def scale_recipe(r, k):
+    """The recipe written in 1x source px, for a source drawn at k times that (the scatters' 2x
+    letter renders): masks, pivots, sprite spots and feathers scale; skeleton units do not."""
+    r = dict(r)
+    parts = []
+    for p in r["parts"]:
+        p = dict(p)
+        if "mask" in p and p["mask"] != "rest":
+            p["mask"] = scale_mask(p["mask"], k)
+        for key in ("pivot", "at"):
+            if p.get(key) is not None:
+                p[key] = (p[key][0] * k, p[key][1] * k)
+        if p.get("feather"):
+            p["feather"] = p["feather"] * k
+        parts.append(p)
+    r["parts"] = parts
+    return r
+
+
 # ------------------------------------------------------------------ easing -> spine curves
 EASE = {   # normalised cubic beziers (x1, y1, x2, y2), CSS-style
     "linear": None, "in": (.42, 0, 1, 1), "out": (0, 0, .58, 1), "inout": (.42, 0, .58, 1),
@@ -283,7 +325,8 @@ CHANNELS = {"x": ("translatex", 0.0), "y": ("translatey", 0.0), "r": ("rotate", 
 
 class Rig:
     def __init__(self, recipe):
-        self.r = recipe
+        # "src_scale": the source is drawn at that many times the px the recipe is written in
+        self.r = scale_recipe(recipe, recipe["src_scale"]) if recipe.get("src_scale", 1) != 1 else recipe
         self.id = recipe["id"]
         self.src = Image.open(os.path.join(SRC_DIR, recipe.get("src", self.id + ".png"))).convert("RGBA")
         self.cv = Canvas(self.src)

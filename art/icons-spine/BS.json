@@ -64,14 +64,14 @@
   {
    "name": "glint_a",
    "parent": "letter_f",
-   "x": -11.816,
-   "y": 46.973
+   "x": -11.768,
+   "y": 46.924
   },
   {
    "name": "glint_b",
    "parent": "letter_s",
-   "x": 15.625,
-   "y": 41.406
+   "x": 15.576,
+   "y": 41.455
   },
   {
    "name": "glint_c",
@@ -146,82 +146,82 @@
    "attachments": {
     "drip_f1": {
      "BS/drip_f1": {
-      "x": 0.098,
-      "y": -8.203,
-      "width": 12.305,
-      "height": 16.406
+      "x": -0.439,
+      "y": -8.008,
+      "width": 10.254,
+      "height": 16.016
      }
     },
     "drip_f2": {
      "BS/drip_f2": {
-      "x": -0.879,
-      "y": -6.543,
-      "width": 9.57,
-      "height": 15.039
+      "x": -1.074,
+      "y": -6.396,
+      "width": 8.984,
+      "height": 14.551
      }
     },
     "drip_f3": {
      "BS/drip_f3": {
-      "x": 0.098,
-      "y": -6.445,
-      "width": 8.008,
-      "height": 12.891
+      "x": 0.049,
+      "y": -6.396,
+      "width": 7.91,
+      "height": 12.793
      }
     },
     "drip_s1": {
      "BS/drip_s1": {
-      "x": 0.391,
+      "x": 0.488,
       "y": -8.203,
-      "width": 11.719,
-      "height": 19.531
+      "width": 10.938,
+      "height": 19.336
      }
     },
     "drip_s2": {
      "BS/drip_s2": {
-      "x": 0.195,
+      "x": 0.146,
       "y": -8.105,
-      "width": 10.547,
+      "width": 10.449,
       "height": 16.211
      }
     },
     "drip_s3": {
      "BS/drip_s3": {
-      "x": 0.0,
-      "y": -7.812,
-      "width": 11.328,
-      "height": 20.312
+      "x": -0.049,
+      "y": -7.568,
+      "width": 11.23,
+      "height": 19.824
      }
     },
     "letter_f": {
      "BS/letter_f": {
-      "x": 4.492,
-      "y": 20.605,
-      "width": 50.781,
-      "height": 74.805
+      "x": 4.395,
+      "y": 28.32,
+      "width": 49.609,
+      "height": 58.203
      }
     },
     "letter_s": {
      "BS/letter_s": {
       "x": -1.172,
-      "y": 20.801,
-      "width": 50.781,
-      "height": 73.633
+      "y": 21.24,
+      "width": 49.609,
+      "height": 71.777
      }
     },
     "glint_a": {
      "BS/glint_a": {
       "x": 0.0,
       "y": 0.0,
-      "width": 15.82,
-      "height": 15.82
+      "width": 15.918,
+      "height": 15.918
      }
     },
     "glint_b": {
      "BS/glint_b": {
       "x": 0.0,
       "y": 0.0,
-      "width": 12.891,
-      "height": 12.891
+      "width": 12.988,
+      "height": 12.988
      }
     },
     "glint_c": {

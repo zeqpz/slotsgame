@@ -106,7 +106,10 @@ void main() {
   float sh = uShadow.z * (1. - smoothstep(0., max(uShadow.y, 1e-3), ds)) * smoothstep(-aa, aa, dOut);
   vec4 col = vec4(0., 0., 0., sh);
   // glow off the outer edge, breathing
-  float glow = uGlow * exp(-max(dOut, 0.) / (uFlame * .55)) * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011));
+  // (outside only: inside, it stopped in a hard straight line where the shader stops drawing -
+  // a boxy band of blue round the inside of every outline)
+  float glow = uGlow * exp(-max(dOut, 0.) / (uFlame * .55)) * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011))
+             * smoothstep(-2. * aa, 2. * aa, dOut);
   col = vec4(uMid * glow, glow) + col * (1. - glow);
 
   // flames: tongues that climb out of the rim (outward, pulled upward)
@@ -290,8 +293,8 @@ void main() {
     // where the element sits in its host (when the canvas lives in a parent)
     if (host !== el) {
       const hr = host.getBoundingClientRect(), hs = hr.width / (host.offsetWidth || 1) || 1;
-      g.ox = (r.left - hr.left) / hs; g.oy = (r.top - hr.top) / hs;
-    } else { g.ox = 0; g.oy = 0; }
+      g.ox = (r.left - hr.left) / hs - host.clientLeft; g.oy = (r.top - hr.top) / hs - host.clientTop;
+    } else { g.ox = -el.clientLeft; g.oy = -el.clientTop; }   // an absolute child sits inside the border: the box starts that far out
     return g;
   }
 

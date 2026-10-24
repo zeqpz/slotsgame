@@ -75,6 +75,7 @@ parts += [
 
 RIG = {
     "id": "BS",
+    "src_scale": 2,      # the source is the 2x letter render (1024x772); the recipe stays in 1x px
     "parts": parts,
     "draw": list(DRIPS) + ["letter_f", "letter_s", "glint_a", "glint_b", "glint_c"],
     "anims": {

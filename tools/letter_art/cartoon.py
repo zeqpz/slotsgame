@@ -157,6 +157,20 @@ def render(letters, P, out_size):
         put(block, P["block"])
         put(inner_line, (0, 0, 0))
         put(body, P["fill"])
+        # the griddy texture: a fine diamond grid laid over the paint in a darker tone of it, kept
+        # off the edges (inside the face by the ink line's width), so the letter reads as a
+        # printed sticker with detail in it rather than a flat fill
+        g = P.get("grid")
+        if g:
+            yy, xx = np.ogrid[0:H, 0:W]
+            sp, lw = g["spacing"], g["width"]
+            lines = (((xx + yy) % sp) < lw) | (((xx - yy) % sp) < lw)
+            inner = ero(body, g.get("inset", ink * .6))
+            tone = tuple(f * (1 - g["dark"]) + sd * g["dark"] for f, sd in zip(P["fill"], P["shade"]))
+            put(lines & inner, tone)
+            if g.get("dots"):   # a halftone dot in each cell's middle, smaller toward the light
+                cy = ((yy + sp // 2) % sp - sp / 2) ** 2 + ((xx) % sp - sp / 2) ** 2
+                put(inner & (cy < (lw * .9) ** 2) & ~lines, tone)
         sh = clean(shade_band(body, -ddx * P["shade_w"], -ddy * P["shade_w"]), P["shade_w"] * .3)
         put(sh, P["shade"])
         hi = clean(shade_band(ero(body, P["hi_inset"]), ddx * P["hi_w"], ddy * P["hi_w"]), P["hi_w"] * .35)

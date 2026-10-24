@@ -137,6 +137,13 @@ hand_left_release_wrist
   orig: 230, 200
   offset: 0, 0
   index: -1
+crotch_fill
+  rotate: false
+  xy: 1792, 4
+  size: 152, 81
+  orig: 152, 81
+  offset: 0, 0
+  index: -1
 
 smukiez-3.webp
 size: 2048,256

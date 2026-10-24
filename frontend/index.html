@@ -66,6 +66,11 @@
     --cell-gap: 7px;
   }
   @font-face {
+    font-family: "Fredoka";
+    src: url("assets/fredoka.ttf") format("truetype");
+    font-weight: 300 700; font-display: swap;
+  }
+  @font-face {
     font-family: "Jraot Hollow";
     src: url("assets/jraot-hollow.ttf") format("truetype");
     font-display: swap;
@@ -136,8 +141,72 @@
     translate: calc(-50% + var(--px, 0px)) calc(-50% + var(--py, 0px)); rotate: var(--pr, 0deg);
     opacity: .72; filter: drop-shadow(0 10px 24px rgba(0,0,0,.6));
   }
-  #walltag.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25); }
-  #walltag.pop { animation: tagPop .6s; }
+  #walltag.bounce, .tagfx.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25); }
+  #walltag.pop, .tagfx.pop { animation: tagPop .6s; }
+  /* The tag's green outline glows like neon and throws its light on the bricks round it: two
+     layers in the tag's own box that ride its wander, hop and pop (tagFx, hoverWin). The spill
+     is blended onto the wall (overlay lights the brick faces more than the dark mortar, so it
+     reads as light falling on the bricks), the glow over the tag (screen). Both breathe with a
+     slow neon flicker, and a sheen of brighter light runs along the outline now and then. */
+  .tagfx {
+    position: absolute; left: 50%; top: 46%; width: min(76%, 140vh); aspect-ratio: 3303 / 1674;
+    translate: -50% -50%; pointer-events: none;
+  }
+  .tagfx > i { position: absolute; inset: 0; background: center / 100% 100% no-repeat; }
+  #tagglow { mix-blend-mode: screen; animation: neonSign 5.7s infinite; }
+  #tagglow > i { inset: -6%; background-image: url("assets/wallfx/tag_glow.webp"); }   /* the halo's padding (make_wall_fx GLOW_PAD) */
+  #tagglow::after {   /* the sheen */
+    content: ""; position: absolute; inset: -6%; background: url("assets/wallfx/tag_glow.webp") center / 100% 100% no-repeat;
+    filter: brightness(1.7) saturate(.8);
+    -webkit-mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
+    mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
+    animation: sheen 6.5s cubic-bezier(.45,0,.55,1) infinite;
+  }
+  #tagspill { mix-blend-mode: color-dodge; animation: neonSpill 5.2s infinite; }
+  #tagspill > i { inset: -22%; background-image: url("assets/wallfx/tag_spill.webp"); }
+  #tagglow.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonSign 5.7s infinite; }
+  #tagglow.pop { animation: tagPop .6s, neonSign 5.7s infinite; }
+  #tagspill.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonSpill 5.2s infinite; }
+  #tagspill.pop { animation: tagPop .6s, neonSpill 5.2s infinite; }
+  @keyframes neon {
+    0%, 100% { opacity: .62; } 18% { opacity: .9; } 21% { opacity: .55; } 23% { opacity: .88; }
+    46% { opacity: .7; } 62% { opacity: .95; } 80% { opacity: .66; }
+  }
+  @keyframes neonSpill {
+    0%, 100% { opacity: .7; } 18% { opacity: 1; } 21% { opacity: .6; } 23% { opacity: .97; }
+    46% { opacity: .78; } 62% { opacity: 1; } 80% { opacity: .74; }
+  }
+  @keyframes sheen { 0% { -webkit-mask-position: 100% 0; mask-position: 100% 0; } 55%, 100% { -webkit-mask-position: -50% 0; mask-position: -50% 0; } }
+  /* the paint in the wall: each blob laid over itself (it never shrinks below its own size, so
+     the painted copy under it never shows), swelling and sagging; runs grow down from its tips,
+     a drop falls off each to the pavement, then the run thins away and the next begins. A touch
+     brighter than the dimmed bricks: wet paint catches the light */
+  #wallpaint { position: absolute; pointer-events: none; filter: brightness(.5) saturate(1.15); }
+  #wallpaint > * { position: absolute; display: block; }
+  .wblob { transform-origin: 50% 8%; animation: ooze var(--ooze, 7s) ease-in-out var(--od, 0s) infinite; }
+  @keyframes ooze {
+    0%, 100% { transform: scale(1.005, 1.01); } 40% { transform: scale(1.03, 1.075) skewX(-.6deg); } 70% { transform: scale(1.012, 1.04) skewX(.4deg); }
+  }
+  .wdrip { background: center top / 100% 100% no-repeat; transform-origin: 50% 0; transform: scaleY(0);
+           animation: wallDrip var(--cyc, 9s) var(--dl, 0s) infinite; }
+  .wdrip.pink { background-image: url("assets/wallfx/drip_pink.webp"); }
+  .wdrip.green { background-image: url("assets/wallfx/drip_green.webp"); }
+  @keyframes wallDrip {
+    0% { transform: scaleY(0); opacity: 1; animation-timing-function: cubic-bezier(.6, 0, .9, .5); }
+    55% { transform: scaleY(1); opacity: 1; }
+    82% { transform: scaleY(1.02); opacity: 1; }
+    100% { transform: scaleY(1.04); opacity: 0; }
+  }
+  .wdrop { background: center / contain no-repeat; opacity: 0; animation: wallDrop var(--cyc, 9s) var(--dl, 0s) infinite; }
+  .wdrop.pink { background-image: url("assets/wallfx/drop_pink.webp"); }
+  .wdrop.green { background-image: url("assets/wallfx/drop_green.webp"); }
+  @keyframes wallDrop {
+    0%, 50% { opacity: 0; transform: translateY(0) scale(.3); }
+    55% { opacity: 1; transform: translateY(0) scale(1, 1.1); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+    72% { opacity: 1; transform: translateY(var(--fall, 600%)) scale(.85, 1.25); }
+    74%, 100% { opacity: 0; transform: translateY(var(--fall, 600%)) scale(1.6, .4); }
+  }
+  @media (prefers-reduced-motion: reduce) { .tagfx, .tagfx::after, #tagglow::after, .wblob, .wdrip, .wdrop { animation: none !important; } .wdrip { transform: none; } }
   @keyframes tagBounce { 0% { scale: 1; } 38% { scale: calc(1 + .06 * var(--bounce, 1)); } 100% { scale: 1; } }
   @keyframes tagPop {   /* a quick punch out, a dip back under, and a settle */
     0%   { scale: 1; animation-timing-function: cubic-bezier(.2,.8,.3,1); }
@@ -159,19 +228,29 @@
     height: calc(var(--char-height) * var(--char-stretch) * var(--char-headroom));
     width: calc(var(--char-height) * 0.94);
     overflow: hidden; pointer-events: none; user-select: none;
-    opacity: .78;   /* they are scenery — the reels stay the focus */
+    opacity: 1;   /* solid: the owner did not want them see-through (they were .78, .5 on laptops) */
     transform-origin: 50% 100%;   /* they pop up off their feet, not out of the middle */
     translate: 0 calc(-1 * var(--char-lift));   /* the lift; the hop (charbounce) folds it into its own translate */
     /* they stand on the turned wall: the scene's lean (--scene-yaw), and a touch of depth with
        it - the figure on the far side a little smaller, the near one a little bigger
        (--char-depth, from the yaw's sign, so flipping the lean flips this too) */
     scale: var(--char-depth, 1);
-    transform: perspective(900px) rotateY(var(--scene-yaw));
+    /* each stands turned toward the board (--char-turn), on top of the scene's lean: a figure
+       at an angle in the room, the side nearer the board further away */
+    transform: perspective(1100px) rotateY(calc(var(--scene-yaw) + var(--char-turn, 0deg)));
   }
+  /* a soft contact shadow on the pavement under each, so the turned figure stands on something */
+  .charfx::before {
+    content: ""; position: absolute; left: 18%; right: 18%; bottom: 0; height: 9%; z-index: 0; pointer-events: none;
+    background: radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,.28) 55%, transparent);
+    translate: 0 45%; opacity: 0; transition: opacity var(--char-fade, .4s) linear;
+  }
+  .charfx:has(canvas.on)::before { opacity: 1; }
+  .charfx canvas { z-index: 1; }
   /* --char-shift centres each character's own column on the union of its clips' content:
      char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
-  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); }   /* the skull stands 5% lower than the boy */
-  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); }
+  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); --char-turn: -17deg; transform-origin: 70% 100%; }   /* the skull stands 5% lower than the boy */
+  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); --char-turn: 17deg; transform-origin: 30% 100%; }
   /* same beat as the wall's bounce — they hop and shake it off on every spin */
   .charfx.bounce { animation: charbounce .7s cubic-bezier(.22,.9,.32,1.25); }
   /* on translate/scale/rotate (transform carries the scene's lean): the lift and the depth
@@ -192,11 +271,9 @@
     /* a 1024x576 laptop: the pair stands just inside the edges, a little behind the board's
        sides, rather than 8vw off-screen (the user lost them off the sides at that size) */
     :root { --char-height: 42.5vh; --char-inset: -1vw; }
-    .charfx { opacity: .5; }
   }
   @media (max-width: 760px) {
     :root { --char-height: 34.5vh; --char-inset: -12vw; }
-    .charfx { opacity: .42; }
   }
   /* Portrait phone: the scenery takes the top of the screen and the game the bottom. The pair
      stands BEHIND the board - head, body and hands above its top edge, legs behind it, cut off
@@ -212,12 +289,12 @@
   @media (max-width: 760px) and (orientation: portrait) {
     :root { --char-height: 22vh; --char-inset: -4vw; --char-drop: -46vh; }
     #charfx { right: -2vw; }   /* the skull's figure sits further out in its box than the boy's: this evens their margins */
-    .charfx { opacity: .75; clip-path: inset(0 0 var(--char-cut, 0px) 0); }
+    .charfx { clip-path: inset(0 0 var(--char-cut, 0px) 0); }
+    .charfx::before { display: none; }   /* their feet are behind the board here */
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
   @media (max-height: 500px) {
     :root { --char-height: 47vh; --char-inset: -6vw; --char-drop: 2vh; }
-    .charfx { opacity: .5; }
   }
   /* two stacked players: the standby always holds the next clip decoded and ready, so the
      handover is a crossfade between two already-running videos rather than a load pause.
@@ -364,10 +441,20 @@
   /* the figure: the sprayed numerals the win screen's amount is set in, on its purple sweep */
   .bonusintro .bnum {
     display: flex; align-items: flex-end; justify-content: center; gap: .4vw;
-    padding: 3.2vh 7vw 3.6vh; margin: .4vh 0;
-    background: url("assets/total_bg.webp") center / 100% 100% no-repeat;
+    padding: 3.2vh 7vw 3.6vh; margin: .4vh 0; position: relative; isolation: isolate;
     filter: drop-shadow(0 8px 18px rgba(0,0,0,.6));
   }
+  .bonusintro .bnum::before, .bonusintro .bnum::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  .bonusintro .bnum::before {
+    background: url("assets/total_bg.webp") center / 100% 100% no-repeat;
+    animation: splashBoil .5s steps(1) infinite, splashHue 3.6s ease-in-out infinite;
+  }
+  .bonusintro .bnum::after {
+    background: linear-gradient(108deg, transparent 32%, rgba(255,255,255,.62) 46%, rgba(214,160,255,.38) 51%, transparent 60%) 0 0 / 260% 100% no-repeat;
+    -webkit-mask: url("assets/total_bg.webp") center / 100% 100% no-repeat; mask: url("assets/total_bg.webp") center / 100% 100% no-repeat;
+    mix-blend-mode: screen; animation: splashSheen 2.6s cubic-bezier(.45,0,.55,1) infinite, splashBoil .5s steps(1) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) { .bonusintro .bnum::before, .bonusintro .bnum::after { animation: none !important; } }
   .bonusintro .bnum img { height: clamp(56px, 12vh, 120px); width: auto; display: block; }
   /* the how-it-works box: the same grey plate with the blue sprayed frame as the info panel,
      so it switches to the panel's dark ink too */
@@ -382,7 +469,15 @@
   .bonusintro .bhow p { margin: 0 0 .7em; } .bonusintro .bhow p:last-child { margin-bottom: 0; }
   .bonusintro .bhow b { font-family: var(--num); color: var(--gold); font-size: 1.12em; }
   .bonusintro .bhow strong { color: var(--fs-green); }
-  /* the pulse on the TOTAL WIN screen's "Click to continue" - the only screen that waits */
+  /* "Click or press Space to continue": the bonus intro waits for the player */
+  .bonusintro .bcont {
+    position: relative; margin-top: 2.2vh; text-align: center; z-index: 2;
+    font-family: var(--disp); font-size: clamp(14px, 2.3vh, 22px); letter-spacing: .12em; text-transform: uppercase;
+    color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,.85), 0 0 14px rgba(79,232,255,.55);
+    opacity: 0; transition: opacity .4s ease .9s; animation: bcont 1.5s ease-in-out infinite; pointer-events: none;
+  }
+  .bonusintro.up .bcont { opacity: 1; }
+  /* the pulse on the TOTAL WIN screen's "Click to continue" and the bonus intro's */
   @keyframes bcont { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   @media (prefers-reduced-motion: reduce) {
     .bonusintro, .bonusintro .wall, .bonusintro .inner { transition: none !important; animation: none !important; }
@@ -432,6 +527,37 @@
     content: ""; position: absolute; inset: 0; z-index: -1;
     background: url("assets/tier_bg.webp") center / 100% 100% no-repeat;
     translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
+    animation: splashBoil .5s steps(1) infinite, splashHue 3.2s ease-in-out infinite;
+  }
+  /* The splashes are alive: the paint boils (its edge redrawn a few times a second, the way a
+     cartoon's line does), its colours shimmer, and a sheen of light sweeps across it, clipped to
+     the splash's own shape - on the headline's splash and on the figure's purple sweep alike */
+  .totalwin .twhead.tier::after, .totalwin .twamount::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(108deg, transparent 32%, rgba(255,255,255,.0) 38%, rgba(255,255,255,.62) 46%, rgba(214,160,255,.38) 51%, transparent 60%) 0 0 / 260% 100% no-repeat;
+    -webkit-mask: url("assets/tier_bg.webp") center / 100% 100% no-repeat;
+    mask: url("assets/tier_bg.webp") center / 100% 100% no-repeat;
+    mix-blend-mode: screen;
+    translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
+    animation: splashSheen 2.6s cubic-bezier(.45,0,.55,1) infinite, splashBoil .5s steps(1) infinite;
+  }
+  .totalwin .twamount::after {
+    -webkit-mask-image: url("assets/total_bg.webp"); mask-image: url("assets/total_bg.webp");
+    animation-delay: -1.1s, 0s;
+  }
+  @keyframes splashSheen { 0% { background-position: 130% 0; } 70%, 100% { background-position: -40% 0; } }
+  @keyframes splashBoil {   /* four drawings of the same splash, a hair apart, flicked through */
+    0%   { transform: none; }
+    25%  { transform: skew(.5deg, -.3deg) scale(1.006, .996); }
+    50%  { transform: skew(-.4deg, .25deg) scale(.995, 1.007); }
+    75%  { transform: skew(.25deg, .4deg) scale(1.004, 1.002); }
+  }
+  @keyframes splashHue {
+    0%, 100% { filter: hue-rotate(0deg) saturate(1) brightness(1); }
+    50% { filter: hue-rotate(-14deg) saturate(1.25) brightness(1.12); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .totalwin .twhead.tier::before, .totalwin .twhead.tier::after, .totalwin .twamount::before, .totalwin .twamount::after { animation: none !important; }
   }
   .totalwin .twlogo {
     grid-area: 1 / 1; visibility: hidden;   /* all stacked in one cell; only the one showing is seen */
@@ -466,6 +592,7 @@
     content: ""; position: absolute; inset: 0; z-index: -1;
     background: url("assets/total_bg.webp") center / 100% 100% no-repeat;
     translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
+    animation: splashBoil .5s steps(1) -.25s infinite, splashHue 3.6s ease-in-out -1.4s infinite;
   }
   .totalwin .twfig {
     display: flex; align-items: flex-end; justify-content: center; gap: .4vw;
@@ -918,6 +1045,112 @@
   table.modes td, table.guide td { font-family: var(--read); font-size: 13.5px; }   /* the descriptions; the bold keys keep the game face */
   table td em { font-style: normal; color: var(--ink-soft); }
   @media (max-width: 640px) { .paytable, .kvgrid { grid-template-columns: 1fr; } }
+
+  /* ---------- the rules panel, redone (2026-10-24) ----------
+     The sprayed grey plate and its live blue outline stay; on it, every category sits in a
+     rounded box of its own (a smoky dark glass, so white copy reads on the grey), headed by a
+     rounded tab. All the copy is Fredoka - round, friendly, cartoon - in white with a black
+     outline, like the game's own lettering; the accents (the pays, the costs) are the game's
+     lime and gold. The tables become rounded rows, the paytable rounded cards. */
+  html .infopanel {
+    --ink: #fff; --ink-soft: #e4e2ea; --line: rgba(255, 255, 255, .18);
+    --gold: #ffd23c; --green: #a8f000; --spray: #4fe8ff;
+    font-family: "Fredoka", var(--read); color: #fff;
+    padding: 22px 24px 18px;
+  }
+  html .infopanel, html .infopanel p, html .infopanel td, html .infopanel th, html .infopanel .prow, html .infopanel .ptext, html .infopanel .kvgrid, html .infopanel .kvgrid small, html .infopanel .fine, html .infopanel .legal, html .infopanel .replaymeta, html .infopanel table.hist td, html .infopanel table.hist th {
+    font-family: "Fredoka", var(--read); font-weight: 500; color: #fff;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill; letter-spacing: .01em;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, .55);
+  }
+  html .infopanel h3 {
+    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 30px; letter-spacing: .03em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 6px #000; paint-order: stroke fill; text-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 20px rgba(79,232,255,.55);
+    text-align: center; margin: 0 0 16px;
+  }
+  html .infopanel section {
+    position: relative; margin: 0 0 16px; padding: 30px 16px 14px;
+    background: linear-gradient(180deg, rgba(14, 12, 22, .62), rgba(14, 12, 22, .5));
+    border: 2px solid rgba(0, 0, 0, .75); border-radius: 20px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .1), 0 4px 0 rgba(0, 0, 0, .35);
+  }
+  /* the category's tab: a rounded pill hung on the box's top edge */
+  html .infopanel section > h4 {
+    position: absolute; top: -14px; left: 16px; margin: 0;
+    padding: 4px 16px 5px; border-radius: 999px; border: 2px solid #000;
+    background: linear-gradient(180deg, #2f7bff, #1449c9);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.35), 0 3px 0 rgba(0,0,0,.55);
+    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 3.5px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.5);
+  }
+  html .infopanel section:has(> .legal:only-child) { background: rgba(14, 12, 22, .38); padding-top: 14px; }
+  html .infopanel b, html .infopanel strong { font-family: "Fredoka", var(--read); font-weight: 700; }
+  html .infopanel p { font-size: 15px; line-height: 1.55; margin: 0 0 10px; }
+  html .infopanel p b, html .infopanel td b { color: var(--green); font-weight: 700; }
+  html .infopanel .fine { font-size: 13px; color: var(--ink-soft); }
+  html .infopanel .legal { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
+  /* the headline numbers: three rounded tiles */
+  html .infopanel .kvgrid { gap: 10px; margin: 12px 0; }
+  html .infopanel .kvgrid > div {
+    border: 2px solid #000; border-radius: 16px; padding: 10px 12px; text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04)), rgba(30, 26, 44, .7);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.18);
+  }
+  html .infopanel .kvgrid span { font-family: "Fredoka", var(--read); font-weight: 600; font-size: 12px; letter-spacing: .12em; color: var(--spray); -webkit-text-stroke: 2.5px #000; paint-order: stroke fill; }
+  html .infopanel .kvgrid b { font-family: "Fredoka", var(--read); font-weight: 700; font-size: 26px; color: var(--gold); -webkit-text-stroke: 4px #000; paint-order: stroke fill; }
+  html .infopanel .kvgrid small { font-size: 12px; }
+  /* tables become rounded rows */
+  html .infopanel table.modes, html .infopanel table.guide, html .infopanel table.hist { border-collapse: separate; border-spacing: 0 6px; }
+  html .infopanel table.modes td, html .infopanel table.guide td, html .infopanel table.hist td {
+    border: 0; padding: 9px 12px; font-size: 14.5px; line-height: 1.45;
+    background: rgba(255, 255, 255, .08); border-top: 2px solid rgba(0,0,0,.6); border-bottom: 2px solid rgba(0,0,0,.6);
+  }
+  html .infopanel table td:first-child { border-left: 2px solid rgba(0,0,0,.6); border-radius: 14px 0 0 14px; }
+  html .infopanel table td:last-child { border-right: 2px solid rgba(0,0,0,.6); border-radius: 0 14px 14px 0; }
+  html .infopanel table.guide td:first-child { width: 22%; white-space: nowrap; }
+  html .infopanel table.guide td:first-child b { color: var(--gold); }
+  html .infopanel table.modes th, html .infopanel table.hist th {
+    border: 0; padding: 2px 12px; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: var(--spray);
+    -webkit-text-stroke: 2.5px #000; paint-order: stroke fill;
+  }
+  html .infopanel table td em { color: var(--gold); font-style: normal; }
+  html .infopanel table.hist td.win { color: var(--green); }
+  html .infopanel table.hist td.zero { color: var(--ink-soft); }
+  html .infopanel .tbl { overflow-x: auto; }
+  /* the paytable: each symbol on a rounded card, its six pays as little rounded chips */
+  html .infopanel .paytable { gap: 10px; margin-top: 10px; }
+  html .infopanel .prow {
+    grid-template-columns: 58px 1fr; gap: 6px 12px; padding: 10px 12px;
+    border: 2px solid #000; border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03)), rgba(30, 26, 44, .66);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,.14);
+    font-size: 14px;
+  }
+  html section > .prow + .prow { margin-top: 10px; }
+  html .infopanel .ptile {
+    width: 58px; height: 58px; border: 2px solid #000; border-radius: 14px;
+    background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.3), rgba(255,255,255,.08) 70%), rgba(40, 36, 56, .8);
+    padding: 3px;
+  }
+  html .infopanel .pname { font-weight: 700; font-size: 16px; -webkit-text-stroke: 3.5px #000; }
+  html .infopanel .pname small { color: var(--spray); font-weight: 600; font-size: 11px; -webkit-text-stroke: 2.5px #000; }
+  html .infopanel .pvals { gap: 5px 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html .infopanel .pvals > div {
+    border-radius: 999px; padding: 3px 8px; text-align: center; white-space: nowrap; font-size: 13px; overflow: hidden;
+    background: rgba(0, 0, 0, .35); border: 1.5px solid rgba(0,0,0,.7);
+  }
+  html .infopanel .pvals b { color: var(--spray); margin-right: 3px; }
+  html .infopanel .pvals em { color: var(--gold); margin-left: 3px; }
+  html .infopanel .ptext { font-size: 14.5px; line-height: 1.5; }
+  /* the Close button: a fat rounded pill */
+  html .infopanel .infoclose, html #infoClose {
+    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 18px; letter-spacing: .08em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 4px #000; paint-order: stroke fill;
+  }
+  html .infopanel::-webkit-scrollbar { width: 10px; }
+  html .infopanel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .55); border-radius: 99px; border: 2px solid rgba(255,255,255,.25); }
+  html .infopanel .paytable { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 640px) { .infopanel .paytable { grid-template-columns: 1fr; } }
   /* autoplay count picker */
   .autoopts { display: flex; gap: 8px; margin: 8px 0 16px; }
   /* the count picks: the grey plate with the blue sprayed frame (the panel's own art), dimmed
@@ -1156,7 +1389,7 @@
     font-size: 10px; padding: 0 4px; font-weight: 700; z-index: 1;
   }
   .cell.wild  { background: var(--spray-deep); border-color: var(--spray); color: #fff; }
-  /* The two scatters are hand-painted FS and XXFS. They glow in their own colour and the
+  /* The two scatters are hand-painted FS and XFS. They glow in their own colour and the
      glow breathes, so a landed scatter reads as live even before anything happens to it; they
      also take the board's slow stretch (idleStretch, above), pivoting on their centre. */
   .cell.scat  { color: var(--fs-green); }
@@ -1232,13 +1465,17 @@
     transition: opacity .18s linear;
     isolation: isolate;   /* the box below sits under the figure, inside this slot */
   }
-  /* the value's box: rounded, edged and lit from the inside in its own heat colour, so a
-     x5 sits in a yellow glow and a x100 in a red one */
+  /* the value's glow: a sprayed blob of its own heat colour (no box - the owner found the square
+     plate with its inner glow boxy), dark in the middle so the figure reads, the colour coming
+     up through the speckle at its edge: a x5 sits in a yellow haze and a x100 in a red one */
   .multlayer .gmult::before {
-    content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px;   /* the whole cell */
-    border: 2px solid color-mix(in srgb, var(--heat, var(--fs-green)) 80%, transparent);
-    background: color-mix(in srgb, var(--heat, var(--fs-green)) 12%, rgba(8, 6, 12, .7));
-    box-shadow: inset 0 0 14px color-mix(in srgb, var(--heat, var(--fs-green)) 32%, transparent);   /* a mild inner light, nothing more */
+    content: ""; position: absolute; inset: -12%; z-index: -1;
+    background: radial-gradient(closest-side, color-mix(in srgb, var(--heat, var(--fs-green)) 22%, rgba(8, 6, 12, .85)) 0 26%,
+                                              color-mix(in srgb, var(--heat, var(--fs-green)) 75%, rgba(8, 6, 12, .4)) 50%,
+                                              var(--heat, var(--fs-green)) 66%, var(--heat, var(--fs-green)));
+    -webkit-mask: url("assets/fx/mult_glow.webp") center / 100% 100% no-repeat;
+    mask: url("assets/fx/mult_glow.webp") center / 100% 100% no-repeat;
+    filter: brightness(1.15) saturate(1.2);
   }
   /* a value comes into the open (the tile over it has just come apart): it pops in - small
      and bright, past full size, and settles - rather than simply being there. The idle
@@ -1262,7 +1499,7 @@
      stroke is drawn on as the player watches; a few runs of paint drip off it */
   .lineLayer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
   .lineLayer i {
-    position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+    position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px;
     background: url("assets/fx/line_dab_0.webp") center / contain no-repeat;
     opacity: 0; transform: rotate(var(--r, 0deg)) scale(var(--s, 1));
     animation: dotIn calc(.3s * var(--tempo, 1)) ease-out both;
@@ -1783,7 +2020,7 @@
     background: url("assets/bonus_btn_text.webp") center / contain no-repeat;
   }
   .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  /* Each card is just its scatter: FS for the standard feature, XXFS for extreme. The
+  /* Each card is just its scatter: FS for the standard feature, XFS for extreme. The
      title, the price and the description stay in the markup, clipped out of sight, so the
      button still reads properly to assistive tech and paintBonus still has them to fill. */
   .bonuscard {
@@ -1919,7 +2156,32 @@
     transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
   }
   .bonusbtn:hover:not(:disabled)::after { scale: 1.14; }
-  .bonusbtn:hover:not(:disabled)::before { scale: 1.04; }
+  .bonusbtn:hover:not(:disabled)::before, .bonusbtn:hover:not(:disabled) .bglow { scale: 1.04; }
+  /* the plate's cyan outline lit like a neon sign: the tube buzzing on and off at random beats,
+     a slow breath through it, and a brighter pulse as the gas catches - over the plate, screened */
+  .bonusbtn .bglow {
+    position: absolute; inset: -14% -14%; z-index: 0; pointer-events: none;   /* the glow's padding (make_wall_fx BTN_PAD) */
+    background: url("assets/wallfx/bonus_glow.webp") center / contain no-repeat;   /* fitted like the plate, so the tube lies on its outline */
+    mix-blend-mode: screen; transition: scale .18s ease;
+    animation: neonSign 4.3s infinite;
+  }
+  .bonusbtn::after { z-index: 1; }
+  @keyframes neonSign {
+    0%   { opacity: .75; filter: brightness(1); }
+    6%   { opacity: 1; filter: brightness(1.35); }
+    9%   { opacity: .35; filter: brightness(.8); }
+    11%  { opacity: 1; filter: brightness(1.3); }
+    13%  { opacity: .5; }
+    15%  { opacity: .95; filter: brightness(1.15); }
+    40%  { opacity: .8; filter: brightness(1); }
+    62%  { opacity: 1; filter: brightness(1.25); }
+    64%  { opacity: .4; }
+    66%  { opacity: .98; filter: brightness(1.2); }
+    85%  { opacity: .78; filter: brightness(1); }
+    100% { opacity: .75; filter: brightness(1); }
+  }
+  .bonusbtn:disabled .bglow { animation: none; opacity: .3; }
+  @media (prefers-reduced-motion: reduce) { .bonusbtn .bglow { animation: none; opacity: .85; } }
   .bonusbtn.clicked { animation: btnBounce2 .34s cubic-bezier(.3,.7,.4,1.4); }
   .bonusbtn:disabled { opacity: .5; }
   .bonusbtn:disabled::after { animation-play-state: paused; }
@@ -2092,14 +2354,14 @@
      sides instead. Wider than 16:9 keeps the whole picture in view, pavement at the foot. */
   @media (max-aspect-ratio: 16/9) { :root { --wall-scale: cover; } }
   @media (max-width: 760px) and (orientation: portrait) {
-    #walltag { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
+    #walltag, .tagfx { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
     .main { justify-content: flex-end; }
     .bottom { padding-bottom: calc(12vh / max(var(--fit, 1), .2)); }   /* bounded: a tiny scale must never blow it up */
   }
 </style>
 </head>
 <body>
-<div id="bgwall"><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"></div>
+<div id="bgwall"><div id="wallpaint" aria-hidden="true"></div><div id="tagspill" class="tagfx" aria-hidden="true"><i></i></div><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"><div id="tagglow" class="tagfx" aria-hidden="true"><i></i></div></div>
 <div id="charfx" class="charfx" aria-hidden="true"></div>
 <div id="charfx2" class="charfx" aria-hidden="true"></div>
 
@@ -2122,7 +2384,7 @@
        the long plate carrying the balance and the bet with its stepper, the spin hexagon,
        and Rapid and Auto stacked on the far right. Every piece is its own sprayed plate. -->
   <div class="hud">
-    <button class="buy bonusbtn" id="bonusBtn">Bonus</button>
+    <button class="buy bonusbtn" id="bonusBtn"><i class="bglow" aria-hidden="true"></i>Bonus</button>
     <div class="hudstack left">
       <button class="hudbtn menu" id="menuBtn" aria-label="Game information">Info</button>
       <button class="hudbtn audio" id="audioBtn" aria-label="Sound and music volume" aria-expanded="false">Audio</button>
@@ -2256,6 +2518,7 @@
 <script src="rgs.js"></script>
 <script src="rules.js"></script>
 <script src="sprayrim.js"></script>
+<script src="wallfx.js"></script>
 <script>
 "use strict";
 
@@ -2337,6 +2600,10 @@ const tempo = () => (state.skip || $("turbo").checked) ? TEMPO_FAST : 1;
 // the value landing - plays this many times faster than it was first timed (owner, 2026-10-22:
 // "speed the pop up time for the multiplier up by 1.5x"). The CSS reads it as --multi-rate.
 const MULTI_RATE = 1.5;
+// When several Multis go off on one board, the next starts this long (ms, at tempo 1) after the
+// one before instead of waiting for it to finish (owner, 2026-10-24: "make the time in between
+// multipliers shorter when multiple pop up on the board").
+const MULTI_STAGGER = 320;
 document.documentElement.style.setProperty("--multi-rate", MULTI_RATE);
 // a landing tile's note: the higher up the pile it lands, the higher it rings
 const dropPitch = row => .85 + .09 * (ROWS - 1 - row);
@@ -3406,13 +3673,15 @@ function bounceFx() {
 function tagFx(...kinds) {
   const tag = $("walltag");
   if (REDUCED_MOTION || !tag) return;
-  tag.classList.remove("bounce", "pop");
-  restyle(tag);   // flush, so a repeat restarts rather than running on
-  for (const k of kinds) tag.classList.add(k);
+  for (const el of [tag, ...document.querySelectorAll(".tagfx")]) {   // its glow and its light go with it
+    el.classList.remove("bounce", "pop");
+    restyle(el);   // flush, so a repeat restarts rather than running on
+    for (const k of kinds) el.classList.add(k);
+  }
 }
 function tagPop(size = 1) {   // 1 = a cluster's pop (7%); the big-win popup asks for more
   const tag = $("walltag");
-  if (tag) tag.style.setProperty("--pop", String(size));
+  for (const el of [tag, ...document.querySelectorAll(".tagfx")]) if (el) el.style.setProperty("--pop", String(size));
   tagFx("pop");
 }
 
@@ -4263,7 +4532,10 @@ const handlers = {
     // drops new symbols in on top of the numbers. Skipping shortens this; never hides it.
     clearFxWins();
     $("board").classList.add("spotlight");
-    for (const b of ev.boosters || []) {
+    // Several Multis on one board go off in a quick run rather than one after another: each starts
+    // MULTI_STAGGER after the one before, while that one's neighbours are still popping, and the
+    // board moves on once the last has played through.
+    const one = async b => {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
       const multi = at(b), hits = (b.cells || []).map(at).filter(c => c !== multi);
       multi.classList.add("boom", "winhit");
@@ -4279,7 +4551,13 @@ const handlers = {
       for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "win", { speed: MULTI_RATE }); }
       // every performance - the Multi's and its neighbours' - plays through before anything moves on
       await hold((Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - 360) + 80)) / MULTI_RATE);
+    };
+    const runs = [];
+    for (const [i, b] of (ev.boosters || []).entries()) {
+      if (i) await hold(MULTI_STAGGER);
+      runs.push(one(b));
     }
+    await Promise.all(runs);
     state.grid = (ev.gridMults || []).map(col => col.slice());
     paintGrid();
     await hold(200 / MULTI_RATE);   // the values sit on the lit tiles a beat before they pop
@@ -4454,7 +4732,7 @@ function hoverWin(host, reach, lag, css) {
   };
   // Pieces that stay on screen for good (the wall tag, the bonus counters) hand their path to
   // the compositor: css(v) turns a point on it into real properties, and wander() plays it.
-  if (css) { wander(() => [host], t => css(at(t)), { seg: 24, rate: 8 }); return; }
+  if (css) { wander(() => [host, ...(host._followers || [])], t => css(at(t)), { seg: 24, rate: 8 }); return; }
   const put = (tag, v) => {
     host.style.setProperty(`--${tag}x`, v.x.toFixed(2) + unit);
     host.style.setProperty(`--${tag}y`, v.y.toFixed(2) + unit);
@@ -5594,6 +5872,8 @@ function runIntro() {
 runIntro();
 // the tag on the wall wanders at random for as long as the page is up: a slow, small drift
 // with a slight lean, never the same path twice (the win popups' own wander, at a stroll)
+$("walltag")._followers = [...document.querySelectorAll(".tagfx")];   // its glow and its light wander with it
+if (window.WallFX) WallFX.start();
 hoverWin($("walltag"), { x: 1.1, y: 1, r: .6, s: 0, unit: "vw", pace: 4.5 }, 0,
   v => ({ transform: `translate(${v.x.toFixed(3)}vw, ${v.y.toFixed(3)}vw) rotate(${v.r.toFixed(3)}deg)` }));   // centring stays on its translate
 // so do the bonus's rounds counter and the win under it, more gently, each on its own path
@@ -6088,6 +6368,7 @@ function bonusIntro(spins, extreme, why) {
         `<div class="bnum" aria-label="${spins}">${numeralRow(String(spins))}</div>` +
         `<div class="bfs">${T("Free spins")}</div>` +
         `<div class="bhow">${bonusIntroHow(extreme)}</div>` +
+        `<div class="bcont">${T("Click or press Space to continue")}</div>` +
       `</div>`;
     document.body.appendChild(wrap);
     // every piece of the screen drifts slightly on a random path of its own, so the whole thing
@@ -6096,8 +6377,9 @@ function bonusIntro(spins, extreme, why) {
     tiltPlates([wrap.querySelector(".inner")]);   // and the whole screen tips toward the cursor, its pieces at their own depths
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 fading to black, 1 up and waiting, 2 leaving
-    // no "click to continue" here - only the TOTAL WIN at the end of a bonus waits for one. It
-    // holds long enough to read, then moves on by itself; a click or Space still moves it on sooner
+    // It waits for the player: a click, or Space / Enter (owner, 2026-10-24: it used to move on by
+    // itself). Autoplay is the one exception - nobody is there to press - so there it holds long
+    // enough to read and goes on.
     let holdTimer = null;
     const onKey = e => {
       if (e.code !== "Space" && e.code !== "Enter") return;
@@ -6125,7 +6407,7 @@ function bonusIntro(spins, extreme, why) {
     step(560, () => {                          // then the wall comes up
       wrap.classList.add("up");
       phase = 1;
-      holdTimer = setTimeout(go, Math.max(2200, 4500 * tempo()));   // quicker in Rapid, never too quick to read
+      if (state.auto > 0) holdTimer = setTimeout(go, Math.max(2200, 4500 * tempo()));   // quicker in Rapid, never too quick to read
     });
   });
 }
