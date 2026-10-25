@@ -8,9 +8,9 @@ frontend/assets/wallfx/
   tag_spill.webp    the outline's light thrown on the wall round it (the box padded by SPILL_PAD)
   bonus_glow.webp   the BONUS button's cyan outline as neon (the plate's box padded by BTN_PAD)
   blob_<i>.webp     each paint blob in bonus_wall.webp cut out with its outline (oozes in place)
-  drip_<c>.webp     a run of paint per colour, top to bottom, ending in its drop
-  drop_<c>.webp     a falling drop per colour
-  wallfx.json       {blobs: [{x, y, w, h (fractions of the wall art), colour, tips: [[x, y, w], ...]}]}
+  wallfx.json       {blobs: [{x, y, w, h (fractions of the wall art), colour, tips: [[x, y, w], ...],
+                    fill, line, hi (the blob's paint, outline and shine, RGB), lw (outline, art px)}]}
+The drips themselves are drawn live by frontend/wallfx.js in those colours.
 """
 import json, os
 import numpy as np
@@ -62,40 +62,6 @@ def tag():
     s = np.clip((s - .04) / .96, 0, 1) * np.clip(edge, 0, 1) ** 1.5
     sc = np.zeros(mp.shape + (3,), np.float32); sc[:] = (120, 255, 90)
     Image.fromarray(np.dstack([sc, s * 255]).clip(0, 255).astype(np.uint8), "RGBA").save(os.path.join(OUT, "tag_spill.webp"), "WEBP", quality=85, alpha_quality=100, method=6)
-
-
-def drip_sprite(fill, light, w=40, h=200):
-    SS = 4
-    W, H = w * SS, h * SS
-    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    ow = W * .13
-    def run(col, grow):
-        for k in range(101):
-            t = k / 100
-            y = t * (H - W * .62)
-            ww = W * (.62 - .2 * t ** .8) + grow
-            d.ellipse([W / 2 - ww / 2, y - ww / 2, W / 2 + ww / 2, y + ww / 2], fill=col)
-        r = W * .3 + grow / 2
-        d.ellipse([W / 2 - r, H - W * .62 - r * .9, W / 2 + r, H - W * .62 + r * 1.15], fill=col)
-    run(INK + (255,), 2 * ow)
-    run(fill + (255,), 0)
-    # a highlight down the left of the run and a glint on the drop
-    d.line([(W * .4, W * .25), (W * .42, H - W * .95)], fill=light + (255,), width=int(W * .09))
-    d.ellipse([W * .36, H - W * .78, W * .46, H - W * .66], fill=(255, 255, 255, 230))
-    return im.resize((w, h), Image.LANCZOS)
-
-
-def drop_sprite(fill, light, s=28):
-    SS = 4
-    S = s * SS
-    im = Image.new("RGBA", (S, S), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    o = S * .1
-    d.polygon([(S / 2, S * .02), (S * .78, S * .55), (S * .22, S * .55)], fill=INK + (255,))
-    d.ellipse([S * .14, S * .3, S * .86, S * .98], fill=INK + (255,))
-    d.polygon([(S / 2, S * .02 + o * 1.4), (S * .78 - o, S * .55), (S * .22 + o, S * .55)], fill=fill + (255,))
-    d.ellipse([S * .14 + o, S * .3 + o, S * .86 - o, S * .98 - o], fill=fill + (255,))
-    d.ellipse([S * .32, S * .5, S * .44, S * .64], fill=(255, 255, 255, 230))
-    return im.resize((s, s), Image.LANCZOS)
 
 
 def blobs():
@@ -150,8 +116,22 @@ def blobs():
                     tw = int(((col_low[lo:hi] > v - h * .12)).sum())
                     tips.append((c, v, tw))
             tips = sorted(tips, key=lambda t: -t[1])[:3]
+            # the blob's own paint, so the drips are the same paint: its flat colour, the dark
+            # line round it (and how thick that is) and the pale shine on it
+            body = filled.astype(bool)
+            col = (comp[y0:y1, x0:x1] & (pink if name == "pink" else green)[y0:y1, x0:x1]) & body
+            fill = np.median(sub[col], 0)
+            shine = body & (sub[..., 2] > sub[..., 0] + 10) & (sub[..., 2] > 170)
+            hi = np.median(sub[shine], 0) if shine.sum() > 20 else np.array([196, 214, 246])
+            wide = cv2.dilate(body.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (41, 41))).astype(bool)
+            ring = wide & ~body & (lum < 110) & (sat > 25) & (sub[..., 0] > sub[..., 1] + 25)   # the purple, not the dark bricks
+            line = np.median(sub[ring], 0) if ring.sum() > 20 else np.array(INK)
+            cnts, _ = cv2.findContours(body.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            per = sum(cv2.arcLength(c_, True) for c_ in cnts)
+            lw = float(np.clip(ring.sum() / max(per, 1), 4, 24))
             out.append({"x": x0 / W, "y": y0 / H, "w": (x1 - x0) / W, "h": (y1 - y0) / H, "colour": name,
-                        "tips": [[round((x + c) / W, 5), round(v / H, 5), round(max(8, min(tw, 60)) / W, 5)] for c, v, tw in tips]})
+                        "tips": [[round((x + c) / W, 5), round(v / H, 5), round(max(8, min(tw, 60)) / W, 5)] for c, v, tw in tips],
+                        "fill": [int(v) for v in fill], "line": [int(v) for v in line], "hi": [int(v) for v in hi], "lw": round(lw, 1)})
     return out
 
 
@@ -175,15 +155,11 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     tag()
     bonus_glow()
-    pal = {"pink": ((236, 112, 196), (255, 196, 236)), "green": ((132, 240, 70), (220, 255, 190))}
-    for c, (f, l) in pal.items():
-        drip_sprite(f, l).save(os.path.join(OUT, f"drip_{c}.webp"), "WEBP", quality=90, alpha_quality=100, method=6)
-        drop_sprite(f, l).save(os.path.join(OUT, f"drop_{c}.webp"), "WEBP", quality=90, alpha_quality=100, method=6)
     bl = blobs()
     with open(os.path.join(OUT, "wallfx.json"), "w", encoding="utf-8", newline="\n") as fh:
         json.dump({"blobs": bl, "spillPad": SPILL_PAD, "glowPad": GLOW_PAD}, fh, indent=1)
     for b in bl:
-        print(b["colour"], round(b["x"], 3), round(b["y"], 3), "tips", len(b["tips"]))
+        print(b["colour"], round(b["x"], 3), round(b["y"], 3), "tips", len(b["tips"]), "fill", b["fill"], "line", b["line"], "hi", b["hi"], "lw", b["lw"])
 
 
 if __name__ == "__main__":

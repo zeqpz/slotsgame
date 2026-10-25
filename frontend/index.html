@@ -177,36 +177,11 @@
     46% { opacity: .78; } 62% { opacity: 1; } 80% { opacity: .74; }
   }
   @keyframes sheen { 0% { -webkit-mask-position: 100% 0; mask-position: 100% 0; } 55%, 100% { -webkit-mask-position: -50% 0; mask-position: -50% 0; } }
-  /* the paint in the wall: each blob laid over itself (it never shrinks below its own size, so
-     the painted copy under it never shows), swelling and sagging; runs grow down from its tips,
-     a drop falls off each to the pavement, then the run thins away and the next begins. A touch
-     brighter than the dimmed bricks: wet paint catches the light */
-  #wallpaint { position: absolute; pointer-events: none; filter: brightness(.5) saturate(1.15); }
+  /* the paint in the wall: wallfx.js draws each blob and its drips into canvases here, dimmed
+     the way this wall's own gradient dims the art (so no filter on the layer) */
+  #wallpaint { position: absolute; pointer-events: none; }
   #wallpaint > * { position: absolute; display: block; }
-  .wblob { transform-origin: 50% 8%; animation: ooze var(--ooze, 7s) ease-in-out var(--od, 0s) infinite; }
-  @keyframes ooze {
-    0%, 100% { transform: scale(1.005, 1.01); } 40% { transform: scale(1.03, 1.075) skewX(-.6deg); } 70% { transform: scale(1.012, 1.04) skewX(.4deg); }
-  }
-  .wdrip { background: center top / 100% 100% no-repeat; transform-origin: 50% 0; transform: scaleY(0);
-           animation: wallDrip var(--cyc, 9s) var(--dl, 0s) infinite; }
-  .wdrip.pink { background-image: url("assets/wallfx/drip_pink.webp"); }
-  .wdrip.green { background-image: url("assets/wallfx/drip_green.webp"); }
-  @keyframes wallDrip {
-    0% { transform: scaleY(0); opacity: 1; animation-timing-function: cubic-bezier(.6, 0, .9, .5); }
-    55% { transform: scaleY(1); opacity: 1; }
-    82% { transform: scaleY(1.02); opacity: 1; }
-    100% { transform: scaleY(1.04); opacity: 0; }
-  }
-  .wdrop { background: center / contain no-repeat; opacity: 0; animation: wallDrop var(--cyc, 9s) var(--dl, 0s) infinite; }
-  .wdrop.pink { background-image: url("assets/wallfx/drop_pink.webp"); }
-  .wdrop.green { background-image: url("assets/wallfx/drop_green.webp"); }
-  @keyframes wallDrop {
-    0%, 50% { opacity: 0; transform: translateY(0) scale(.3); }
-    55% { opacity: 1; transform: translateY(0) scale(1, 1.1); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
-    72% { opacity: 1; transform: translateY(var(--fall, 600%)) scale(.85, 1.25); }
-    74%, 100% { opacity: 0; transform: translateY(var(--fall, 600%)) scale(1.6, .4); }
-  }
-  @media (prefers-reduced-motion: reduce) { .tagfx, .tagfx::after, #tagglow::after, .wblob, .wdrip, .wdrop { animation: none !important; } .wdrip { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tagfx, .tagfx::after, #tagglow::after { animation: none !important; } }
   @keyframes tagBounce { 0% { scale: 1; } 38% { scale: calc(1 + .06 * var(--bounce, 1)); } 100% { scale: 1; } }
   @keyframes tagPop {   /* a quick punch out, a dip back under, and a settle */
     0%   { scale: 1; animation-timing-function: cubic-bezier(.2,.8,.3,1); }
