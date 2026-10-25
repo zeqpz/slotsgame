@@ -447,6 +447,117 @@ def crotch_backing(j, atlas, pages, W):
     return len(P)
 
 
+# Socks (owner, 2026-10-24: his left shoe "has an open spot"). The trouser cuffs stop short of
+# the shoes' tongues, and in the notch between a cuff's front and the shoe the wall showed
+# through where his ankle should be - most on the side-on shoe (his left foot), a sliver along
+# the front-on one. Each foot gets a white sock: its own slot on the shoe bone, drawn behind the
+# shoe and under the jeans, so it shows only in those gaps (and as a sock should, if a cuff ever
+# lifts). Drawn in the shoe picture's own px, so the line has the art's weight. Each is an ankle
+# tube in shoe-region px (y up from the picture's top is negative): its box and its outline.
+SOCKS = {
+    # tucked under the cuff (whose top is narrower than its hem, so no higher than this), the
+    # front edge following the cuff's out to the tongue
+    "right": dict(box=(10, -42, 346, 80), poly=[(24, -42), (300, -42), (318, -32), (330, -14), (337, 6), (340, 36), (300, 58), (16, 80)]),
+    "left": dict(box=(70, -42, 396, 80), poly=[(92, -42), (366, -42), (380, -32), (387, -12), (390, 8), (392, 40), (300, 54), (84, 80)]),
+}
+SOCK_FILL, SOCK_SHADE, SOCK_INK, SOCK_LINE = (238, 236, 232), (196, 195, 193), (12, 12, 14), 9.0
+
+
+def add_socks(j, atlas, pages):
+    skin = j["skins"][0]["attachments"]
+    names = [sl["name"] for sl in j["slots"]]
+    first = min(names.index("shoe_left"), names.index("shoe_right"))
+    pg = "smukiez-2.png" if "smukiez-2.png" in pages else atlas.pages[0]["name"]
+    made = []
+    for side in ("left", "right"):
+        shoe = f"shoe_{side}"
+        att = skin[shoe][shoe]
+        bx0, by0, bx1, by1 = SOCKS[side]["box"]
+        w, h = bx1 - bx0, by1 - by0
+        # the picture: an ankle tube, white with a grey back (the side away from the light) and the
+        # art's black line round it, supersampled
+        S = 4
+        from PIL import ImageDraw
+        pts = [((x - bx0) * S, (y - by0) * S) for x, y in SOCKS[side]["poly"]]
+        big = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0)); d = ImageDraw.Draw(big)
+        d.polygon(pts, fill=SOCK_INK + (255,))
+        inner = Image.new("L", big.size, 0); ImageDraw.Draw(inner).polygon(pts, fill=255)
+        inner = np.asarray(inner) > 127
+        inner = cv2.erode(inner.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (int(SOCK_LINE * 2 * S) | 1,) * 2)).astype(bool)
+        arr = np.asarray(big).copy()
+        xx = np.arange(w * S)[None, :] / (w * S)
+        shade = np.clip((xx - .12) / .3, 0, 1)                  # grey at the back, white toward the front
+        col = np.array(SOCK_SHADE, np.float32) * (1 - shade[..., None]) + np.array(SOCK_FILL, np.float32) * shade[..., None]
+        col = np.broadcast_to(col, (h * S, w * S, 3))
+        arr[inner, :3] = col[inner].astype(np.uint8)
+        img = Image.fromarray(arr, "RGBA").resize((w, h), Image.LANCZOS)
+        name = f"sock_{side}"
+        spot = ak.free_spot(atlas, pg, w, h)
+        assert spot, f"no room for {name}"
+        atlas.add(pg, name, spot[0], spot[1], w, h)
+        ak.paste(pages, atlas, name, img)
+        # placed in the shoe's frame: the box's centre, from the shoe picture's centre (y up)
+        sx, sy = att.get("scaleX", 1), att.get("scaleY", 1)
+        dx, dy = ((bx0 + bx1) / 2 - att["width"] / 2) * sx, (att["height"] / 2 - (by0 + by1) / 2) * sy
+        r = math.radians(att.get("rotation", 0))
+        skin[name] = {name: {"x": round(att["x"] + dx * math.cos(r) - dy * math.sin(r), 3), "y": round(att["y"] + dx * math.sin(r) + dy * math.cos(r), 3),
+                             "rotation": att.get("rotation", 0), "width": w, "height": h, "scaleX": sx, "scaleY": sy}}
+        made.append({"name": name, "bone": shoe, "attachment": name})
+    # behind both shoes
+    j["slots"][first:first] = made
+    return [m["name"] for m in made]
+
+
+def finish_socks(j):
+    """After every clip is final: each sock shows and hides with its shoe (the shoe's alpha and
+    attachment keys, copied), and the cash clips' draw-order keys hold each sock in place - an
+    offset key moves a slot by places, so a new slot it passes over would shift where it lands."""
+    names = [sl["name"] for sl in j["slots"]]
+    if "sock_left" not in names:
+        return 0
+    n = 0
+    for anim in j["animations"].values():
+        slots = anim.get("slots", {})
+        for side in ("left", "right"):
+            shoe, sock = f"shoe_{side}", f"sock_{side}"
+            if shoe in slots:
+                tl = {}
+                for kind, keys in slots[shoe].items():
+                    if kind == "attachment":
+                        tl[kind] = [dict(k, name=(sock if k.get("name") == shoe else k.get("name"))) if "name" in k else dict(k) for k in keys]
+                    else:
+                        tl[kind] = [dict(k) for k in keys]
+                slots[sock] = tl; n += 1
+        for key in anim.get("drawOrder", []):
+            offs = key.get("offsets")
+            if not offs:
+                continue
+            have = {o["slot"] for o in offs}
+            for sock in ("sock_left", "sock_right"):
+                if sock not in have:
+                    offs.append({"slot": sock, "offset": 0})
+            offs.sort(key=lambda o: names.index(o["slot"]))
+    return n
+
+
+def draw_order(names, offsets):
+    """Spine's draw order for an offsets key (SkeletonJson), for checking."""
+    count = len(names)
+    order = [-1] * count; unchanged = [0] * (count - len(offsets))
+    oi = ui = 0
+    for o in offsets:
+        si = names.index(o["slot"])
+        while oi != si:
+            unchanged[ui] = oi; ui += 1; oi += 1
+        order[oi + o["offset"]] = oi; oi += 1
+    while oi < count:
+        unchanged[ui] = oi; ui += 1; oi += 1
+    for i in range(count - 1, -1, -1):
+        if order[i] == -1:
+            ui -= 1; order[i] = unchanged[ui]
+    return [names[i] for i in order]
+
+
 def fix(j, atlas, pages):
     for ik in j.get("ik", []):
         if ik["name"] in ("leg_left", "leg_right"):
@@ -475,4 +586,5 @@ def fix(j, atlas, pages):
     fix_wrists(j, atlas, pages, W)
     stats["faces (hair px, jaw px)"] = fix_faces(atlas, pages)
     stats["crotch_fill verts"] = crotch_backing(j, atlas, pages, W)
+    stats["socks"] = add_socks(j, atlas, pages)
     return stats

@@ -10,7 +10,7 @@ The pass, in order (each module's docstring says why):
 - rig_boy.py - SMUKIEZ joints: thighs hang from the torso, leg IK stretches, knee helper bones
   (half-angle transform constraints), both trouser legs rebuilt as contour meshes with smooth
   thigh->knee->shin weights; leg_right's inner edge redrawn; the front sneaker's see-through
-  stitching filled; the left arm one layer under its own sleeve slot (sleeve_left); the cash
+  stitching filled; socks behind the shoes (the gap between cuff and tongue); the left arm one layer under its own sleeve slot (sleeve_left); the cash
   hands' wrists rebuilt onto the forearm.
 - rig_skull.py - SMOKE SKULL re-cut: the body as hoodie / two trouser legs / two rigid shoes cut
   along the drawing's outlines, hidden parts painted underneath, an even sticker outline per
@@ -163,6 +163,7 @@ def main():
             motion.strip_fades(j)
             for r in ("enter", "exit"):
                 motion.boy_compact(j, r)
+            print("boy socks follow their shoes in", rig_boy.finish_socks(j), "clip timelines")   # last: the clips are final
             print("boy legs (verts, tris):", stats, "hips lifted for the knees:", lifts)
         else:
             neck = neck_fill(j)

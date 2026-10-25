@@ -144,6 +144,20 @@ crotch_fill
   orig: 152, 81
   offset: 0, 0
   index: -1
+sock_left
+  rotate: false
+  xy: 1556, 208
+  size: 326, 122
+  orig: 326, 122
+  offset: 0, 0
+  index: -1
+sock_right
+  rotate: false
+  xy: 1556, 336
+  size: 336, 122
+  orig: 336, 122
+  offset: 0, 0
+  index: -1
 
 smukiez-3.webp
 size: 2048,256

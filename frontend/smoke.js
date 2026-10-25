@@ -27,7 +27,9 @@
   ].map(W => Object.assign(W, { ph: rnd(0, TAU), kx: Math.cos(W.d), ky: Math.sin(W.d) }));
 
   const LOOK = { sticker: 0xffffff, line: 0x141416, shade: 0xa8a8ae, fill: 0xf6f6f8 };
-  const RATE = 60;          // particles a second off the ember
+  const RATE = 60;          // particles a second off the ember (of the smoke's own, slowed time)
+  const PACE = .35;         // the smoke runs at 35% speed: 65% slower (owner, 2026-10-24) - a lazy curl
+  const ALPHA = .8;         // slightly see-through, the whole plume as one layer (owner, 2026-10-24)
   // how long the smoke lasts, by when it left the cigar: it varies slowly along the stream, never
   // particle to particle - neighbours that ended at different moments broke the top into beads
   const lifeAt = tb => 3.6 + .3 * Math.sin(tb * .61) + .15 * Math.sin(tb * 1.7 + 2);
@@ -55,6 +57,8 @@
     const root = new PIXI.Container(), layers = {};
     for (const k of ["sticker", "line", "shade", "fill"]) { layers[k] = new PIXI.Container(); root.addChild(layers[k]); }
     app.stage.addChild(root);
+    // the plume fades as one picture, so where its puffs overlap they do not show through each other
+    if (PIXI.AlphaFilter) root.filters = [new PIXI.AlphaFilter({ alpha: ALPHA })]; else root.alpha = ALPHA;
 
     // where the ember is, after the rig poses each frame (in the stage's px)
     const at = { x: 0, y: 0, ok: false };
@@ -98,7 +102,7 @@
     };
 
     app.ticker.add(tk => {
-      const dt = Math.min(.05, tk.deltaMS / 1000);
+      const dt = Math.min(.05, tk.deltaMS / 1000) * PACE;
       if (!at.ok || !dt) return;
       t += dt;
       const S = Math.abs(actor.scale.x) || 1;   // px per skeleton unit
@@ -121,9 +125,10 @@
         p.life = lifeAt(te); p.sway = swayAt(te);
       }
       last = { x: at.x, y: at.y };
-      // a slow draft across the street, leaning the column one way and then the other - mostly
-      // a little to his right (the screen's left), up past his face rather than across it
-      const draft = S * (-6 + 12 * Math.sin(t * .19 + .7) + 6 * Math.sin(t * .47 + 2.2));
+      // a slow draft across the street, leaning the column one way and then the other. It acts
+      // on the smoke as it ages (below), so the thread still rises straight past his face and it
+      // is the billows that lean - mostly over his beanie, away from the board's edge
+      const draft = S * (10 + 8 * Math.sin(t * .19 + .7) + 5 * Math.sin(t * .47 + 2.2));
       for (let i = parts.length - 1; i >= 0; i--) {
         const p = parts[i];
         p.age += dt;
