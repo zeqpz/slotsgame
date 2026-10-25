@@ -392,7 +392,7 @@
   .bonusintro .wall::after { content: ""; position: absolute; inset: 0; background: rgba(0, 0, 0, .4); }
   .bonusintro .inner {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 3vh 8vw 10vh; text-align: center; gap: .6vh;
+    padding: 3vh 8vw; text-align: center;
     opacity: 0; translate: 0 16px; transition: opacity .65s ease .2s, translate .65s ease .2s;
     /* the screen is a card in space: it tips toward the cursor (tiltPlates, from bonusIntro)
        and its pieces sit at their own heights above it (--depth), sliding apart as it tips */
@@ -401,33 +401,22 @@
   }
   .bonusintro.up .wall, .bonusintro.up .inner { opacity: 1; }
   .bonusintro.up .inner { translate: 0 0; }
+  /* the pieces as one column, scaled down (--fit, from bonusIntro) when it is taller than the
+     screen - a short laptop window or a phone - so the title and the prompt are never cut off */
+  .bonusintro .bstack {
+    flex: none; display: flex; flex-direction: column; align-items: center; gap: .6vh;
+    scale: var(--fit, 1);
+  }
   .bonusintro .blogo { width: min(50vw, 400px, 30vh); height: auto; filter: drop-shadow(0 8px 16px rgba(0,0,0,.7)); }
-  /* the trigger line is two layers of the same words: the fill cut with a blue gradient
-     poured into the letters, and the outline cut laid exactly over it in glowing white */
-  .bonusintro .bkind {
-    position: relative; display: inline-block;
-    font-family: "Smashed Graffiti", var(--disp); font-size: clamp(44px, 7.6vh, 76px); letter-spacing: .04em;
-    text-transform: uppercase; line-height: 1.1;
-  }
-  .bonusintro .bkind .fill {
-    background: linear-gradient(180deg, #c6f7ff 0%, #4fe8ff 42%, #1d7fd8 100%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    filter: drop-shadow(0 4px 0 rgba(0,0,0,.7));
-  }
-  .bonusintro .bkind .line {
-    position: absolute; inset: 0; pointer-events: none;
-    font-family: "Smashed Graffiti Outline", "Smashed Graffiti", var(--disp);
-    color: #fff; text-shadow: 0 0 6px rgba(255,255,255,.9), 0 0 16px rgba(170,240,255,.8), 0 0 30px rgba(79,232,255,.5);
-  }
   /* every piece of the screen wanders slightly on its own random path (hoverWin, from bonusIntro),
      slides with the cursor by its height above the screen (--depth), and leans in space as it
      drifts: the way it floats sets the way it tips, a few degrees either way */
-  .bonusintro .blogo, .bonusintro .bkind, .bonusintro .byou, .bonusintro .bnum, .bonusintro .bfs, .bonusintro .bhow {
+  .bonusintro .blogo, .bonusintro .byou, .bonusintro .bnum, .bonusintro .bfs, .bonusintro .bhow {
     translate: calc(var(--px, 0px) + var(--mx, 0) * var(--depth, 0px)) calc(var(--py, 0px) + var(--my, 0) * var(--depth, 0px));
     rotate: var(--pr, 0deg);
     transform: perspective(900px) rotateY(atan2(var(--px, 0px), 5vh)) rotateX(calc(-1 * atan2(var(--py, 0px), 6vh)));
   }
-  .bonusintro .blogo { --depth: 22px; } .bonusintro .bkind { --depth: 14px; } .bonusintro .bnum { --depth: 12px; }
+  .bonusintro .blogo { --depth: 22px; } .bonusintro .bnum { --depth: 12px; }
   .bonusintro .byou, .bonusintro .bfs { --depth: 9px; } .bonusintro .bhow { --depth: 4px; }
   .bonusintro .byou, .bonusintro .bfs {
     font-size: clamp(24px, 4.8vh, 44px); text-transform: uppercase; line-height: 1;
@@ -4581,18 +4570,17 @@ const handlers = {
     sfx("bonusStart");
     state.fsTotal = ev.totalFs;
     if (state.peek && state.peek.type === "extremeTrigger") return;   // an upgrade: the Extreme screen follows, one screen not two
-    await bonusIntro(ev.totalFs, false, "Crew Leader trigger");
+    await bonusIntro(ev.totalFs, false);
   },
 
   async extremeTrigger(ev) {
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
     state.bonusHit = true;
     charReact("big_win");   // extreme is a bonus too — 2 scatters straight in, or an upgrade
-    const why = ev.reason === "extreme_upgrade" ? "Bonus upgraded by The Phantom" : "The Phantom appears";
     if (ev.reason !== "extreme_upgrade") sfx("bonusStart");   // an upgrade's note already played with its trigger
     const spins = ev.totalFs ?? (ev.reason === "extreme_upgrade" ? state.fsTotal : EXTREME_DIRECT_SPINS);
     state.fsTotal = spins;
-    await bonusIntro(spins, true, why);
+    await bonusIntro(spins, true);
   },
 
   async enterBonus(ev) {
@@ -5633,6 +5621,7 @@ function assetUrls() {
   // further down the file than this screen runs
   for (const n of ["total_win", "big_win", "mega_win", "xtreme_win"]) urls.add("assets/" + n + ".webp");
   urls.add("assets/wall_tag.webp");   // the tag on the wall is an <img>, so no rule names it
+  urls.add("assets/xbonus_text.webp");   // the Extreme Bonus intro's XTREME BONUS, an <img> too
   return [...urls];
 }
 // Every preloaded picture is held on to, not dropped: while one is held, a new <img> of it is
@@ -6336,7 +6325,8 @@ runFeatures();
 introDone = introDone.then(() => featuresDone);   // a resumed round waits for this screen too
 
 /* ---------- bonus intro ---------- */
-// The bonus lands: the game fades to black, the wall comes up with the BONUS lettering, the
+// The bonus lands: the game fades to black, the wall comes up with the BONUS lettering (XTREME
+// BONUS, in purple, for the Extreme Bonus - tools/letter_art/make.py xbonus), the
 // spins won and how the Multi works in here, and the player's click takes them in: black
 // again, then the bonus board with its spin counter. It waits for the click - Rapid and
 // Skip quicken animations, they never skip a screen - though Space and Enter count as one.
@@ -6351,29 +6341,34 @@ function bonusIntroHow(extreme) {
       : `In the bonus every value stays on the board for the whole feature: nothing is wiped between spins, so the board only gets richer.`)}</p>` +
     `<p>${T(`Every winning spin adds a tag to the Tag Meter. Fill it, <b>${tags}</b> tags, for <b>+3</b> free spins.`)}</p>`;
 }
-function bonusIntro(spins, extreme, why) {
+function bonusIntro(spins, extreme) {
   musicTo("bonus", 1.4);   // the base loop fades out with the game as the bonus's comes up
   return new Promise(resolve => {
     const wrap = document.createElement("div");
     wrap.className = "bonusintro";
     wrap.setAttribute("role", "dialog");
     wrap.setAttribute("aria-label", T(extreme ? "Extreme Bonus" : "Bonus"));
-    const kind = extreme ? T("Extreme Bonus") + (why ? " \u00b7 " + T(why) : "") : (why ? T(why) : "");
     wrap.innerHTML =
       `<div class="wall"></div>` +
-      `<div class="inner">` +
-        `<img class="blogo" src="assets/bonus_btn_text.webp" alt="${T("Bonus")}" draggable="false">` +
-        (kind ? `<div class="bkind"><span class="fill">${kind}</span><span class="line" aria-hidden="true">${kind}</span></div>` : "") +
+      `<div class="inner"><div class="bstack">` +
+        (extreme
+          ? `<img class="blogo" src="assets/xbonus_text.webp" alt="${T("Xtreme Bonus")}" draggable="false">`
+          : `<img class="blogo" src="assets/bonus_btn_text.webp" alt="${T("Bonus")}" draggable="false">`) +
         `<div class="byou">${T("You won")}</div>` +
         `<div class="bnum" aria-label="${spins}">${numeralRow(String(spins))}</div>` +
         `<div class="bfs">${T("Free spins")}</div>` +
         `<div class="bhow">${bonusIntroHow(extreme)}</div>` +
         `<div class="bcont">${T("Click or press Space to continue")}</div>` +
-      `</div>`;
+      `</div></div>`;
     document.body.appendChild(wrap);
+    const stack = wrap.querySelector(".bstack");
+    const fit = () => stack.style.setProperty("--fit", Math.min(1, wrap.clientHeight * .94 / stack.offsetHeight).toFixed(3));
+    fit();
+    wrap.querySelector(".blogo").addEventListener("load", fit);   // held from the loading screen, but in case
+    addEventListener("resize", fit);
     // every piece of the screen drifts slightly on a random path of its own, so the whole thing
     // feels alive rather than printed; each stops with the screen
-    for (const el of wrap.querySelectorAll(".blogo, .bkind, .byou, .bnum, .bfs, .bhow")) hoverWin(el, { x: .5, y: .7, r: .5, s: 0, unit: "vh", pace: 2.2 }, 0);
+    for (const el of wrap.querySelectorAll(".blogo, .byou, .bnum, .bfs, .bhow")) hoverWin(el, { x: .5, y: .7, r: .5, s: 0, unit: "vh", pace: 2.2 }, 0);
     tiltPlates([wrap.querySelector(".inner")]);   // and the whole screen tips toward the cursor, its pieces at their own depths
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 fading to black, 1 up and waiting, 2 leaving
@@ -6392,6 +6387,7 @@ function bonusIntro(spins, extreme, why) {
       clearTimeout(holdTimer);
       sfx("bet", 1.1);
       document.removeEventListener("keydown", onKey, true);
+      removeEventListener("resize", fit);
       wrap.classList.remove("up");             // the wall and the words fade to black
       step(700, () => {
         $("fsCard").classList.add("on");        // the bonus board is ready under the black: counter on

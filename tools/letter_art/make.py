@@ -1,7 +1,8 @@
 """Cartoon lettering in the symbol icons' style.
 
   python tools/letter_art/make.py              # BS, ES, BONUS (traced from the shipped art) + the BONUS plate
-  python tools/letter_art/make.py --ship       # copy the BONUS button pair into frontend/assets
+  python tools/letter_art/make.py xbonus       # XTREME BONUS (the Extreme Bonus intro's title)
+  python tools/letter_art/make.py --ship       # copy the BONUS button pair + XTREME BONUS into frontend/assets
   then: BS/ES -> art/icons-src at 512 px (see README), tools/make_flat_icons.py, tools/icon_rigs/build.py
 
 The traced pieces keep the game's own lettering (same letters, same places, so the symbol rigs'
@@ -159,6 +160,33 @@ TRACED = {
 }
 
 
+def letters_with_drips(face, drips_src, k, SH, rng):
+    """The faces split into letters, each drip (x, bottom y in source px) hung from the letter
+    right above it."""
+    import trace as T
+    letters = [{"body": m, "drips": np.zeros_like(m)} for m in T.letters(face, (12 * k) ** 2)]
+    for x, yb in drips_src:
+        X = x * k
+        col = int(round(X))
+        best = None
+        for L in letters:
+            ys = np.nonzero(L["body"][:, max(0, col - 2):col + 3].any(1))[0]
+            if len(ys) and (best is None or ys.max() > best[1]):
+                best = (L, ys.max())
+        if best is None:
+            continue
+        L, ybot = best
+        dr, _ = C.add_drips(L["body"], [X], [yb * k - ybot], 9.5 * k * (SH / 386) ** .3, rng)
+        L["drips"] |= dr
+    return letters
+
+
+def paint(pal, hh):
+    """The paint geometry for a piece hh working px tall (ink, block, shade, highlights scale with it)."""
+    return dict(pal, ink=hh * .017, sticker=hh * .009, depth=hh * .02, shade_w=hh * .03, hi_w=hh * .012,
+                hi_inset=hh * .012, gloss_period=hh * .05, light=255)
+
+
 def traced(name, out_dir=None, seed=11):
     import trace as T
     cfg = TRACED[name]
@@ -184,26 +212,8 @@ def traced(name, out_dir=None, seed=11):
         SW = cfg["width"]
         print(f"{name}: cut at the seam, shifted {shift / k:+.1f} source px, canvas {SW}x{SH}")
     H, W = face.shape
-    parts = T.letters(face, (12 * k) ** 2)
-    rng = np.random.default_rng(seed)
-    letters = [{"body": m, "drips": np.zeros_like(m)} for m in parts]
-    # each drip hangs from the letter right above it
-    for x, yb in drips_src:
-        X = x * k
-        col = int(round(X))
-        best = None
-        for L in letters:
-            ys = np.nonzero(L["body"][:, max(0, col - 2):col + 3].any(1))[0]
-            if len(ys) and (best is None or ys.max() > best[1]):
-                best = (L, ys.max())
-        if best is None:
-            continue
-        L, ybot = best
-        dr, _ = C.add_drips(L["body"], [X], [yb * k - ybot], 9.5 * k * (SH / 386) ** .3, rng)
-        L["drips"] |= dr
-    hh = SH * k
-    P = dict(cfg["pal"], ink=hh * .017, sticker=hh * .009, depth=hh * .02, shade_w=hh * .03, hi_w=hh * .012,
-             hi_inset=hh * .012, gloss_period=hh * .05, light=255)
+    letters = letters_with_drips(face, drips_src, k, SH, np.random.default_rng(seed))
+    P = paint(cfg["pal"], SH * k)
     if cfg.get("grid"):   # the griddy texture (cartoon.render), GRID in source px
         P["grid"] = dict(spacing=max(6, int(round(GRID["cell"] * k))), width=max(1, int(round(GRID["line"] * k))), dark=GRID["dark"],
                          inset=hh * .012, dots=True)
@@ -213,6 +223,66 @@ def traced(name, out_dir=None, seed=11):
     os.makedirs(out_dir, exist_ok=True)
     Image.fromarray(full, "RGBA").save(os.path.join(out_dir, name + "_traced.png"))
     return os.path.join(out_dir, name + "_traced.png")
+
+
+# ---------------------------------------------------------------- XTREME BONUS
+# The Extreme Bonus intro's title (owner, 2026-10-24: "Xtreme Bonus in the same font as the bonus
+# font, in purple"). BONUS is the logo's own lettering, traced exactly as traced("BONUS") does;
+# the art has no X, T, R, E or M, so XTREME is set in BROMO - the bundled face closest to that
+# lettering (chunky, upright, the same B O N U S shapes) - each letter knocked a little off its
+# line the way the hand-drawn BONUS letters sit, softened and fattened to the traced letters'
+# weight, and tucked behind BONUS's top. Everything is painted with the same ink, block, shine
+# and drips, at the same scale, in the scatter purple.
+BROMO = os.path.join(ROOT, "frontend/assets/bromo.otf")
+XB = dict(top=150,          # source px added above BONUS for the XTREME line
+          cap=124,          # XTREME's letter height, source px (BONUS's are ~270)
+          sink=8,           # how far XTREME's bottom tucks behind BONUS's top, source px
+          overlap=-.06, grow=0.0, smooth=3.0,   # a little air between the letters; BROMO is already the weight
+          jitter=[(-4, 6, 6), (-2, -4, -3), (0, 4, 4), (1, -6, -4), (2, 3, 3), (4, -4, -5)],   # (dx, dy src px, degrees)
+          drips=[(.18, 52), (.86, 40)])   # on the end letters only, (x across the letter, length src px)
+
+
+def xtreme_bonus(out_dir=None, seed=11):
+    import trace as T
+    cfg = TRACED["BONUS"]
+    k = cfg["out"] * C.SS
+    face, _, (SW, SH) = T.trace(os.path.join(ROOT, cfg["src"]), k, cfg["t"], crack_src=cfg["crack"], grow_src=cfg["grow"], smooth_src=cfg["smooth"])
+    top = XB["top"]
+    face = np.pad(face, ((int(round(top * k)), 0), (0, 0)))
+    H, W = face.shape
+    rng = np.random.default_rng(seed)
+    bonus = letters_with_drips(face, [(x, y + top) for x, y in cfg["drips"]], k, SH, rng)
+    ys, xs = np.nonzero(face)
+    cx_all, top_b = (xs.min() + xs.max()) / 2, ys.min()
+    cap = XB["cap"] * k
+    gl = []
+    for ch in "XTREME":
+        g = C.glyph(ch, BROMO, int(cap * 1.5))
+        g = np.asarray(Image.fromarray(g.astype(np.uint8) * 255).resize((max(1, round(g.shape[1] * cap / g.shape[0])), round(cap)), Image.LANCZOS)) > 127
+        gl.append(g)
+    widths = [g.shape[1] for g in gl]
+    total = sum(widths) - XB["overlap"] * sum(widths[:-1])
+    x = cx_all - total / 2
+    cy = top_b + XB["sink"] * k - cap / 2
+    xtreme = []
+    for g, (dx, dy, ang) in zip(gl, XB["jitter"]):
+        m = C.place((H, W), g, x + g.shape[1] / 2 + dx * k, cy + dy * k, ang)
+        m = C.rounded(C.dil(m, XB["grow"] * k) if XB["grow"] else m, XB["smooth"] * k)
+        xtreme.append({"body": m, "drips": np.zeros_like(m)})
+        x += g.shape[1] * (1 - XB["overlap"])
+    for L, (fx, length) in zip([xtreme[0], xtreme[-1]], XB["drips"]):
+        bx = np.nonzero(L["body"].any(0))[0]
+        X = bx.min() + (bx.max() - bx.min()) * fx
+        dr, _ = C.add_drips(L["body"], [X], [length * k], 9.5 * k * (SH / 386) ** .3 * .8, rng)
+        L["drips"] |= dr
+    # XTREME first, so BONUS (and its ink) paints over the tucked-in bottom
+    full, _ = C.render(xtreme + bonus, paint(PURPLE, SH * k), (round(SW * cfg["out"]), round((SH + top) * cfg["out"])))
+    im = Image.fromarray(full, "RGBA")
+    im = im.crop(im.getbbox())
+    out_dir = out_dir or os.path.join(ROOT, "art", "letters")
+    os.makedirs(out_dir, exist_ok=True)
+    im.save(os.path.join(out_dir, "XTREME_BONUS.png"))
+    return os.path.join(out_dir, "XTREME_BONUS.png")
 
 
 if __name__ == "__main__":
@@ -227,9 +297,13 @@ if __name__ == "__main__":
         args.remove("--ship")
         Image.open(os.path.join(ROOT, "art/letters/BONUS_traced.png")).save(os.path.join(ROOT, "frontend/assets/bonus_btn_text.webp"), "WEBP", quality=92, alpha_quality=100, method=6)
         Image.open(os.path.join(ROOT, "art/letters/BONUS_plate.png")).save(os.path.join(ROOT, "frontend/assets/bonus_btn_bg.webp"), "WEBP", quality=92, alpha_quality=100, method=6)
-        print("shipped bonus_btn_text.webp + bonus_btn_bg.webp")
+        xb = os.path.join(ROOT, "art/letters/XTREME_BONUS.png")
+        if os.path.exists(xb):
+            Image.open(xb).save(os.path.join(ROOT, "frontend/assets/xbonus_text.webp"), "WEBP", quality=92, alpha_quality=100, method=6)
+        print("shipped bonus_btn_text.webp + bonus_btn_bg.webp + xbonus_text.webp")
         if not args: sys.exit(0)
     for n in (args or list(TRACED) + ["plate"]):
         if n == "plate": print(plate(out_dir=out))
+        elif n == "xbonus": print(xtreme_bonus(out))
         elif n.endswith("_traced") or n in TRACED: print(traced(n.replace("_traced", ""), out))
         else: print(build(n, font, out))
