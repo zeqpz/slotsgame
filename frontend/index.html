@@ -210,12 +210,9 @@
        it - the figure on the far side a little smaller, the near one a little bigger
        (--char-depth, from the yaw's sign, so flipping the lean flips this too) */
     scale: var(--char-depth, 1);
-    /* each stands turned at an angle (--char-turn), on top of the scene's lean: the side nearer
-       the board closer, the far side further away (owner, 2026-10-24: the other way round from
-       the first turn, which had them facing the board) */
-    transform: perspective(1100px) rotateY(calc(var(--scene-yaw) + var(--char-turn, 0deg)));
+    transform: perspective(900px) rotateY(var(--scene-yaw));   /* no turn of their own (owner, 2026-10-24) */
   }
-  /* a soft contact shadow on the pavement under each, so the turned figure stands on something */
+  /* a soft contact shadow on the pavement under each, so the figure stands on something */
   .charfx::before {
     content: ""; position: absolute; left: 18%; right: 18%; bottom: 0; height: 9%; z-index: 0; pointer-events: none;
     background: radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,.28) 55%, transparent);
@@ -225,8 +222,8 @@
   .charfx canvas { z-index: 1; }
   /* --char-shift centres each character's own column on the union of its clips' content:
      char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
-  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); --char-turn: 17deg; transform-origin: 0% 100%; }   /* the skull stands 5% lower than the boy; turned on its board-side edge, so it never swings toward the board */
-  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); --char-turn: -17deg; transform-origin: 100% 100%; }
+  #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); }   /* the skull stands 5% lower than the boy */
+  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); }
   /* same beat as the wall's bounce — they hop and shake it off on every spin */
   .charfx.bounce { animation: charbounce .7s cubic-bezier(.22,.9,.32,1.25); }
   /* on translate/scale/rotate (transform carries the scene's lean): the lift and the depth
