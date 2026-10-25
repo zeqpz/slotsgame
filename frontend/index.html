@@ -2483,6 +2483,7 @@
 <script src="rules.js"></script>
 <script src="sprayrim.js"></script>
 <script src="wallfx.js"></script>
+<script src="smoke.js"></script>
 <script>
 "use strict";
 
@@ -5141,7 +5142,9 @@ const CHARACTERS = [
   // #charfx is the right-hand slot, #charfx2 the left
   {
     el: "charfx", base: "assets/spine/smoke-skull", name: "smoke-skull",
-    ambient: ["smoke_loop", "ember_loop"],
+    ambient: ["ember_loop"],
+    // the painted plume comes off the figure and live smoke rises from the ember (smoke.js)
+    smoke: { from: "ember", hide: ["smoke", "wisp_a", "wisp_b"] },
     flavour: [["ash_break"]],
     swap: { big_win: "win" },   // the skull's big-win clip is retired: its normal win plays for both
   },
@@ -5232,7 +5235,7 @@ function uploadPages(app, pages) {
   } catch (e) { /* a page that will not go up early just goes up when it is first drawn */ }
 }
 
-async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
+async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smoke = null }) {
   const root = document.getElementById(el);
   if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
 
@@ -5253,6 +5256,10 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {} }) {
   actor.state.data.defaultMix = .2;
   actor.state.timeScale = CHAR_RATE;
   app.stage.addChild(actor);
+  // with reduced motion the painted plume stays, still
+  if (smoke && !REDUCED_MOTION && window.CigarSmoke) {
+    try { CigarSmoke.attach(app, actor, smoke); } catch (e) { console.warn("cigar smoke:", e.message); }
+  }
 
   // The rig is drawn feet-on-the-floor, centred: scale so the skeleton's own height fills
   // the box the CSS vars were calibrated against - the box minus the headroom, which is
