@@ -221,6 +221,9 @@
 
   function frame(now) {
     raf = requestAnimationFrame(frame);
+    // 30 times a second, like the rims: slow paint needs no more, and on a high-refresh screen
+    // every display frame (144, 165 a second) was redrawing every canvas
+    if (last && now - last < 1000 / 30 - 2) return;
     const dt = Math.min(.05, last ? (now - last) / 1000 : 0); last = now;
     for (const R of regions) { step(R, dt, now); draw(R, now); }
   }

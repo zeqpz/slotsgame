@@ -167,7 +167,10 @@ void main() {
   const targets = [];
 
   function setup() {
-    glc = document.createElement("canvas"); glc.width = 64; glc.height = 64;
+    // At its largest from the start: a WebGL canvas that grows mid-game is reallocated, and the
+    // reallocation waits for the GPU to finish everything queued (a round's opening pop grew it
+    // and stalled the page 50-120 ms, twice, as the reveal began). Every rim fits MAX_SIDE.
+    glc = document.createElement("canvas"); glc.width = MAX_SIDE; glc.height = MAX_SIDE;
     gl = glc.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false, preserveDrawingBuffer: true });
     if (!gl) return false;
     const deriv = !!gl.getExtension("OES_standard_derivatives");
@@ -287,6 +290,11 @@ void main() {
       if (g.margin > room) { g.margin = Math.floor(room); g.flame = Math.max(2, (g.margin - 8) / 2.15); }
     }
     const cw = W + 2 * g.margin, ch = H + 2 * g.margin;
+    // A pop, a bounce or a lean-in scales the element for a moment: keep the density the canvas
+    // already has through it rather than reallocating the canvas on every frame of the move (the
+    // element's own transform scales the canvas with it). A real change - a resize, a new fit -
+    // is more than this and is followed.
+    if (t.px0 && Math.abs(px / t.px0 - 1) < .2) px = t.px0; else t.px0 = px;
     px = Math.min(px, MAX_SIDE / cw, MAX_SIDE / ch);
     g.px = px; g.cw = cw; g.ch = ch;
     g.dw = Math.max(1, Math.round(cw * px)); g.dh = Math.max(1, Math.round(ch * px));
@@ -330,22 +338,38 @@ void main() {
     t.ctx.drawImage(glc, 0, glc.height - g.dh, g.dw, g.dh, 0, 0, g.dw, g.dh);
   }
 
-  let raf = 0, last = 0, lastScan = 0, rules = [];
+  let raf = 0, lastScan = 0, rules = [], half = 0;
+  const lastHalf = [0, 0];
   const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // The rims are measured and drawn just AFTER the browser has laid out and painted the frame
+  // (a message posted from the animation frame runs once the frame is done), so reading the
+  // elements' boxes never forces a style and layout pass of its own in the middle of a frame
+  // that the round is still changing. What is drawn shows on the next frame.
+  const after = new MessageChannel();
+  after.port1.onmessage = draw;
+  // Half the rims are drawn on one frame and the other half on another: each half keeps its own
+  // clock and redraws at most 30 times a second, but no frame carries all of them at once.
   function loop(now) {
     if (!alive) return;
     raf = requestAnimationFrame(loop);
     if (document.hidden) return;
+    const h = half ^ 1;
+    if (now - lastHalf[h] < 1000 / 30 - 2) return;
+    half = h; lastHalf[h] = now;
+    after.port2.postMessage([h, now]);
+  }
+  function draw(e) {
+    if (!alive) return;
+    const [h, now] = e.data;
     if (now - lastScan > 500) { lastScan = now; scan(rules); }
-    if (now - last < 1000 / 30 - 2) return;
-    last = now;
-    for (const t of targets) {
+    targets.forEach((t, i) => {
+      if ((i & 1) !== h) return;
       const g = geometry(t);
-      if (!g) { if (t.key) { t.ctx.clearRect(0, 0, t.cv.width, t.cv.height); t.key = ""; } continue; }
-      if (still && t.key && t.drawn) continue;
+      if (!g) { if (t.key) { t.ctx.clearRect(0, 0, t.cv.width, t.cv.height); t.key = ""; } return; }
+      if (still && t.key && t.drawn) return;
       render(t, g, still ? 0 : now);
       t.drawn = true;
-    }
+    });
   }
 
   function stopAll() {
