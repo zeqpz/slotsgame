@@ -26,6 +26,8 @@ from animkit import sample, write, duration, delay, spring, spring_loop, settle,
 KNEE_MAX = 60.0          # deg: deepest knee bend the boy's trousers are asked to make
 FOOT_KEEP = .3           # share of the skull's foot/leg motion kept (what both feet do together)
 FOOT_APART = .12         # ... and of what they do against each other (the shoes overlap)
+HOP_SINK = .012          # units of the skull's hip sink per unit/s^2 of the hop's vertical acceleration (win: ~5)
+HOP_SINK_MAX = 8.0       # ... and no deeper than this
 
 
 def ch_get(ch, n, bone, comp):
@@ -223,6 +225,12 @@ def skull_reaction(j, name, take=True):
     t, ch = sample(a, D)
     n = len(t)
     plant_feet(ch, n)
+    if name in ("win", "big_win"):
+        skull_hop_feet(j, t, ch)
+    elif name == "anticipation":
+        skull_tiptoe(j, t, ch)
+    elif name == "lose":
+        skull_slump(j, t, ch)
     W = fk(j, ch, n, ["motion", "torso"])
     my = smooth(W["motion"][5], t, .04)
     ay = smooth(accel(my, t), t, .03)
@@ -241,6 +249,11 @@ def skull_reaction(j, name, take=True):
     ch_set(ch, "head", "rotate", head_new)
     hy = ch_get(ch, n, "head", "y") + settle(spring(np.clip(-ay * .0018, -6, 6), t, 2.6, .5), t, 0)
     ch_set(ch, "head", "y", hy)
+    # the knees take the push-off and the landing: the hips sink as the hop's vertical acceleration
+    # peaks (the legs are jointed and on the pelvis now, rig_skull.joint_legs) - only ever a sink,
+    # since past the drawn stance the trousers would buckle inward
+    sink = settle(spring(np.clip(-ay * HOP_SINK, -HOP_SINK_MAX, 0), t, 2.8, .55), t, 0)   # ay > 0: push-off, landing
+    ch_set(ch, "pelvis", "y", ch_get(ch, n, "pelvis", "y") + np.minimum(sink, 0))
     head_w = torso_w + head_new
     bl = ch_get(ch, n, "beanie", "rotate")
     ch_set(ch, "beanie", "rotate", lag_chain(t, head_w, bl, .07, 2.0, .33))
@@ -257,13 +270,15 @@ def skull_reaction(j, name, take=True):
     write(a, t, ch)
 
 
-def skull_compact(j, name, loop=False, smoke=False, take=False, feet=False):
+def skull_compact(j, name, loop=False, smoke=False, take=False, feet=False, steps=False):
     a = j["animations"][name]
     D = duration(a)
     t, ch = sample(a, D)
     n = len(t)
     if feet:
         plant_feet(ch, n)
+    if steps:
+        skull_idle_feet(j, t, ch)
     if take:
         swaps = face_swaps(a, "face", D)
         if swaps:
@@ -275,6 +290,83 @@ def skull_compact(j, name, loop=False, smoke=False, take=False, feet=False):
     if smoke:
         smoke_follow(j, t, ch, loop)
     write(a, t, ch, loop)
+
+
+# ---------------------------------------------------------------- the skull's feet
+# With jointed legs on an IK (rig_skull.joint_legs) the feet can move without tearing the
+# trousers, so they take part in every move (owner, 2026-10-25: the feet standing still under a
+# moving body "made the movement feel weird"). Sizes are in units; the skull is drawn at ~0.37
+# CSS px per unit, so a 10-unit lift reads as a small, clear step.
+
+BACK_TOE = (-330.0, 145.0)   # world: the ball of the side-on back shoe (foot_left), where its heel lift pivots
+
+
+def window(t, t0, t1):
+    """0 -> 1 -> 0 over [t0, t1] (sine squared), 0 outside."""
+    u = np.clip((t - t0) / (t1 - t0), 0, 1)
+    return np.sin(np.pi * u) ** 2
+
+
+def heel(j, deg, pivot=BACK_TOE, foot="foot_left"):
+    """A heel lift on the back shoe: the foot bone's (x, y, rotate) offsets that turn it by `deg`
+    (array) about its toe, so the toe stays on the ground and the heel comes up."""
+    W = fk(j, {}, 1, [foot])[foot]
+    ox, oy = float(np.ravel(W[4])[0]) - pivot[0], float(np.ravel(W[5])[0]) - pivot[1]
+    r = np.radians(deg)
+    return ox * np.cos(r) - oy * np.sin(r) - ox, ox * np.sin(r) + oy * np.cos(r) - oy, deg
+
+
+def add(ch, n, bone, comp, v):
+    ch_set(ch, bone, comp, ch_get(ch, n, bone, comp) + v)
+
+
+def skull_idle_feet(j, t, ch):
+    """The weight shifts with the hips (enhance.skull_anims sways them +-HIP_SWAY, furthest right
+    at 1.8 s and left at 3.8 s): with the weight on the front foot the back heel comes up, and
+    with it back on the back foot the front foot taps once."""
+    n = len(t)
+    lift = window(t, 1.1, 2.5)
+    dx, dy, r = heel(j, 3.2 * lift)
+    add(ch, n, "foot_left", "x", dx); add(ch, n, "foot_left", "y", dy); add(ch, n, "foot_left", "rotate", r)
+    tap = window(t, 3.3, 3.78)
+    add(ch, n, "foot_right", "y", 9.0 * tap); add(ch, n, "foot_right", "rotate", -2.0 * tap)
+
+
+def skull_hop_feet(j, t, ch):
+    """In the air the feet tuck up and part a little, both scaled by the hop's height, and they
+    are down again for the landing (which the hips' sink takes, skull_reaction)."""
+    n = len(t)
+    my = ch_get(ch, n, "motion", "y")
+    h = np.clip(my / max(float(my.max()), 1.0), 0, 1) if my.max() > 1 else np.zeros(n)
+    tuck = smooth(np.clip(my, 0, None) * .3, t, .04)
+    add(ch, n, "foot_left", "y", tuck); add(ch, n, "foot_right", "y", tuck)
+    add(ch, n, "foot_left", "x", -6.0 * h); add(ch, n, "foot_right", "x", 6.0 * h)
+    add(ch, n, "foot_left", "rotate", 4.0 * h); add(ch, n, "foot_right", "rotate", -3.0 * h)
+
+
+def skull_tiptoe(j, t, ch):
+    """Leaning in, he comes up onto his toes: the heels and the hips rise together (the legs keep
+    their length - past their drawn stance the trousers would buckle), the upper body keeps the
+    height the clip gave it."""
+    n = len(t)
+    ty = ch_get(ch, n, "torso", "y")
+    tip = np.clip(.6 * ty, 0, 9.0)
+    W = fk(j, {}, 1, ["foot_left"])["foot_left"]
+    reach = float(np.ravel(W[4])[0]) - BACK_TOE[0]
+    dx, dy, r = heel(j, np.degrees(tip / reach))
+    add(ch, n, "foot_left", "x", dx); add(ch, n, "foot_left", "y", dy); add(ch, n, "foot_left", "rotate", r)
+    add(ch, n, "foot_right", "y", tip)
+    add(ch, n, "pelvis", "y", tip); add(ch, n, "torso", "y", -tip)
+
+
+def skull_slump(j, t, ch):
+    """Losing, he sinks into his knees as he slumps, and the front foot scuffs the ground."""
+    n = len(t)
+    D = t[-1]
+    add(ch, n, "pelvis", "y", -5.0 * window(t, .1, D - .05))
+    scuff = window(t, .55, 1.35)
+    add(ch, n, "foot_right", "x", 7.0 * scuff); add(ch, n, "foot_right", "y", 4.0 * window(t, .55, .95))
+    add(ch, n, "foot_right", "rotate", -3.0 * scuff)
 
 
 SMOKE_BONE = "smoke_lag"

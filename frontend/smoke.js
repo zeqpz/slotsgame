@@ -56,6 +56,7 @@
     const tex = disc();
     const root = new PIXI.Container(), layers = {};
     for (const k of ["sticker", "line", "shade", "fill"]) { layers[k] = new PIXI.Container(); root.addChild(layers[k]); }
+    layers.sticker.visible = false;   // the skull lost his white sticker outline (2026-10-25): the smoke keeps only its black line
     app.stage.addChild(root);
     // the plume fades as one picture, so where its puffs overlap they do not show through each other
     if (PIXI.AlphaFilter) root.filters = [new PIXI.AlphaFilter({ alpha: ALPHA })]; else root.alpha = ALPHA;

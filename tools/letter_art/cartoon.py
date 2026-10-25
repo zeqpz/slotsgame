@@ -46,6 +46,33 @@ def rounded(m, r):
     return cv2.morphologyEx(m, cv2.MORPH_CLOSE, disc(r)).astype(bool)
 
 
+def bubble(m, r):
+    """A bubble letter's swollen, soft shape: every corner and stroke end rounded off by about
+    2r (blur by r, cut at half), the counters left open."""
+    return cv2.GaussianBlur(m.astype(np.float32), (0, 0), r) > .5
+
+
+def smooth_noise(shape, cell, rng):
+    """A smooth random field in [-1, 1]: a random value every `cell` px, bicubic in between."""
+    H, W = shape
+    cell = max(2, int(round(cell)))
+    gh, gw = H // cell + 4, W // cell + 4
+    g = rng.uniform(-1, 1, (gh, gw)).astype(np.float32)
+    n = cv2.resize(g, (gw * cell, gh * cell), interpolation=cv2.INTER_CUBIC)[cell:cell + H, cell:cell + W]
+    return n / max(1e-6, float(np.abs(n).max()))
+
+
+def bumpy(m, octaves, rng):
+    """Lumpy, hand-drawn edges: every edge pushed out or in along smooth random fields, each
+    octave (bump spacing px, amplitude px) laid over the last - big lumps with small bumps on them."""
+    inside = cv2.distanceTransform(m.astype(np.uint8), cv2.DIST_L2, 5)
+    outside = cv2.distanceTransform((~m).astype(np.uint8), cv2.DIST_L2, 5)
+    sdf = inside - outside
+    for cell, amp in octaves:
+        sdf = sdf + amp * smooth_noise(m.shape, cell, rng)
+    return sdf > 0
+
+
 def fill_enclosed(m):
     """Fill the regions enclosed by m (for hollow outline fonts), keeping real counters open is
     not possible from the outline alone - callers pass counters to re-open separately."""

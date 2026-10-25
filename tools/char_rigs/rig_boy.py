@@ -449,63 +449,99 @@ def crotch_backing(j, atlas, pages, W):
 
 # Socks (owner, 2026-10-24: his left shoe "has an open spot"). The trouser cuffs stop short of
 # the shoes' tongues, and in the notch between a cuff's front and the shoe the wall showed
-# through where his ankle should be - most on the side-on shoe (his left foot), a sliver along
-# the front-on one. Each foot gets a white sock: its own slot on the shoe bone, drawn behind the
-# shoe and under the jeans, so it shows only in those gaps (and as a sock should, if a cuff ever
-# lifts). Drawn in the shoe picture's own px, so the line has the art's weight. Each is an ankle
-# tube in shoe-region px (y up from the picture's top is negative): its box and its outline.
-SOCKS = {
-    # tucked under the cuff (whose top is narrower than its hem, so no higher than this), the
-    # front edge following the cuff's out to the tongue
-    "right": dict(box=(10, -42, 346, 80), poly=[(24, -42), (300, -42), (318, -32), (330, -14), (337, 6), (340, 36), (300, 58), (16, 80)]),
-    "left": dict(box=(70, -42, 396, 80), poly=[(92, -42), (366, -42), (380, -32), (387, -12), (390, 8), (392, 40), (300, 54), (84, 80)]),
-}
-SOCK_FILL, SOCK_SHADE, SOCK_INK, SOCK_LINE = (238, 236, 232), (196, 195, 193), (12, 12, 14), 9.0
+# through where his ankle should be.
+SOCK_FILL, SOCK_SHADE, SOCK_INK = (238, 236, 232), (196, 195, 193), (12, 12, 14)
 
 
-def add_socks(j, atlas, pages):
+# One sock, fitted (owner, 2026-10-25): the front-on shoe's sock only ever showed as a white
+# wedge sticking out beside the shoe, so it goes; the side-on shoe's sock is cut to the open spot
+# itself instead of a box - it fills exactly what shows between the cuff and the shoe, with the
+# art's line only along its open sides, and tucks a little way under both so a moving cuff never
+# uncovers the wall. Behind the shoe and the jeans, it can never cover either.
+SOCK_FIT = dict(side="left", box=(-420, 90, -10, 380), s=1.25, close=40, up=45, down=20, line=5.5)
+
+
+def raster_region(cv, att, bone_W, tex):
+    """Draw a region attachment (premultiplied tex) into a canvas-sized layer."""
+    h, w = tex.shape[:2]
+    sx, sy = att.get("scaleX", 1), att.get("scaleY", 1)
+    r = math.radians(att.get("rotation", 0)); cs, sn = math.cos(r), math.sin(r)
+    def world(u, v):
+        lx, ly = (u - w / 2) * sx, (h / 2 - v) * sy
+        lx, ly = lx * cs - ly * sn + att.get("x", 0), lx * sn + ly * cs + att.get("y", 0)
+        return mk.to_world(bone_W, (lx, ly))
+    src = np.float32([[0, 0], [w, 0], [0, h]])
+    dst = np.float32(cv.to_px(np.array([world(0, 0), world(w, 0), world(0, h)], float)))
+    return cv2.warpAffine(tex, cv2.getAffineTransform(src, dst), (cv.w, cv.h), flags=cv2.INTER_LINEAR, borderValue=0)
+
+
+def fit_sock(j, atlas, pages, W):
+    from scipy import ndimage
+    side, F = SOCK_FIT["side"], SOCK_FIT
+    s = F["s"]
+    cv = mk.Canvas(*F["box"], s)
     skin = j["skins"][0]["attachments"]
+    bones = [b["name"] for b in j["bones"]]
+    leg = skin[f"leg_{side}"][f"leg_{side}"]
+    tex = mk.premul(ak.crop(pages, atlas, leg.get("path", f"leg_{side}")))
+    th, tw = tex.shape[:2]
+    jeans = mk.raster_mesh(cv, mk.mesh_world(leg, bones, W), np.array(leg["uvs"]).reshape(-1, 2) * [tw, th],
+                           np.array(leg["triangles"]).reshape(-1, 3), tex)[..., 3] > .5
+    shoe_att = skin[f"shoe_{side}"][f"shoe_{side}"]
+    shoe = raster_region(cv, shoe_att, W[f"shoe_{side}"], mk.premul(ak.crop(pages, atlas, shoe_att.get("path", f"shoe_{side}"))))[..., 3] > .5
+    U = jeans | shoe
+    closed = cv2.morphologyEx(U.astype(np.uint8), cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * int(F["close"] * s) + 1,) * 2)).astype(bool)
+    gap = closed & ~U
+    # the ankle: the openings that lie between the cuff and the shoe (touching both)
+    lab, n = ndimage.label(gap)
+    near_j = cv2.dilate(jeans.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    near_s = cv2.dilate(shoe.astype(np.uint8), np.ones((5, 5), np.uint8)).astype(bool)
+    keep = [i for i in range(1, n + 1) if ((lab == i) & near_j).any() and ((lab == i) & near_s).any() and (lab == i).sum() > 40]
+    ankle = np.isin(lab, keep)
+    if not ankle.any():
+        return []
+    # The sock itself is an ankle tube: as wide as the opening (from notch to notch), down into the
+    # shoe and up under the cuff, so when a reaction lifts the cuff the sock is what shows - but
+    # never wider than the drawn figure (it stays inside the closed silhouette), so at rest only
+    # the opening shows.
+    gys, gxs = np.nonzero(ankle)
+    box = np.zeros_like(ankle)
+    box[max(0, gys.min() - int(F["up"] * s)): gys.max() + int(F["down"] * s), gxs.min(): gxs.max() + 1] = True
+    sock = ndimage.binary_fill_holes((closed & box) | ankle)
+    # paint: white, greying toward the back of the foot (left), a few soft ribs, and the art's line
+    # along the open sides only (the cuff and the shoe draw their own edges)
+    ys, xs = np.nonzero(sock)
+    x0, x1 = xs.min(), xs.max()
+    u = (np.arange(cv.w)[None, :] - x0) / max(1, x1 - x0)
+    shade = np.clip((u - .05) / .45, 0, 1)
+    rgb = np.array(SOCK_SHADE, np.float32) * (1 - shade[..., None]) + np.array(SOCK_FILL, np.float32) * shade[..., None]
+    rgb = np.broadcast_to(rgb, (cv.h, cv.w, 3)).copy()
+    rib = (np.abs(((np.arange(cv.w) - x0) / (9 * s)) % 1 - .5) < .07)[None, :] & np.ones((cv.h, 1), bool)
+    rgb[rib] *= .93
+    dS = ndimage.distance_transform_edt(sock)                      # its own edge all round: at rest only the
+    ink = (np.clip(F["line"] * s + .5 - dS, 0, 1) * sock)[..., None]   # opening's open sides show
+    rgb = rgb * (1 - ink) + np.array(SOCK_INK, np.float32) * ink
+    a = cv2.GaussianBlur(sock.astype(np.float32), (3, 3), 0)
+    img = np.concatenate([rgb, a[..., None] * 255], -1).clip(0, 255).astype(np.uint8)
+    by0, by1, bx0, bx1 = ys.min() - 2, ys.max() + 3, x0 - 2, x1 + 3
+    img = img[by0:by1, bx0:bx1]
+    h, w = img.shape[:2]
+    name = f"sock_{side}"
+    pg = "smukiez-2.png" if "smukiez-2.png" in pages else atlas.pages[0]["name"]
+    spot = ak.free_spot(atlas, pg, w, h)
+    assert spot, f"no room for {name}"
+    atlas.add(pg, name, spot[0], spot[1], w, h)
+    ak.paste(pages, atlas, name, Image.fromarray(img, "RGBA"))
+    # a region on the shoe bone: its centre in the bone's frame, 1/s units per px
+    c = cv.to_world(np.array([[(bx0 + bx1) / 2, (by0 + by1) / 2]], float))[0]
+    lx, ly = mk.to_local(W[f"shoe_{side}"], c)
+    rot = -math.degrees(math.atan2(W[f"shoe_{side}"][2], W[f"shoe_{side}"][0]))
+    skin[name] = {name: {"x": round(lx, 3), "y": round(ly, 3), "rotation": round(rot, 3), "width": w, "height": h,
+                         "scaleX": round(1 / s, 5), "scaleY": round(1 / s, 5)}}
     names = [sl["name"] for sl in j["slots"]]
     first = min(names.index("shoe_left"), names.index("shoe_right"))
-    pg = "smukiez-2.png" if "smukiez-2.png" in pages else atlas.pages[0]["name"]
-    made = []
-    for side in ("left", "right"):
-        shoe = f"shoe_{side}"
-        att = skin[shoe][shoe]
-        bx0, by0, bx1, by1 = SOCKS[side]["box"]
-        w, h = bx1 - bx0, by1 - by0
-        # the picture: an ankle tube, white with a grey back (the side away from the light) and the
-        # art's black line round it, supersampled
-        S = 4
-        from PIL import ImageDraw
-        pts = [((x - bx0) * S, (y - by0) * S) for x, y in SOCKS[side]["poly"]]
-        big = Image.new("RGBA", (w * S, h * S), (0, 0, 0, 0)); d = ImageDraw.Draw(big)
-        d.polygon(pts, fill=SOCK_INK + (255,))
-        inner = Image.new("L", big.size, 0); ImageDraw.Draw(inner).polygon(pts, fill=255)
-        inner = np.asarray(inner) > 127
-        inner = cv2.erode(inner.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (int(SOCK_LINE * 2 * S) | 1,) * 2)).astype(bool)
-        arr = np.asarray(big).copy()
-        xx = np.arange(w * S)[None, :] / (w * S)
-        shade = np.clip((xx - .12) / .3, 0, 1)                  # grey at the back, white toward the front
-        col = np.array(SOCK_SHADE, np.float32) * (1 - shade[..., None]) + np.array(SOCK_FILL, np.float32) * shade[..., None]
-        col = np.broadcast_to(col, (h * S, w * S, 3))
-        arr[inner, :3] = col[inner].astype(np.uint8)
-        img = Image.fromarray(arr, "RGBA").resize((w, h), Image.LANCZOS)
-        name = f"sock_{side}"
-        spot = ak.free_spot(atlas, pg, w, h)
-        assert spot, f"no room for {name}"
-        atlas.add(pg, name, spot[0], spot[1], w, h)
-        ak.paste(pages, atlas, name, img)
-        # placed in the shoe's frame: the box's centre, from the shoe picture's centre (y up)
-        sx, sy = att.get("scaleX", 1), att.get("scaleY", 1)
-        dx, dy = ((bx0 + bx1) / 2 - att["width"] / 2) * sx, (att["height"] / 2 - (by0 + by1) / 2) * sy
-        r = math.radians(att.get("rotation", 0))
-        skin[name] = {name: {"x": round(att["x"] + dx * math.cos(r) - dy * math.sin(r), 3), "y": round(att["y"] + dx * math.sin(r) + dy * math.cos(r), 3),
-                             "rotation": att.get("rotation", 0), "width": w, "height": h, "scaleX": sx, "scaleY": sy}}
-        made.append({"name": name, "bone": shoe, "attachment": name})
-    # behind both shoes
-    j["slots"][first:first] = made
-    return [m["name"] for m in made]
+    j["slots"].insert(first, {"name": name, "bone": f"shoe_{side}", "attachment": name})   # behind both shoes
+    return [name]
 
 
 def finish_socks(j):
@@ -513,12 +549,13 @@ def finish_socks(j):
     attachment keys, copied), and the cash clips' draw-order keys hold each sock in place - an
     offset key moves a slot by places, so a new slot it passes over would shift where it lands."""
     names = [sl["name"] for sl in j["slots"]]
-    if "sock_left" not in names:
+    sides = [s for s in ("left", "right") if f"sock_{s}" in names]
+    if not sides:
         return 0
     n = 0
     for anim in j["animations"].values():
         slots = anim.get("slots", {})
-        for side in ("left", "right"):
+        for side in sides:
             shoe, sock = f"shoe_{side}", f"sock_{side}"
             if shoe in slots:
                 tl = {}
@@ -533,7 +570,7 @@ def finish_socks(j):
             if not offs:
                 continue
             have = {o["slot"] for o in offs}
-            for sock in ("sock_left", "sock_right"):
+            for sock in (f"sock_{s}" for s in sides):
                 if sock not in have:
                     offs.append({"slot": sock, "offset": 0})
             offs.sort(key=lambda o: names.index(o["slot"]))
@@ -586,5 +623,5 @@ def fix(j, atlas, pages):
     fix_wrists(j, atlas, pages, W)
     stats["faces (hair px, jaw px)"] = fix_faces(atlas, pages)
     stats["crotch_fill verts"] = crotch_backing(j, atlas, pages, W)
-    stats["socks"] = add_socks(j, atlas, pages)
+    stats["socks"] = fit_sock(j, atlas, pages, W)
     return stats

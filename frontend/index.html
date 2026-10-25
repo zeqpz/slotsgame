@@ -801,7 +801,7 @@
   }
   #autoPop::after { border-top-color: #1f8fff; }   /* the little arrow, in the plate's blue */
   /* a plain face here, not the graffiti one: this panel is read, not admired. Everything
-     centred on the plate, the words in grey, Start in black */
+     centred on the plate; Start is the lettered button (.wordbtn) */
   #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: var(--plain); }
   #autoPop { text-align: center; }
   /* white cut out of a black outline: the stone is mottled, and an outline holds the letters
@@ -818,10 +818,6 @@
   }
   #autoPop .popsub b { color: #fff; font-weight: 800; }
   #autoPop .autoopts button { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
-  #autoPop .infoclose {
-    display: inline-block; margin: 0 auto; min-width: 120px;
-    font-size: 13px; font-weight: 700; letter-spacing: .14em;
-  }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .popover .autoopts { margin: 0 0 10px; }
@@ -1149,9 +1145,10 @@
   .infopanel p { font-family: var(--read); font-size: 14px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
   .infopanel p.legal { color: var(--ink-soft); font-size: 11.5px; line-height: 1.7; }
   .infopanel b, .infopanel strong { font-family: var(--legible); }
-  /* The plain buttons wear the sprayed boxes the rest of the UI does: Play and Start on the
-     yellow pill the Bonus panel's Play already uses, Close on the lime box, the count picks on
-     the magenta box of the sound and info buttons - each stretched to the text it carries. */
+  /* The plain buttons wear the sprayed boxes the rest of the UI does: the replay's Play on the
+     yellow pill, Close on the lime box, the count picks on the magenta box of the sound and info
+     buttons - each stretched to the text it carries. (The Bonus panel's Play and the auto play
+     picker's Start are lettered: .wordbtn.) */
   .infoclose {
     font-family: var(--disp); font-size: 16px; letter-spacing: .08em; text-transform: uppercase;
     min-width: 150px; padding: 13px 30px 12px; border: 0;
@@ -2053,19 +2050,37 @@
     text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
   }
   .bonustotal b { font-family: var(--num); font-size: 24px; letter-spacing: .05em; color: #fff; display: block; margin-top: 4px; }   /* the amount, like every other amount */
-  /* Play is the sprayed yellow plate with the word set into it */
-  .bonusgo {
-    display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
-    background: url("assets/bonus_play.webp") center / 100% 100% no-repeat;
-    border: 0; padding: 0 12%;
-    font-family: var(--disp); font-size: 27px; line-height: 1.15; letter-spacing: .1em;
-    text-transform: uppercase; color: #171203; text-shadow: 0 2px 0 rgba(255, 255, 255, .22);
-    transition: transform .14s cubic-bezier(.3,.8,.4,1), filter .14s linear;
+  /* The lettered buttons - the Bonus panel's PLAY, the auto play picker's START: the word itself,
+     lettered like BONUS in white with black ink and drips (art/letters/, tools/letter_art/make.py
+     play start), on a dark card like the FS and XFS cards. The sprayed yellow plate they sat on
+     shouted over the panels around them. */
+  .wordbtn {
+    position: relative; display: block; margin: 0 auto; aspect-ratio: 2.805;
+    background: rgba(12, 10, 16, .74); border: 2px solid rgba(0, 0, 0, .5); border-radius: 13px;
+    padding: 0 8%; cursor: pointer;
+    /* words shown instead of the art (Play's "Not enough balance"), in its colours: white, black line */
+    font-family: var(--label); font-size: 17px; line-height: 1.15; letter-spacing: .08em;
+    text-transform: uppercase; color: #fff;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 3px 0 #000;
+    transition: transform .14s cubic-bezier(.3,.8,.4,1), border-color .18s, box-shadow .18s;
   }
-  .bonusgo:hover:not(:disabled) { transform: scale(1.04); filter: brightness(1.07); }
-  .bonusgo:active:not(:disabled) { transform: scale(.96); }
-  /* the only time this button says anything longer than PLAY is when it is disabled */
-  .bonusgo:disabled { filter: grayscale(.55) brightness(.85); cursor: default; font-size: 17px; }
+  /* the word is the art (--word); it stays in the markup at font-size 0 for screen readers */
+  .wordbtn.art { font-size: 0; color: transparent; -webkit-text-stroke: 0; text-shadow: none; }
+  .wordbtn.art::after {
+    content: ""; position: absolute; inset: 9% 14% 3%;
+    background: var(--word) center / contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+  }
+  .wordbtn:hover:not(:disabled) {
+    transform: scale(1.04); border-color: rgba(255, 255, 255, .6);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .14), 0 0 20px rgba(255, 255, 255, .22);
+  }
+  .wordbtn.art:hover:not(:disabled)::after { scale: 1.06; }
+  .wordbtn:active:not(:disabled) { transform: scale(.96); }
+  .wordbtn:disabled { opacity: .6; cursor: default; }
+  .bonusgo { width: min(100%, 310px); --word: url("assets/bonus_play_text.webp"); }
+  #autoYes { width: 170px; border-radius: 11px; --word: url("assets/auto_start_text.webp"); }
   .bonusnote {
     text-align: center; font-family: var(--legible); font-size: 11px; color: #fff;
     text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-top: 12px;
@@ -2376,7 +2391,7 @@
               <button type="button" data-n="50">50</button>
               <button type="button" data-n="100">100</button>
             </div>
-            <button class="infoclose" id="autoYes">Start</button>
+            <button class="wordbtn art" id="autoYes">Start</button>
           </div>
       </div>
     </div>
@@ -2428,7 +2443,7 @@
         <button type="button" id="bonusBetUp" aria-label="Raise bet">+</button>
       </div>
       <div class="bonustotal" id="bonusTotalLbl">Total<b id="bonusTotal"></b></div>
-      <button class="bonusgo" id="bonusGo">Play</button>
+      <button class="wordbtn bonusgo art" id="bonusGo">Play</button>
       <div class="bonusnote" id="bonusNote">Pressing Play charges the total above and starts the feature.</div>
     </div>
   </div>
@@ -4864,6 +4879,7 @@ function paintBonus() {
   $("bonusGo").classList.toggle("purple", bonusMode === "extremebonus");
   $("bonusGo").disabled = over(bonusMode);
   $("bonusGo").textContent = over(bonusMode) ? T("Not enough balance") : T("Play");
+  $("bonusGo").classList.toggle("art", !over(bonusMode));   // PLAY is lettered art; anything else is set in type
   $("bonusBetUp").disabled = state.betIdx >= state.bets.length - 1;
   $("bonusBetDown").disabled = state.betIdx <= 0;
 }

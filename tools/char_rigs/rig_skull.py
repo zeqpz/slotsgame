@@ -25,8 +25,15 @@ import cv2
 from PIL import Image
 import meshkit as mk
 import atlaskit as ak
+import outline as ol
 
 BODY = ["shoe_left", "shoe_right", "leg_left", "leg_right", "torso", "arm_left", "arm_right", "pocket"]
+# The outline round the figure. The delivered art is a sticker: heavy black ink with a white band
+# round it. The owner wants a thin black line like the boy's instead (2026-10-25), so the band
+# goes and the ink is re-stroked at OUTLINE_W (outline.py). "white" builds the sticker look.
+OUTLINE = "black"
+OUTLINE_W = 5.0          # units: the boy's ~5.5-unit line, at the skull's 1.1x larger on-screen scale
+FX_OUTLINE = .4          # the ash flakes are drawn far denser than the body: their line is this share of their own ink
 OUTLINE_REACH = 22                # px: the drawing's thickest outlines between parts
 BOX = (-430, -20, 350, 1000)      # world rect holding the whole body (x0, y0, x1, y1)
 
@@ -37,6 +44,10 @@ INSEAM = [(-12, 486), (-14, 360), (-22, 300), (-26, 240)]            # between t
 CUFF_L = [(-430, 1000), (-186, 1000), (-182, 300), (-150, 288), (-60, 276), (-26, 272)]   # bottom of the left leg
 CUFF_R = [(-26, 262), (40, 252), (120, 246), (190, 252), (350, 262)]       # bottom of the right leg
 SHOES = [(-26, 272), (-22, 200), (-14, 120), (-6, 0)]                 # between the two shoes
+# Under the crotch the sticker band shows between the trouser legs in two pockets, walled in by
+# the legs and the shoes (y ~320-355 and ~200-285, just right of the inseam). Everything light in
+# here is band: the shoes' white and the laces lie outside it.
+LEG_GAP = [(-25, 365), (12, 365), (30, 290), (30, 205), (-25, 205)]
 
 
 def master(j, atlas, pages, W, slots=BODY):
@@ -88,9 +99,27 @@ def rough_part(x, y):
     return part
 
 
+SHOE_W = 11.0        # units: the shoes keep their drawn ink up to this far from their paint (the boy's shoe lines are ~13 at this scale)
+
+
+def shoe_area(cv):
+    """Where the shoes and their laces are drawn (rough_part's shoe area, kept off the trouser legs'
+    outer edges; the dangling laces either side reach higher)."""
+    ys, xs = np.mgrid[0:cv.h, 0:cv.w]
+    wx, wy = cv.to_world(np.stack([xs.ravel() + .5, ys.ravel() + .5], 1)).T
+    part = rough_part(wx, wy).reshape(cv.h, cv.w)
+    wx = wx.reshape(cv.h, cv.w); wy = wy.reshape(cv.h, cv.w)
+    return (np.isin(part, (3, 4)) & (wy < 300)) | ((wx < -200) & (wy < 420)) | ((wx > 205) & (wy < 330))
+
+
 def segment(cv, comp, black_lum=24, min_comp=40, no_ring=None):
     """Per-pixel part labels (-1 = empty) following the drawing's outlines."""
     rgba = mk.unpremul(comp)
+    line = None
+    if OUTLINE == "black":   # the white band off, the ink re-stroked thin (never along the hood's opening)
+        holes = np.zeros(rgba.shape[:2], np.uint8)
+        cv2.fillPoly(holes, [np.round(cv.to_px(np.array(LEG_GAP, float))).astype(np.int32)], 1)
+        rgba, line = ol.restroke(rgba, OUTLINE_W, keep=no_ring, holes=holes.astype(bool), bold=shoe_area(cv), bold_w=SHOE_W)
     A = rgba[..., 3] > 127
     lum = rgba[..., :3].astype(np.float32).mean(-1)
     black = A & (lum < black_lum)
@@ -146,6 +175,9 @@ def segment(cv, comp, black_lum=24, min_comp=40, no_ring=None):
         near_q = cv2.distanceTransform((~qb).astype(np.uint8), cv2.DIST_L2, 5) <= 2.5
         rim = near_q & (out > q) & ~black & (lum < paint_lum - 20)
         out[rim] = q
+    if line is not None:
+        # the new black line plays the part the sticker played: every part lays its own (build_parts)
+        return out, rgba, border | line
     # the soft outer edge of the sticker border counts as border too
     border |= (rgba[..., 3] > 0) & (rgba[..., 3] < 255) & (lum > 200)
     # The delivered sticker outline steps and thins where the old rectangle cuts crossed it (the
@@ -375,29 +407,38 @@ def build_parts(cv, rgba, lab, border, no_sticker=None):
             a_new = a0 + ea * (1 - a0 / 255.)
             rgb_new = (img[..., :3].astype(np.float32) * a0[..., None] + fill.astype(np.float32) * (ea * (1 - a0 / 255.))[..., None]) / np.maximum(a_new, 1e-3)[..., None]
             img[em, :3] = rgb_new[em].clip(0, 255).astype(np.uint8); img[em, 3] = a_new[em].clip(0, 255).astype(np.uint8)
-        # its own sticker outline, under its own pixels, only where the drawing had outline or nothing
+        # its own outline (the thin black line, or the white sticker), under its own pixels, only
+        # where the drawing had outline or nothing
+        black = OUTLINE == "black"
         core = m & ~border & (rgba[..., 3] > 127)
         d = cv2.distanceTransform((~core).astype(np.uint8), cv2.DIST_L2, 5)
-        sa = np.clip(BORDER_W + .5 - d, 0, 1) * border_ok * (~core)
+        sa = np.clip((OUTLINE_W if black else BORDER_W) + .5 - d, 0, 1) * border_ok * (~core)
         if p == 0:
             sa *= (wy > HEM_Y - 30)          # the hoodie's outline stops at its hem
         sa = (sa * 255).astype(np.float32)
         base = img.astype(np.float32)
         a0 = base[..., 3:4] / 255.; s = sa[..., None] / 255.
         out_a = a0 + s * (1 - a0)
-        out_rgb = (base[..., :3] * a0 + 255. * s * (1 - a0)) / np.maximum(out_a, 1e-4)
+        line_rgb = np.array(ol.INK_RGB if black else (255, 255, 255), np.float32)
+        out_rgb = (base[..., :3] * a0 + line_rgb * s * (1 - a0)) / np.maximum(out_a, 1e-4)
         img = np.concatenate([out_rgb, out_a * 255.], -1).clip(0, 255).astype(np.uint8)
         parts[p] = img
     return parts
 
 
+CROTCH_Y = 368       # with the black outline the space between the legs is open from just under here
+
+
 def crotch_fill(cv):
-    """Dark cloth behind the crotch, so the inseam can never open onto the wall."""
+    """Dark cloth behind the crotch, so the inseam can never open onto the wall. With the sticker
+    look the space between the legs was white band and the cloth ran down behind it to y=330; with
+    the black outline that space is open, so the cloth stops at the crotch, where it opens."""
     img = np.zeros((cv.h, cv.w, 4), np.uint8)
-    poly = np.array([(-60, HEM_Y + 10), (40, HEM_Y + 10), (30, 330), (-50, 330)], float)
+    bottom, blur = (CROTCH_Y, 3) if OUTLINE == "black" else (330, 9)
+    poly = np.array([(-60, HEM_Y + 10), (40, HEM_Y + 10), (30, bottom), (-50, bottom)], float)
     m = np.zeros((cv.h, cv.w), np.uint8)
     cv2.fillPoly(m, [np.round(cv.to_px(poly)).astype(np.int32)], 255)
-    m = cv2.GaussianBlur(m, (9, 9), 0)
+    m = cv2.GaussianBlur(m, (blur, blur), 0)
     img[..., :3] = SOCK; img[..., 3] = m
     return img
 
@@ -500,6 +541,66 @@ def drop_slots(j, names):
             key["offsets"] = [o for o in key.get("offsets", []) if o["slot"] not in names]
 
 
+# ---------------------------------------------------------------- jointed legs
+
+KNEE_REST = 10.0     # deg: each knee is bent this much in the setup pose, outward (the boy's are 10-14)
+KNEE_BLEND_K = .75   # half-width of the thigh -> knee -> shin weight blend, as a share of the thigh
+
+
+def joint_legs(j):
+    """The legs move with the body (owner, 2026-10-25: "it seems off that they aren't").
+
+    Each trouser leg hung on a free leg bone, a child of `motion`, while the body bobbed and swayed
+    on the torso: the legs stood still and only their tops stretched under the hem. Now each leg is
+    a limb hung from the pelvis, built like the boy's: the old leg bone is the thigh, a shin hangs
+    from it, a two-bone IK reaches the planted foot, and the knees rest bent a little outward, so
+    when the hips dip the knees bend out and when the hips sway the legs lean. A half-angle knee
+    helper keeps the bend smooth, and a cuff bone turns with the shin but stays on the shoe.
+    Setup-pose world positions of everything else are unchanged. Returns the knee helpers in
+    mk.setup_world's form."""
+    B = {b["name"]: b for b in j["bones"]}
+    W0 = mk.setup_world(j["bones"])
+    pel = W0["pelvis"]
+    rot_p = math.degrees(math.atan2(pel[2], pel[0]))
+    ik, tf = j.setdefault("ik", []), j.setdefault("transform", [])
+    order = len(ik) + len(tf)
+    r = lambda v: round(float(v), 4)
+    norm = lambda a: (a + 180) % 360 - 180
+    made, knees, cuffs = [], [], []
+    for side, out in (("left", -1), ("right", 1)):
+        H = np.array(W0[f"leg_{side}"][4:6]); F = np.array(W0[f"foot_{side}"][4:6])
+        d = float(np.hypot(*(F - H))); u = (F - H) / d
+        n = np.array([-u[1], u[0]])
+        if n[0] * out < 0: n = -n                                      # the knee goes outward
+        L = d / (2 * math.cos(math.radians(KNEE_REST / 2)))
+        K = H + u * d / 2 + n * L * math.sin(math.radians(KNEE_REST / 2))
+        a_th = math.degrees(math.atan2(K[1] - H[1], K[0] - H[0]))
+        a_sh = math.degrees(math.atan2(F[1] - K[1], F[0] - K[0]))
+        hx, hy = mk.to_local(pel, H)
+        leg = B[f"leg_{side}"]
+        for k in ("scaleX", "scaleY", "shearX", "shearY"): leg.pop(k, None)
+        leg.update({"parent": "pelvis", "x": r(hx), "y": r(hy), "rotation": r(norm(a_th - rot_p)), "length": r(L)})
+        rel = norm(a_sh - a_th)
+        made += [{"name": f"shin_{side}", "parent": f"leg_{side}", "x": r(L), "y": 0, "rotation": r(rel), "length": r(L)},
+                 {"name": f"knee_{side}", "parent": f"leg_{side}", "x": r(L), "y": 0, "length": 40},
+                 {"name": f"cuff_{side}", "parent": f"shin_{side}", "x": r(L), "y": 0, "length": 30}]
+        ik.append({"name": f"leg_{side}", "order": order, "bones": [f"leg_{side}", f"shin_{side}"], "target": f"foot_{side}",
+                   "mix": 1, "bendPositive": rel > 0, "stretch": True})
+        order += 1
+        knees.append(side); cuffs.append(side)
+    # appended after every existing bone: the indices the delivered weights use stay valid
+    j["bones"] += made
+    for side in knees:
+        tf.append({"name": f"knee_{side}", "order": order, "bones": [f"knee_{side}"], "target": f"shin_{side}",
+                   "mixRotate": 0.5, "mixX": 0, "mixY": 0, "mixScaleX": 0, "mixScaleY": 0, "mixShearY": 0})
+        order += 1
+    for side in cuffs:
+        tf.append({"name": f"cuff_{side}", "order": order, "bones": [f"cuff_{side}"], "target": f"foot_{side}",
+                   "mixRotate": 0, "mixX": 1, "mixY": 1, "mixScaleX": 0, "mixScaleY": 0, "mixShearY": 0})
+        order += 1
+    return [(f"knee_{s}", f"shin_{s}", 0.5) for s in knees]
+
+
 # ---------------------------------------------------------------- the re-cut
 
 def fix(j, atlas, pages, extra_regions=None):
@@ -538,13 +639,29 @@ def fix(j, atlas, pages, extra_regions=None):
         j["skins"][0]["attachments"]["neck_fill"] = {"neck_fill": m}
         extra_regions = dict(extra_regions or {}, neck_fill=Image.fromarray(hood_img, "RGBA"))
 
+    # From here on the setup pose is the jointed-leg rig's. Every bone the parts above were cut and
+    # weighted against keeps its setup-pose world matrix; the new bones come after them all.
+    helpers = joint_legs(j)
+    bones = [b["name"] for b in j["bones"]]
+    bidx = {n: i for i, n in enumerate(bones)}
+    W = mk.setup_world(j["bones"], helpers)
+
     def field_at(world):
         px = np.clip(np.floor(cv.to_px(world)).astype(int), 0, [cv.w - 1, cv.h - 1])
-        return field[px[:, 1], px[:, 0]]
+        F = field[px[:, 1], px[:, 0]]
+        return np.pad(F, ((0, 0), (0, len(bones) - F.shape[1])))   # the delivered skin knows none of the new bones
 
     def weights_for(p):
         side = {1: "left", 2: "right", 3: "right", 4: "left"}.get(p)
         cuff_y = {1: 286, 2: 256}.get(p)
+        if p in (1, 2):
+            # the knee's axis: half-way between the thigh's and the shin's directions (the boy's scheme)
+            th, sh = W[f"leg_{side}"], W[f"shin_{side}"]
+            K = np.array(sh[4:6])
+            ut = np.array([th[0], th[2]]); ut /= np.hypot(*ut)
+            us = np.array([sh[0], sh[2]]); us /= np.hypot(*us)
+            ax = (ut + us) / np.hypot(*(ut + us))
+            kb = KNEE_BLEND_K * j["bones"][bidx[f"leg_{side}"]]["length"]
 
         def f(world):
             F = field_at(world); out = []
@@ -554,9 +671,12 @@ def fix(j, atlas, pages, extra_regions=None):
                 if p in (3, 4):
                     out.append({f"foot_{side}": 1.0}); continue
                 s = float(mk.smoothstep(HEM_Y - 55, HEM_Y - 135, y))      # 0 under the hem -> 1 down the leg
-                c = float(mk.smoothstep(cuff_y + 95, cuff_y + 20, y))     # 1 at the cuff
+                c = float(mk.smoothstep(cuff_y + 95, cuff_y + 20, y))     # 1 at the cuff: it rides the cuff bone, on the shoe
+                z = float((np.array([x, y]) - K) @ ax)
+                w_th = float(mk.smoothstep(0, kb, -z)); w_sh = float(mk.smoothstep(0, kb, z)); w_kn = 1 - w_th - w_sh
                 own = np.zeros(len(bones), np.float32)
-                own[bidx[f"leg_{side}"]] = 1 - c; own[bidx[f"foot_{side}"]] = c
+                own[bidx[f"leg_{side}"]] = (1 - c) * w_th; own[bidx[f"knee_{side}"]] = (1 - c) * w_kn
+                own[bidx[f"shin_{side}"]] = (1 - c) * w_sh; own[bidx[f"cuff_{side}"]] = c
                 out.append(top_bones((1 - s) * fw + s * own, bones))
             return out
         return f
@@ -575,6 +695,21 @@ def fix(j, atlas, pages, extra_regions=None):
             (faces if n.startswith("face_") else images)[n] = ak.crop(pages, atlas, n)
     images.update(extra_regions or {})
     faces = hires_faces(faces)
+    if OUTLINE == "black":
+        # the delivered pictures carry the white sticker band too: the faces (at their own density,
+        # px per unit), the cigar, the painted plume (shown under reduced motion) and the ash
+        skin = j["skins"][0]["attachments"]
+        for n in faces:
+            dens = faces[n].size[0] / skin["face"][n]["width"]   # ~1.02 (FACE_SCALE x the delivered .70)
+            faces[n] = Image.fromarray(ol.restroke(np.asarray(faces[n]), OUTLINE_W * dens)[0], "RGBA")
+        for n in list(images):
+            if n.startswith("ash_"):
+                images[n] = Image.fromarray(ol.restroke(np.asarray(images[n]), None, ratio=FX_OUTLINE)[0], "RGBA")
+            elif n == "cigar_clean":   # bold, like the shoes: only the white band goes
+                im = np.asarray(images[n])
+                images[n] = Image.fromarray(ol.restroke(im, OUTLINE_W, bold=np.ones(im.shape[:2], bool), bold_w=99)[0], "RGBA")
+            elif n in ("smoke", "smoke_wisp"):
+                images[n] = Image.fromarray(ol.restroke(np.asarray(images[n]), OUTLINE_W)[0], "RGBA")
     page_name = atlas.pages[0]["name"]; header = atlas.pages[0]["header"]
     face_page = page_name.replace(".png", "-2.png")
     out_pages = {}

@@ -123,10 +123,22 @@ def neck_fill(j):
     return im
 
 
+HIP_DIP = 4.0   # units: how far the skull's hips sink on each breath of the idle
+HIP_SWAY = 6.0  # units: the skull's hips' side-to-side sway in the idle (was the torso's +-3)
+HIP_TILT = .8   # deg: the hips tilt with it
+
+
 def skull_anims(j):
     a = j["animations"]["idle"]; D = 4.0
     bones = a.setdefault("bones", {})
-    bones["torso"] = {"rotate": tl(wave(D, -2, 2, 4.0)), "translatey": tl(wave(D, 0, 7, 2.0)), "translatex": tl(wave(D, -3, 3, 4.0, phase=.2))}
+    # The body bobs and sways on its hips, so the jointed legs (rig_skull.joint_legs) carry it. The
+    # bob is a dip: from the drawn stance the knees can only bend further out - lifted past it,
+    # the straight-drawn trousers would buckle inward.
+    # The hips sway as far as the boy's (his body: +-6) and tilt with it, so the legs lean under the
+    # body instead of standing still while it sways over them.
+    bones["torso"] = {"rotate": tl(wave(D, -2, 2, 4.0))}
+    bones["pelvis"] = {"translatey": tl(wave(D, 0, -HIP_DIP, 2.0)), "translatex": tl(wave(D, -HIP_SWAY, HIP_SWAY, 4.0, phase=.2)),
+                       "rotate": tl(wave(D, -HIP_TILT, HIP_TILT, 4.0, phase=.1))}
     bones["head"] = {"rotate": tl([(0, 2.2), (1.1, -2.6), (2.2, 1.8), (3.2, -1.8), (4, 2.2)]), "translatey": tl(wave(D, 0, 2, 2.0, phase=-.25))}
     bones["beanie"] = {"rotate": tl([(0, 1.2), (1.35, -2), (2.45, 1.5), (3.45, -1.5), (4, 1.2)])}
     bones["jaw"] = {"rotate": tl([(0, 0), (.35, 2.6), (.75, 0), (2.2, 0), (2.55, 3.1), (2.95, 0), (4, 0)])}
@@ -136,6 +148,10 @@ def skull_anims(j):
     keep = ("smoke_base", "smoke_mid", "smoke_tip", "wisp_a", "wisp_b", "ember", "cigar", "ash_cap", "ash_1", "ash_2", "ash_3", "ash_4", "root", "jaw")
     for name in ("anticipation", "win", "big_win", "lose"):
         amplify(j["animations"][name], REACT_GAIN, skip=keep)
+    # the thighs are the IK's now: the delivered clips' small leg wiggles would only shift the hips
+    for anim in j["animations"].values():
+        for leg in ("leg_left", "leg_right"):
+            anim.get("bones", {}).pop(leg, None)
 
 
 def load(name):
@@ -172,7 +188,7 @@ def main():
             motion.add_smoke_lag(j)
             for r in ("anticipation", "win", "big_win", "lose"):
                 motion.skull_reaction(j, r)
-            motion.skull_compact(j, "idle", loop=True, smoke=True, feet=True)
+            motion.skull_compact(j, "idle", loop=True, smoke=True, feet=True, steps=True)
             for r in ("smoke_loop", "ember_loop"):
                 motion.skull_compact(j, r, loop=True)
             motion.skull_compact(j, "ash_break", smoke=True, take=True)

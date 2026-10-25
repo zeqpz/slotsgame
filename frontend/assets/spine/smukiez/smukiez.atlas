@@ -147,15 +147,8 @@ crotch_fill
 sock_left
   rotate: false
   xy: 1556, 208
-  size: 326, 122
-  orig: 326, 122
-  offset: 0, 0
-  index: -1
-sock_right
-  rotate: false
-  xy: 1556, 336
-  size: 336, 122
-  orig: 336, 122
+  size: 327, 132
+  orig: 327, 132
   offset: 0, 0
   index: -1
 

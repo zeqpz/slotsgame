@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "front-static",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8765", "--directory", "frontend"],
+      "port": 8765
+    },
+    {
+      "name": "mock-rgs",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["frontend/mock_rgs.py"],
+      "port": 8733
+    },
+    {
+      "name": "beta",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["beta/server.py"],
+      "port": 8722
+    }
+  ]
+}

@@ -2,7 +2,8 @@
 
   python tools/letter_art/make.py              # BS, ES, BONUS (traced from the shipped art) + the BONUS plate
   python tools/letter_art/make.py xbonus       # XTREME BONUS (the Extreme Bonus intro's title)
-  python tools/letter_art/make.py --ship       # copy the BONUS button pair + XTREME BONUS into frontend/assets
+  python tools/letter_art/make.py play start   # PLAY (the Bonus panel's) and START (the auto play picker's), white with black ink
+  python tools/letter_art/make.py --ship       # copy the BONUS button pair, XTREME BONUS, PLAY and START into frontend/assets
   then: BS/ES -> art/icons-src at 512 px (see README), tools/make_flat_icons.py, tools/icon_rigs/build.py
 
 The traced pieces keep the game's own lettering (same letters, same places, so the symbol rigs'
@@ -285,6 +286,161 @@ def xtreme_bonus(out_dir=None, seed=11):
     return os.path.join(out_dir, "XTREME_BONUS.png")
 
 
+# ---------------------------------------------------------------- PLAY / START
+# The lettered buttons (owner, 2026-10-25): the Bonus panel's Play stood out on its yellow plate and
+# should be "a white fill with a black outline" in "the same font as the Bonus symbol"; the auto play
+# picker's Start follows it. Set as XTREME is: BROMO letters at BONUS's letter height, painted with
+# BONUS's ink, block, shine and drips - in white, with no white sticker edge, so the outermost line
+# is the black ink. Then ("more rounded and bumpy", "the portions for the letters are uneven",
+# "make the Y fit better", "the spacing is uneven"): every letter is swollen, rounded and lumped
+# like a bubble letter; set to its own width with every stroke at one weight (BROMO's P and S are
+# narrow beside a wide A, and its strokes run 58-74 px at a 300 px cap); its Y is drawn (BROMO's is
+# a slanted lowercase-style y whose V swelled shut); and the letters are spaced optically.
+# a near-white fill, so the white highlight band and the gloss read on it the way BONUS's do on lime
+WHITE = dict(fill=(.93, .93, .96), shade=(.74, .75, .80), block=(.45, .45, .50), hi=(1.0, 1.0, 1.0))
+LT = dict(cap=270,           # letter height, BONUS source px (BONUS's are ~270)
+          out=.6,            # output px per BONUS source px: ~160 px letters, sharp at 2x in the buttons
+          stroke=.235,       # x cap: every stroke's weight before the swelling
+          grow=9.0,          # src px: swollen past BROMO's weight toward the traced BONUS letters' fat strokes
+          bubble=.045,       # x cap: every corner and stroke end rounded off, bubble-letter soft
+          bumps=[(.30, .045), (.11, .020)],   # (spacing, amplitude) x cap: big lumps, small bumps on them
+          ink=1.5, drip_w=1.25,  # x BONUS's ink and drip width: a white letter needs the heavier line to hold on the grey
+          # optical spacing, in widths of the black outline (each letter's line is drawn outside its
+          # body, so two bodies 2 widths apart have outlines just touching): the gap to the letter
+          # before, row by row, counted no deeper than `depth` (an open side - L's empty top - is not a
+          # hole to fill), averages `air`; the bodies never come closer than `touch`, where the two
+          # outlines run together as one line. `air` is the loosest pair's gap at `touch` (make.py
+          # prints them: PLAY 4.1 4.3 3.2, START 4.0 3.4 3.9 4.5), so every pair opens up to the same
+          # gap rather than each stopping where its nearest points meet
+          depth=6.0, air=4.5, touch=1.0)
+WORDS = {
+    # aspect: each letter's width / height. notches: open shapes the swelling would fill, cut back at
+    # their drawn size like the counters - rows (from, to) x the letter's height where its hull, less
+    # the letter, stays open. jitter: (dy src px, degrees) per letter, hand-placed, not tipsy.
+    # drips: (letter, x across it, length src px). ship: the file the game loads.
+    "PLAY": dict(aspect={"P": .66, "L": .58, "A": .78, "Y": .74}, notches={"A": (.64, 1.0), "Y": (0.0, .56)},
+                 jitter=[(2, 2.5), (-2, -2), (2, 1.5), (-2, -2.5)],
+                 drips=[(0, .26, 72), (0, .76, 34), (1, .22, 118), (1, .80, 46), (2, .17, 56), (2, .85, 98), (3, .50, 86)],
+                 ship="bonus_play_text.webp"),
+    "START": dict(aspect={"S": .60, "T": .66, "A": .78, "R": .66}, notches={"A": (.64, 1.0)},
+                  jitter=[(2, 2.5), (-2, -2), (2, 1.5), (-2, -2), (2, 2)],
+                  drips=[(0, .30, 64), (1, .50, 104), (2, .17, 52), (2, .85, 90), (3, .22, 70), (4, .50, 96)],
+                  ship="auto_start_text.webp"),
+}
+
+
+def stroke_of(m):
+    """A mask's typical stroke width: twice the median depth along its ridge."""
+    d = C.cv2.distanceTransform(m.astype(np.uint8), C.cv2.DIST_L2, 5)
+    ridge = (d >= C.cv2.dilate(d, np.ones((3, 3), np.uint8)) - 1e-3) & (d > 2)
+    return 2 * float(np.median(d[ridge]))
+
+
+def y_glyph(cap, aspect, stroke, join=.52):
+    """A Y as three round-ended strokes: arms from the top corners meeting a little above the
+    middle, a straight stem from there down."""
+    from PIL import ImageDraw
+    w, h, r = int(round(cap * aspect)), int(round(cap)), stroke / 2
+    im = Image.new("L", (w, h), 0); d = ImageDraw.Draw(im)
+    jx, jy = w / 2, h * join
+    for (x0, y0), (x1, y1) in (((r, r), (jx, jy)), ((w - r, r), (jx, jy)), ((jx, jy), (jx, h - r))):
+        d.line([(x0, y0), (x1, y1)], fill=255, width=int(round(stroke)))
+        for x, y in ((x0, y0), (x1, y1)):
+            d.ellipse([x - r, y - r, x + r, y + r], fill=255)
+    return np.asarray(im) > 127
+
+
+def letter_glyph(ch, cap, spec):
+    """One letter at the cap height, its own width (the word's aspect) and the one stroke weight."""
+    want = LT["stroke"] * cap
+    if ch == "Y":
+        return y_glyph(cap, spec["aspect"][ch], want)
+    g = C.glyph(ch, BROMO, int(cap * 1.5))
+    size = (max(1, round(cap * spec["aspect"][ch])), round(cap))
+    g = np.asarray(Image.fromarray(g.astype(np.uint8) * 255).resize(size, Image.LANCZOS)) > 127
+    d = (want - stroke_of(g)) / 2                      # thicken or thin every stroke to the one weight
+    g = np.pad(g, int(abs(d)) + 2)
+    g = C.dil(g, d) if d > 0 else C.ero(g, -d)
+    ys, xs = np.nonzero(g)
+    g = g[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+    return np.asarray(Image.fromarray(g.astype(np.uint8) * 255).resize(size, Image.LANCZOS)) > 127
+
+
+def space(letters, ink, W):
+    """Optical spacing: each letter slides left until the gap to the letters before it, measured
+    row by row and counted no deeper than LT depth, averages LT air - or until the bodies come
+    within LT touch, whichever comes first (all in outline widths, `ink` px). Spacing by nearest
+    points alone pressed P and L together and left a hole above L's foot beside the A."""
+    depth, air, touch = (LT[n] * ink for n in ("depth", "air", "touch"))
+    cols = np.arange(W)
+    so_far = letters[0]["body"].copy()
+    report = []
+    for L in letters[1:]:
+        right = np.where(so_far, cols, -1).max(1)
+        left = np.where(L["body"], cols, W).min(1)
+        both = (right >= 0) & (left < W)
+        g = np.where(both, left - right, np.inf)[(right >= 0) | (left < W)].astype(float)
+        mean_gap = lambda s: float(np.minimum(g - s, depth).mean())
+        lo, hi = 0.0, float(g[np.isfinite(g)].min() - touch)
+        at_touch = mean_gap(hi)
+        if at_touch < air:
+            for _ in range(40):                       # mean_gap falls as the letter slides in
+                mid = (lo + hi) / 2
+                lo, hi = (mid, hi) if mean_gap(mid) > air else (lo, mid)
+        L["body"] = C.shift(L["body"], -int(round(hi)), 0)
+        so_far |= L["body"]
+        report.append(f"{at_touch / ink:.1f}{'' if at_touch < air else '*'}")
+    return report   # each pair's mean gap (outline widths) with the bodies at `touch`; * = stopped there
+
+
+def lettered(word, out_dir=None, seed=11):
+    spec = WORDS[word]
+    S = C.SS
+    k = LT["out"] * S                               # working px per BONUS source px
+    SH = Image.open(os.path.join(ROOT, TRACED["BONUS"]["src"])).size[1]
+    cap = LT["cap"] * k
+    gl = [letter_glyph(ch, cap, spec) for ch in word]
+    pad = cap * .35
+    W, H = int(sum(g.shape[1] for g in gl) + pad * (len(gl) + 1)), int(cap * 1.95)
+    W, H = W - W % S, H - H % S
+    rng = np.random.default_rng(seed)
+    x, cy = pad, pad * .6 + cap / 2
+    letters = []
+    for ch, g, (dy, ang) in zip(word, gl, spec["jitter"]):
+        at = (x + g.shape[1] / 2, cy + dy * k, ang)
+        m = C.place((H, W), g, *at)
+        open_ = C.fill_enclosed(g) & ~g                 # the counters: P's bowl, A's eye
+        if ch in spec["notches"]:
+            hull = np.zeros(g.shape, np.uint8)
+            C.cv2.fillConvexPoly(hull, C.cv2.convexHull(np.argwhere(g)[:, ::-1].astype(np.int32)), 1)
+            r0, r1 = (int(f * g.shape[0]) for f in spec["notches"][ch])
+            rows = np.zeros(g.shape, bool); rows[r0:r1] = True
+            open_ |= hull.astype(bool) & ~g & rows
+        holes = C.place((H, W), open_, *at)
+        m = C.bubble(C.dil(m, LT["grow"] * k), LT["bubble"] * cap)
+        m = C.bubble(C.bumpy(m, [(s * cap, a * cap) for s, a in LT["bumps"]], rng), cap * .008)   # the bumps' own edges eased a hair
+        # the swelling fills the counters in from inside: they are cut back at the font's own size,
+        # rounded, so the strokes swell outward only and the letters stay readable
+        m &= ~C.bubble(C.dil(holes, cap * .012), cap * .02)
+        letters.append({"body": m, "drips": np.zeros((H, W), bool)})
+        x += g.shape[1] + pad                       # set wide apart, then drawn together by space()
+    P = paint(WHITE, SH * k)
+    P.update(ink=P["ink"] * LT["ink"], sticker=0)
+    print(word, "pairs' mean gap at touch:", " ".join(space(letters, P["ink"], W)))
+    for i, fx, length in spec["drips"]:
+        L = letters[i]
+        bx = np.nonzero(L["body"].any(0))[0]
+        dr, _ = C.add_drips(L["body"], [bx.min() + (bx.max() - bx.min()) * fx], [length * k], 9.5 * k * (SH / 386) ** .3 * LT["drip_w"], rng)
+        L["drips"] |= dr
+    full, _ = C.render(letters, P, (W // S, H // S))
+    im = Image.fromarray(full, "RGBA")
+    im = im.crop(im.getbbox())
+    out_dir = out_dir or os.path.join(ROOT, "art", "letters")
+    os.makedirs(out_dir, exist_ok=True)
+    im.save(os.path.join(out_dir, word + ".png"))
+    return os.path.join(out_dir, word + ".png")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
     font = "comic"
@@ -300,10 +456,15 @@ if __name__ == "__main__":
         xb = os.path.join(ROOT, "art/letters/XTREME_BONUS.png")
         if os.path.exists(xb):
             Image.open(xb).save(os.path.join(ROOT, "frontend/assets/xbonus_text.webp"), "WEBP", quality=92, alpha_quality=100, method=6)
-        print("shipped bonus_btn_text.webp + bonus_btn_bg.webp + xbonus_text.webp")
+        for word, spec in WORDS.items():
+            src = os.path.join(ROOT, f"art/letters/{word}.png")
+            if os.path.exists(src):
+                Image.open(src).save(os.path.join(ROOT, "frontend/assets", spec["ship"]), "WEBP", quality=92, alpha_quality=100, method=6)
+        print("shipped bonus_btn_text.webp + bonus_btn_bg.webp + xbonus_text.webp + " + " + ".join(s["ship"] for s in WORDS.values()))
         if not args: sys.exit(0)
     for n in (args or list(TRACED) + ["plate"]):
         if n == "plate": print(plate(out_dir=out))
         elif n == "xbonus": print(xtreme_bonus(out))
+        elif n.upper() in WORDS: print(lettered(n.upper(), out))
         elif n.endswith("_traced") or n in TRACED: print(traced(n.replace("_traced", ""), out))
         else: print(build(n, font, out))
