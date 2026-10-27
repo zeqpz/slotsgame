@@ -4,32 +4,102 @@ format: RGBA8888
 filter: Linear,Linear
 repeat: none
 pma: false
-face_anticipation
+head_idle
   rotate: false
   xy: 4, 4
-  size: 769, 825
-  orig: 769, 825
+  size: 810, 933
+  orig: 810, 933
   offset: 0, 0
   index: -1
-face_big_win
+head_anticipation
   rotate: false
-  xy: 781, 4
-  size: 769, 825
-  orig: 769, 825
+  xy: 824, 4
+  size: 810, 933
+  orig: 810, 933
   offset: 0, 0
   index: -1
-face_cash_count
+bill
   rotate: false
-  xy: 4, 837
-  size: 769, 825
-  orig: 769, 825
+  xy: 1644, 4
+  size: 216, 362
+  orig: 216, 362
   offset: 0, 0
   index: -1
-face_cash_show
+shoe_l
   rotate: false
-  xy: 781, 837
-  size: 769, 825
-  orig: 769, 825
+  xy: 1644, 370
+  size: 355, 351
+  orig: 355, 351
+  offset: 0, 0
+  index: -1
+shin_r
+  rotate: false
+  xy: 1644, 725
+  size: 298, 303
+  orig: 298, 303
+  offset: 0, 0
+  index: -1
+head_win
+  rotate: false
+  xy: 4, 941
+  size: 810, 933
+  orig: 810, 933
+  offset: 0, 0
+  index: -1
+head_big_win
+  rotate: false
+  xy: 824, 941
+  size: 810, 933
+  orig: 810, 933
+  offset: 0, 0
+  index: -1
+shin_l
+  rotate: false
+  xy: 1644, 1032
+  size: 321, 289
+  orig: 321, 289
+  offset: 0, 0
+  index: -1
+neck
+  rotate: false
+  xy: 1644, 1325
+  size: 280, 283
+  orig: 280, 283
+  offset: 0, 0
+  index: -1
+arm_r_upper
+  rotate: false
+  xy: 1644, 1612
+  size: 145, 242
+  orig: 145, 242
+  offset: 0, 0
+  index: -1
+thigh_r
+  rotate: false
+  xy: 1800, 1612
+  size: 209, 234
+  orig: 209, 234
+  offset: 0, 0
+  index: -1
+arm_r_fore
+  rotate: false
+  xy: 1800, 1850
+  size: 188, 192
+  orig: 188, 192
+  offset: 0, 0
+  index: -1
+hand_r
+  rotate: false
+  xy: 1644, 1858
+  size: 148, 177
+  orig: 148, 177
+  offset: 0, 0
+  index: -1
+arm_l_upper
+  rotate: false
+  xy: 4, 1878
+  size: 143, 154
+  orig: 143, 154
   offset: 0, 0
   index: -1
 
@@ -39,178 +109,80 @@ format: RGBA8888
 filter: Linear,Linear
 repeat: none
 pma: false
-face_idle
+head_lose
   rotate: false
   xy: 4, 4
-  size: 769, 825
-  orig: 769, 825
+  size: 810, 933
+  orig: 810, 933
   offset: 0, 0
   index: -1
-face_lose
+head_cash_show
   rotate: false
-  xy: 781, 4
-  size: 769, 825
-  orig: 769, 825
+  xy: 824, 4
+  size: 810, 933
+  orig: 810, 933
   offset: 0, 0
   index: -1
-face_win
+head_cash_count
   rotate: false
-  xy: 4, 837
-  size: 769, 825
-  orig: 769, 825
+  xy: 4, 941
+  size: 810, 933
+  orig: 810, 933
+  offset: 0, 0
+  index: -1
+beanie
+  rotate: false
+  xy: 824, 941
+  size: 824, 595
+  orig: 824, 595
   offset: 0, 0
   index: -1
 torso
   rotate: false
-  xy: 781, 837
-  size: 421, 373
-  orig: 421, 373
+  xy: 824, 1540
+  size: 547, 418
+  orig: 547, 418
   offset: 0, 0
   index: -1
-bill
+shoe_r
   rotate: false
-  xy: 1210, 837
-  size: 180, 310
-  orig: 180, 310
-  offset: 0, 0
-  index: -1
-leg_right
-  rotate: false
-  xy: 1398, 837
-  size: 294, 288
-  orig: 294, 288
-  offset: 0, 0
-  index: -1
-leg_left
-  rotate: false
-  xy: 1700, 837
-  size: 337, 286
-  orig: 337, 286
-  offset: 0, 0
-  index: -1
-shoe_left
-  rotate: false
-  xy: 4, 1670
-  size: 386, 285
-  orig: 386, 285
-  offset: 0, 0
-  index: -1
-shoe_right
-  rotate: false
-  xy: 398, 1670
-  size: 524, 273
-  orig: 524, 273
-  offset: 0, 0
-  index: -1
-hand_left_flick
-  rotate: false
-  xy: 930, 1670
-  size: 230, 200
-  orig: 230, 200
-  offset: 0, 0
-  index: -1
-hand_left_pinch
-  rotate: false
-  xy: 1168, 1670
-  size: 230, 200
-  orig: 230, 200
-  offset: 0, 0
-  index: -1
-hand_left_present
-  rotate: false
-  xy: 1406, 1670
-  size: 230, 200
-  orig: 230, 200
-  offset: 0, 0
-  index: -1
-hand_left_release
-  rotate: false
-  xy: 1644, 1670
-  size: 230, 200
-  orig: 230, 200
-  offset: 0, 0
-  index: -1
-hand_left_release_wrist
-  rotate: false
-  xy: 1556, 4
-  size: 230, 200
-  orig: 230, 200
-  offset: 0, 0
-  index: -1
-crotch_fill
-  rotate: false
-  xy: 1792, 4
-  size: 152, 81
-  orig: 152, 81
-  offset: 0, 0
-  index: -1
-sock_left
-  rotate: false
-  xy: 1556, 208
-  size: 327, 132
-  orig: 327, 132
+  xy: 1380, 1540
+  size: 476, 336
+  orig: 476, 336
   offset: 0, 0
   index: -1
 
 smukiez-3.webp
-size: 2048,256
+size: 2048,512
 format: RGBA8888
 filter: Linear,Linear
 repeat: none
 pma: false
-hand_left_tense
+pelvis
   rotate: false
   xy: 4, 4
-  size: 230, 200
-  orig: 230, 200
+  size: 453, 286
+  orig: 453, 286
   offset: 0, 0
   index: -1
-hand_left
+thigh_l
   rotate: false
-  xy: 242, 4
-  size: 179, 175
-  orig: 179, 175
+  xy: 468, 4
+  size: 264, 241
+  orig: 264, 241
   offset: 0, 0
   index: -1
-hand_right_brace
+hand_l
   rotate: false
-  xy: 429, 4
-  size: 160, 175
-  orig: 160, 175
+  xy: 740, 4
+  size: 209, 197
+  orig: 209, 197
   offset: 0, 0
   index: -1
-hand_right_release
+arm_l_fore
   rotate: false
-  xy: 597, 4
-  size: 160, 175
-  orig: 160, 175
-  offset: 0, 0
-  index: -1
-hand_right
-  rotate: false
-  xy: 765, 4
-  size: 130, 153
-  orig: 130, 153
-  offset: 0, 0
-  index: -1
-arm_left
-  rotate: false
-  xy: 903, 4
-  size: 214, 150
-  orig: 214, 150
-  offset: 0, 0
-  index: -1
-arm_upper
-  rotate: false
-  xy: 1125, 4
-  size: 214, 150
-  orig: 214, 150
-  offset: 0, 0
-  index: -1
-sleeve_left
-  rotate: false
-  xy: 1344, 4
-  size: 132, 87
-  orig: 132, 87
+  xy: 960, 4
+  size: 265, 195
+  orig: 265, 195
   offset: 0, 0
   index: -1

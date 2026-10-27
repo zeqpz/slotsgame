@@ -1,4 +1,7 @@
-"""Character rig pass: art/characters-src/<rig>.json (the rigs as delivered) -> frontend/assets/spine/.
+"""SUPERSEDED (2026-10-27) by tools/char_rigs/v2/build_v2.py: the characters were redrawn and re-rigged
+(v2). This v1 pass is kept for reference; it refuses to overwrite frontend/assets/spine unless --v1 is given.
+
+Character rig pass: art/characters-src/<rig>.json (the rigs as delivered) -> frontend/assets/spine/.
 
   python tools/char_rigs/enhance.py [--out <dir>] [--only smukiez|smoke-skull]
 
@@ -148,7 +151,11 @@ def load(name):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--out", default=DEFAULT_OUT)
     ap.add_argument("--only", default=None)
+    ap.add_argument("--v1", action="store_true", help="really overwrite the game's rigs with the v1 pass")
     args = ap.parse_args()
+    if os.path.abspath(args.out) == os.path.abspath(DEFAULT_OUT) and not args.v1:
+        sys.exit("enhance.py is the v1 pass: the game's rigs are v2 now (tools/char_rigs/v2/build_v2.py). "
+                 "Pass --out <dir> to build v1 elsewhere, or --v1 to overwrite frontend/assets/spine anyway.")
     for name in ("smukiez", "smoke-skull"):
         if args.only and name != args.only: continue
         out_dir = os.path.join(args.out, name)

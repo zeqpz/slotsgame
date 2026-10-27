@@ -25,6 +25,10 @@ from PIL import Image, ImageDraw, ImageFilter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SRC_DIR = os.path.join(ROOT, "art", "icons-src")      # the full-size icon art (the game ships flat/ WebP copies and the rigs)
+# The drawings the recipes were measured on. The 2026-10-27 redraw (art/STYLE.md) was fitted onto
+# them, so a rig's masks are read off its old drawing - colour and ink matches included - and the
+# parts are cut out of the new art at the same spots.
+GEOM_DIR = os.path.join(SRC_DIR, "geom")
 OUT_DIR = os.path.join(ROOT, "frontend", "assets", "icons")
 OUT_PX_PER_UNIT = 6.4      # atlas pixels per skeleton unit: a 100-unit icon is 640 px - drawn at or under its own pixels on a 2x-DPR (Retina / 4K) screen, win pop included (measured 2026-10-22: 3.2 was stretched 2x there)
 PAD = 12                   # transparent pixels round every atlas region: 1.9 px even on the smallest density (1/6.4 of this)
@@ -328,8 +332,12 @@ class Rig:
         # "src_scale": the source is drawn at that many times the px the recipe is written in
         self.r = scale_recipe(recipe, recipe["src_scale"]) if recipe.get("src_scale", 1) != 1 else recipe
         self.id = recipe["id"]
-        self.src = Image.open(os.path.join(SRC_DIR, recipe.get("src", self.id + ".png"))).convert("RGBA")
-        self.cv = Canvas(self.src)
+        name = recipe.get("src", self.id + ".png")
+        self.src = Image.open(os.path.join(SRC_DIR, name)).convert("RGBA")          # the art the parts are cut from
+        geom = os.path.join(GEOM_DIR, name)
+        self.cv = Canvas(Image.open(geom).convert("RGBA") if os.path.exists(geom) else self.src)   # the drawing the masks are read off
+        if (self.cv.W, self.cv.H) != self.src.size:
+            raise ValueError(f"{self.id}: {name} is {self.src.size}, its measured drawing {(self.cv.W, self.cv.H)}")
         self.ppu = max(self.cv.W, self.cv.H) / 100.0          # source px per skeleton unit
         self.parts = {}                                        # name -> dict(img=PIL, box=(x0,y0,x1,y1) src px)
         self.slots = []                                        # draw order: dicts(name, bone, region, ...)
@@ -342,21 +350,23 @@ class Rig:
         """Claim pixels for every part (in recipe order), fill the holes they leave in the parts
         listed as lying under them, and trim each part to its pixels."""
         cv = self.cv
-        src = cv.rgba.copy(); src[..., :3] *= src[..., 3:4]       # premultiplied
+        src = np.asarray(self.src).astype(np.float32) / 255.0
+        alpha = np.maximum(cv.alpha, src[..., 3])                  # the old silhouette or the new art's, whichever is wider
+        src = src.copy(); src[..., :3] *= src[..., 3:4]            # premultiplied
         claimed = np.zeros((cv.H, cv.W), np.float32)
         layers = {}
         for p in self.r["parts"]:
             if p.get("sprite") or p.get("copy"):
                 continue
             if p.get("mask", "rest") == "rest":
-                m = np.clip(cv.alpha - claimed, 0, 1) / np.maximum(cv.alpha, 1e-6) * (cv.alpha > 0)
+                m = np.clip(alpha - claimed, 0, 1) / np.maximum(alpha, 1e-6) * (alpha > 0)
             else:
                 m = np.clip(cv.eval(p["mask"]), 0, 1)
                 if p.get("exclusive", True):
                     m = np.clip(m - claimed, 0, 1)
                 if p.get("feather"):
                     m = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(p["feather"])), np.float32) / 255.0
-            claimed = np.clip(claimed + m * (cv.alpha > 0), 0, 1)
+            claimed = np.clip(claimed + m * (alpha > 0), 0, 1)
             layers[p["name"]] = src * m[..., None]
         # holes: a part lifted off another leaves a hole there - fill it from around
         for p in self.r["parts"]:

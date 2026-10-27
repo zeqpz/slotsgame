@@ -80,18 +80,18 @@
    "attachments": {
     "body": {
      "L10/body": {
-      "x": -36.9,
-      "y": 18.15,
-      "width": 97.2,
-      "height": 45.7
+      "x": -36.75,
+      "y": 18.5,
+      "width": 97.7,
+      "height": 46.2
      }
     },
     "wheel_f": {
      "L10/wheel_f": {
       "x": 0.05,
-      "y": 0.05,
+      "y": 0.15,
       "width": 15.1,
-      "height": 15.3
+      "height": 15.1
      }
     },
     "puff": {

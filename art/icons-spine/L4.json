@@ -89,26 +89,26 @@
    "attachments": {
     "back": {
      "L4/back": {
-      "x": 7.7,
-      "y": -29.0,
-      "width": 69.2,
-      "height": 71.4
+      "x": 7.1,
+      "y": -29.4,
+      "width": 68.0,
+      "height": 72.4
      }
     },
     "string": {
      "L4/string": {
       "x": 0.85,
-      "y": -10.1,
-      "width": 23.9,
-      "height": 23.6
+      "y": -10.15,
+      "width": 25.3,
+      "height": 23.5
      }
     },
     "front": {
      "L4/front": {
       "x": -5.5,
-      "y": -27.15,
+      "y": -27.2,
       "width": 44.2,
-      "height": 68.1
+      "height": 68.2
      }
     },
     "logo": {

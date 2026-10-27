@@ -1,6 +1,9 @@
 # Animated symbols (Spine rigs)
 
-Every board symbol is a Spine 4.2 skeleton built from its icon art by `rigkit.py`:
+Every board symbol is a Spine 4.2 skeleton built from its icon art by `rigkit.py`. Since the
+2026-10-27 redraw (`tools/icon_redraw/README.md`) the masks are read off the drawing each recipe was
+measured on (`art/icons-src/geom/<ID>.png`) and the parts are cut out of the new art
+(`art/icons-src/<ID>.png`), which was fitted onto it:
 
 - `recipes/<ID>.py` - one per symbol: the parts (masks over the 1000 px icon), pivots, parents,
   draw order, and the clips `idle` / `land` / `win` as keyframes. Read `rigkit.py`'s docstrings for

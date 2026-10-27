@@ -34,7 +34,7 @@
   {
    "name": "front_patch",
    "parent": "back",
-   "x": 0.85,
+   "x": 0.7,
    "y": -46.3
   },
   {
@@ -114,24 +114,24 @@
      "H4/front_patch": {
       "x": 0.0,
       "y": 0.0,
-      "width": 33.5,
+      "width": 33.8,
       "height": 39.6
      }
     },
     "back": {
      "H4/back": {
-      "x": -16.4,
-      "y": -32.45,
-      "width": 64.2,
-      "height": 67.3
+      "x": -15.3,
+      "y": -32.25,
+      "width": 62.4,
+      "height": 67.9
      }
     },
     "front": {
      "H4/front": {
-      "x": -0.45,
-      "y": -27.3,
-      "width": 68.7,
-      "height": 62.0
+      "x": 0.25,
+      "y": -27.85,
+      "width": 68.9,
+      "height": 63.5
      }
     },
     "clack": {

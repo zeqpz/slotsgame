@@ -1,0 +1,107 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#ff00ff} #stage{position:absolute;left:0;top:0}</style>
+<script src="/spine/pixi.min.js"></script>
+<script src="/spine/spine-pixi-v8.min.js"></script>
+</head><body>
+<div id="stage"></div>
+<script>
+// Rig lab: loads a Spine rig the way the game's loadSpine() does and poses it on demand.
+window.lab = (() => {
+  const rigs = {};
+  let app = null;
+  async function init(w, h, res) {
+    app = new PIXI.Application();
+    await app.init({ width: w, height: h, backgroundAlpha: 0, antialias: true, resolution: res || 1, autoDensity: true, autoStart: false });
+    document.getElementById('stage').appendChild(app.canvas);
+    app.ticker.stop();
+    return true;
+  }
+  async function load(key, base, name, opts = {}) {
+    const atlasText = await (await fetch(`${base}/${name}.atlas`)).text();
+    const json = await (await fetch(`${base}/${name}.json`)).json();
+    const atlas = new spine.TextureAtlas(atlasText);
+    const pages = [];
+    await Promise.all(atlas.pages.map(async page => {
+      const r = await fetch(`${base}/${page.name}`);
+      const pic = await createImageBitmap(await r.blob(), { premultiplyAlpha: 'premultiply' });
+      const source = PIXI.Texture.from(pic).source;
+      source.autoGarbageCollect = false;
+      page.setTexture(spine.SpineTexture.from(source));
+      if (opts.mip) { source.autoGenerateMipmaps = true; source.style.mipmapFilter = 'linear'; source.style.minFilter = 'linear'; source.style.magFilter = 'linear'; if (opts.aniso) source.style.maxAnisotropy = opts.aniso; }
+      pages.push(source);
+    }));
+    const data = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(json);
+    const actor = new spine.Spine({ skeletonData: data, autoUpdate: false });
+    actor.state.data.defaultMix = opts.defaultMix ?? .2;
+    if (opts.mixes) for (const [a, b, d] of opts.mixes) actor.state.data.setMix(a, b, d);
+    app.stage.addChild(actor);
+    actor.visible = false;
+    rigs[key] = { actor, data, pages, json };
+    return data.animations.map(a => [a.name, a.duration]);
+  }
+  function show(key) { for (const k in rigs) rigs[k].actor.visible = k === key; }
+  // place world point (wx, wy) (runtime y-down units) at canvas (px, py) with `scale` css px per unit
+  function view(key, scale, cx, cy, px, py) {
+    const a = rigs[key].actor; a.scale.set(scale); a.position.set(px - cx * scale, py - cy * scale);
+  }
+  function pose(key, anim, t, tracks) {
+    const { actor } = rigs[key]; const st = actor.state;
+    st.clearTracks(); actor.skeleton.setToSetupPose();
+    if (anim) { const e = st.setAnimation(0, anim, false); e.trackTime = t; e.mixDuration = 0; }
+    (tracks || []).forEach(([i, an, tt]) => { const e = st.setAnimation(i, an, true); e.trackTime = tt; e.mixDuration = 0; });
+    st.timeScale = 0; actor.update(0);   // the runtime's own path: apply + world transforms + mark the view dirty
+    st.timeScale = 1;
+  }
+  function render() { app.renderer.render(app.stage); return true; }
+  // world vertices per slot (skeleton space, y-up)
+  function verts(key) {
+    const { actor } = rigs[key]; const sk = actor.skeleton; const out = {};
+    sk.drawOrder.forEach((slot, di) => {
+      const att = slot.getAttachment(); if (!att) return;
+      const o = { att: att.name, order: di, bone: slot.bone.data.name, alpha: slot.color.a };
+      if (att instanceof spine.MeshAttachment) {
+        const n = att.worldVerticesLength; const w = new Float32Array(n);
+        att.computeWorldVertices(slot, 0, n, w, 0, 2);
+        o.type = 'mesh'; o.v = Array.from(w); o.tris = att.triangles; o.uvs = Array.from(att.regionUVs); o.hull = att.hullLength / 2;
+      } else if (att instanceof spine.RegionAttachment) {
+        const w = new Float32Array(8); att.computeWorldVertices(slot, w, 0, 2);
+        o.type = 'region'; o.v = Array.from(w);
+      } else return;
+      out[slot.data.name] = o;
+    });
+    return out;
+  }
+  function bonesM(key) {
+    const sk = rigs[key].actor.skeleton; const o = {};
+    sk.bones.forEach(b => o[b.data.name] = [b.a, b.b, b.c, b.d, b.worldX, b.worldY]);
+    return o;
+  }
+  function bones(key) {
+    const sk = rigs[key].actor.skeleton; const o = {};
+    sk.bones.forEach(b => o[b.data.name] = [b.worldX, b.worldY, b.getWorldRotationX(), b.getWorldScaleX(), b.getWorldScaleY()]);
+    return o;
+  }
+  // play a sequence with real mixing, stepping dt; capture callback via returned list of times
+  function seqStart(key, timeScale) {
+    const { actor } = rigs[key]; const st = actor.state;
+    st.clearTracks(); actor.skeleton.setToSetupPose(); st.timeScale = timeScale ?? 1;
+  }
+  function seqSet(key, track, anim, loop, add, delay) {
+    const st = rigs[key].actor.state;
+    return add ? !!st.addAnimation(track, anim, loop, delay || 0) : !!st.setAnimation(track, anim, loop);
+  }
+  function seqStep(key, dt) {
+    const { actor } = rigs[key];
+    actor.update(dt);
+    const t0 = actor.state.tracks[0];
+    return t0 ? [t0.animation.name, t0.trackTime, t0.mixingFrom ? t0.mixingFrom.animation.name : null] : null;
+  }
+  function slotsOnly(key, names) {   // hide every slot except names (null = show all)
+    const sk = rigs[key].actor.skeleton;
+    sk.slots.forEach(s => { if (s.__a === undefined) s.__a = s.color.a; s.color.a = (!names || names.includes(s.data.name)) ? s.__a : 0; }); rigs[key].actor._stateChanged = true; rigs[key].actor.onViewUpdate();
+  }
+  return { init, load, show, view, pose, render, verts, bones, bonesM, seqStart, seqSet, seqStep, slotsOnly, rigs: () => rigs, app: () => app };
+})();
+</script>
+</body></html>

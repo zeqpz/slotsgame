@@ -1,11 +1,14 @@
-// Live spray-paint rims round everything with the sprayed blue outline: the board, the HUD bar
+// Live spray-paint rims round everything with the sprayed outline: the board, the HUD bar
 // and its buttons, the spin hexagon, the bet steppers, the bonus panel, the intro plates, the
 // rules panel, the autoplay picker, the win popup, the volume tubes. Each art ships without its
 // outline (assets/rim/<art>.webp) and with its outline's shape as a distance field
 // (assets/rim/<art>_sdf.png, tools/sprayrim/make_rims.py); the outline is drawn live over it:
 // sharp at any size, its rough edges boiling like a redrawn cartoon line, spray-paint flames
-// licking up off it in flat cartoon bands (navy, blue, cyan, a white core) with drops of
-// overspray riding them, over a soft blue glow.
+// licking up off it in flat cartoon bands with drops of overspray riding them, over a soft glow.
+// The colours are the wall tag's (art/STYLE.md): a violet sprayed band between dark keylines,
+// neon-lime fire (a dark lime edge, lime, a hot yellow-lime band, a near-white core) and a lime
+// glow, violet drops. Chosen 2026-10-27 over a lime band with violet fire (too loud against the
+// lime symbols) and violet throughout (no lime left to tie it to the tag's neon).
 //
 // One WebGL context draws them all: each rim is rendered in turn and copied into a plain 2D
 // canvas that sits inside its element, so it moves, scales, tilts and stacks with the element.
@@ -38,7 +41,9 @@ uniform float uL, uFlame, uTime, uBoil, uSeed, uGlow;
 uniform float uBlow;      // a stoke: the flames this much taller (0 = at rest), brighter and wider-glowing with it
 uniform vec3 uShadow;     // the drop shadow under the outline: offset down, blur (css px), alpha
 uniform sampler2D uSdf;
-uniform vec3 uNavy, uDeep, uMid, uLight, uCore;
+uniform vec3 uRimKey, uRimDeep, uRimMid, uRimFleck;           // the sprayed band: keylines, paint, flecks
+uniform vec3 uFireKey, uFireBody, uFireLight, uFireCore;      // the flames: outline, body, hot band, core
+uniform vec3 uGlowC, uDropC;                                  // the glow off the edge, the overspray drops
 
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn(vec2 p) {
@@ -118,7 +123,7 @@ void main() {
   // a boxy band of blue round the inside of every outline)
   float glow = uGlow * (1. + 1.6 * uBlow) * exp(-max(dOut, 0.) / (uFlame * .55 * (1. + .7 * uBlow)))
              * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011)) * smoothstep(-2. * aa, 2. * aa, dOut);
-  col = vec4(uMid * glow, glow) + col * (1. - glow);
+  col = vec4(uGlowC * glow, glow) + col * (1. - glow);
 
   // flames: tongues that climb out of the rim (outward, pulled upward)
   vec2 dir = normalize(n + vec2(0., -.85));
@@ -133,12 +138,12 @@ void main() {
 #else
   float fw = .03;
 #endif
-  float b0 = smoothstep(.42 - fw, .42 + fw, f);   // the navy outline round each tongue
-  float b1 = smoothstep(.49 - fw, .49 + fw, f);   // blue
-  float b2 = smoothstep(.61 - fw, .61 + fw, f);   // cyan
+  float b0 = smoothstep(.42 - fw, .42 + fw, f);   // the dark outline round each tongue
+  float b1 = smoothstep(.49 - fw, .49 + fw, f);   // the body
+  float b2 = smoothstep(.61 - fw, .61 + fw, f);   // the hot band
   float b3 = smoothstep(.74 - fw, .74 + fw, f);   // white-hot core
   float outside = smoothstep(-2. * aa, 2. * aa, dOut);
-  vec3 fc = mix(uNavy, uDeep, b1); fc = mix(fc, uLight, b2); fc = mix(fc, uCore, b3);
+  vec3 fc = mix(uFireKey, uFireBody, b1); fc = mix(fc, uFireLight, b2); fc = mix(fc, uFireCore, b3);
   float fa = b0 * outside;
   // overspray: round drops that ride up off the tongues' tips (no flicker: they drift)
   float C = max(1.8 * uL, 3.6 * fmin);
@@ -149,30 +154,48 @@ void main() {
   float dd = (length(fc2 - off) - rr) * C;                                // css px
   float drop = step(.8, h21(cell + uSeed)) * smoothstep(aa, -aa, dd);
   drop *= smoothstep(.1, .3, f) * (1. - b0) * outside * exp(-max(dOut, 0.) / (uFlame * 1.3 * (1. + uBlow)));
-  fc = mix(fc, uDeep, drop); fa = max(fa, drop);
+  fc = mix(fc, uDropC, drop); fa = max(fa, drop);
   // the tongues and drops are gone before the cut-off, whatever fwidth says there: at the cut, half
   // of each 2x2 pixel block has stopped drawing, its derivatives are garbage, and the bands lit a
   // 1 px line all round the rim (seen once a stoke's headroom put the cut-off on the canvas)
   fa *= 1. - smoothstep(.82 * reach, .95 * reach, beyond);
   col = vec4(fc * fa, fa) + col * (1. - fa);
 
-  // the rim: sprayed blue between a navy keyline on each edge
+  // the rim: sprayed paint between a dark keyline on each edge
   float ra = smoothstep(aa, -aa, dOut) * smoothstep(-aa, aa, dIn);
   if (ra > 0.) {
-    vec3 c = mix(uDeep, uMid, smoothstep(.25, .8, fbm(p / max(.6 * uL, 2. * fmin) + uSeed * 2.)));
-    c = mix(c, uLight, smoothstep(.6, .67, fbm(p / max(.32 * uL, 2. * fmin) + 3. + uSeed)));
+    vec3 c = mix(uRimDeep, uRimMid, smoothstep(.25, .8, fbm(p / max(.6 * uL, 2. * fmin) + uSeed * 2.)));
+    c = mix(c, uRimFleck, smoothstep(.6, .67, fbm(p / max(.32 * uL, 2. * fmin) + 3. + uSeed)));
     float kw = max(.1 * uL, 1.3 / uPx);
     float k = 1. - smoothstep(kw - aa, kw + aa, min(-dOut, dIn));
     float S2 = max(.5 * uL, 2.4 * fmin);
     vec2 sc = floor(p / S2), sf = fract(p / S2) - .5;
     float sp = step(.92, h21(sc + uSeed)) * smoothstep(aa, -aa, (length(sf) - .22) * S2);   // black specks
-    c = mix(c, uNavy, max(k, sp));
+    c = mix(c, uRimKey, max(k, sp));
     c *= .94 + .12 * h21(floor(gl_FragCoord.xy * .5));                                      // spray grain (still)
     col = vec4(c * ra, ra) + col * (1. - ra);
   }
   gl_FragColor = col;
 }`;
-  const COLORS = { navy: [.02, .06, .26], deep: [.04, .24, .78], mid: [.12, .47, 1.0], light: [.5, .85, 1.0], core: [.93, .99, 1.0] };
+  // The colours (art/STYLE.md): the band is sprayed in one paint, the fire burns in another. A QA
+  // page can try another set by naming it (or giving the colours) in window.SPRAYRIM_COLORS before
+  // this script runs.
+  const THEMES = {
+    // violet band, neon-lime fire and glow
+    a: { rimKey: [.11, .024, .21], rimDeep: [.424, .141, .706], rimMid: [.706, .329, .894], rimFleck: [.894, .706, .988],
+         fireKey: [.10, .20, .024], fireBody: [.424, .988, .329], fireLight: [.894, .988, .518], fireCore: [.965, 1.0, .90],
+         glow: [.424, .988, .329], drop: [.706, .329, .894] },
+    // lime band, violet fire and glow
+    b: { rimKey: [.078, .157, .016], rimDeep: [.33, .60, .06], rimMid: [.612, .894, .141], rimFleck: [.894, .988, .518],
+         fireKey: [.165, .031, .314], fireBody: [.612, .235, .863], fireLight: [.894, .706, .988], fireCore: [1.0, .957, 1.0],
+         glow: [.706, .329, .894], drop: [.612, .894, .141] },
+    // violet throughout, the fire's hot band in the pink tint
+    c: { rimKey: [.11, .024, .21], rimDeep: [.424, .141, .706], rimMid: [.706, .329, .894], rimFleck: [.894, .706, .988],
+         fireKey: [.165, .031, .314], fireBody: [.612, .235, .863], fireLight: [.894, .518, .80], fireCore: [1.0, .94, .98],
+         glow: [.706, .329, .894], drop: [.424, .141, .706] },
+  };
+  const pick = window.SPRAYRIM_COLORS;
+  const COLORS = Object.assign({}, THEMES.a, typeof pick === "string" ? THEMES[pick] : pick);
   const MAX_SIDE = 2048;
 
   let gl = null, glc = null, U = null, META = null, ok = false, alive = true;
@@ -198,9 +221,10 @@ void main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     U = {};
-    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uShadow", "uSdf", "uNavy", "uDeep", "uMid", "uLight", "uCore"]) U[n] = gl.getUniformLocation(prog, n);
-    gl.uniform3fv(U.uNavy, COLORS.navy); gl.uniform3fv(U.uDeep, COLORS.deep); gl.uniform3fv(U.uMid, COLORS.mid);
-    gl.uniform3fv(U.uLight, COLORS.light); gl.uniform3fv(U.uCore, COLORS.core);
+    const CU = { uRimKey: "rimKey", uRimDeep: "rimDeep", uRimMid: "rimMid", uRimFleck: "rimFleck", uFireKey: "fireKey",
+                 uFireBody: "fireBody", uFireLight: "fireLight", uFireCore: "fireCore", uGlowC: "glow", uDropC: "drop" };
+    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
+    for (const [u, k] of Object.entries(CU)) gl.uniform3fv(U[u], COLORS[k]);   // set once: every rim shares them
     gl.uniform1i(U.uSdf, 0);
     gl.disable(gl.BLEND);
     glc.addEventListener("webglcontextlost", e => { e.preventDefault(); stopAll(); });

@@ -1,160 +1,279 @@
 smoke-skull.webp
-size: 2048, 1024
+size: 2048,2048
 format: RGBA8888
-filter: Linear, Linear
+filter: Linear,Linear
 repeat: none
 pma: false
-smoke
+cranium_idle
   rotate: false
-  xy: 10, 10
-  size: 288, 544
-  orig: 288, 544
+  xy: 4, 4
+  size: 591, 616
+  orig: 591, 616
   offset: 0, 0
   index: -1
-torso
+cranium_anticipation
   rotate: false
-  xy: 318, 10
-  size: 483, 464
-  orig: 483, 464
+  xy: 604, 4
+  size: 591, 616
+  orig: 591, 616
   offset: 0, 0
   index: -1
-shoe_left
+cranium_win
   rotate: false
-  xy: 822, 10
-  size: 380, 329
-  orig: 380, 329
-  offset: 0, 0
-  index: -1
-leg_right
-  rotate: false
-  xy: 1222, 10
-  size: 246, 318
-  orig: 246, 318
-  offset: 0, 0
-  index: -1
-ash_0
-  rotate: false
-  xy: 1488, 10
-  size: 355, 299
-  orig: 355, 299
-  offset: 0, 0
-  index: -1
-leg_left
-  rotate: false
-  xy: 1488, 319
-  size: 210, 293
-  orig: 210, 293
+  xy: 1204, 4
+  size: 591, 616
+  orig: 591, 616
   offset: 0, 0
   index: -1
 ash_1
   rotate: false
-  xy: 1718, 319
-  size: 273, 260
-  orig: 273, 260
+  xy: 2004, 4
+  size: 31, 31
+  orig: 31, 31
   offset: 0, 0
   index: -1
 ash_2
   rotate: false
-  xy: 1254, 338
-  size: 207, 209
-  orig: 207, 209
-  offset: 0, 0
-  index: -1
-neck_fill
-  rotate: false
-  xy: 822, 349
-  size: 411, 292
-  orig: 411, 292
-  offset: 0, 0
-  index: -1
-shoe_right
-  rotate: false
-  xy: 318, 484
-  size: 357, 267
-  orig: 357, 267
-  offset: 0, 0
-  index: -1
-crotch_fill
-  rotate: false
-  xy: 696, 484
-  size: 111, 139
-  orig: 111, 139
-  offset: 0, 0
-  index: -1
-cigar_clean
-  rotate: false
-  xy: 1254, 557
-  size: 200, 182
-  orig: 200, 182
-  offset: 0, 0
-  index: -1
-smoke_wisp
-  rotate: false
-  xy: 10, 564
-  size: 160, 170
-  orig: 160, 170
-  offset: 0, 0
-  index: -1
-ash_4
-  rotate: false
-  xy: 190, 564
-  size: 101, 97
-  orig: 101, 97
+  xy: 2004, 39
+  size: 31, 31
+  orig: 31, 31
   offset: 0, 0
   index: -1
 ash_3
   rotate: false
-  xy: 1718, 589
-  size: 148, 158
-  orig: 148, 158
+  xy: 2004, 74
+  size: 31, 31
+  orig: 31, 31
+  offset: 0, 0
+  index: -1
+ash_4
+  rotate: false
+  xy: 2004, 109
+  size: 31, 31
+  orig: 31, 31
+  offset: 0, 0
+  index: -1
+cranium_big_win
+  rotate: false
+  xy: 4, 624
+  size: 591, 616
+  orig: 591, 616
+  offset: 0, 0
+  index: -1
+cranium_lose
+  rotate: false
+  xy: 604, 624
+  size: 591, 616
+  orig: 591, 616
+  offset: 0, 0
+  index: -1
+beanie
+  rotate: false
+  xy: 1204, 624
+  size: 674, 527
+  orig: 674, 527
+  offset: 0, 0
+  index: -1
+torso
+  rotate: false
+  xy: 1204, 1155
+  size: 497, 412
+  orig: 497, 412
+  offset: 0, 0
+  index: -1
+arm_r_upper
+  rotate: false
+  xy: 1712, 1155
+  size: 212, 293
+  orig: 212, 293
+  offset: 0, 0
+  index: -1
+hood
+  rotate: false
+  xy: 4, 1244
+  size: 608, 409
+  orig: 608, 409
+  offset: 0, 0
+  index: -1
+shoe_r_laced
+  rotate: false
+  xy: 620, 1244
+  size: 388, 394
+  orig: 388, 394
+  offset: 0, 0
+  index: -1
+shin_r
+  rotate: false
+  xy: 1712, 1452
+  size: 252, 257
+  orig: 252, 257
+  offset: 0, 0
+  index: -1
+shoe_l_laced
+  rotate: false
+  xy: 1016, 1571
+  size: 424, 357
+  orig: 424, 357
+  offset: 0, 0
+  index: -1
+neck
+  rotate: false
+  xy: 1448, 1571
+  size: 206, 255
+  orig: 206, 255
+  offset: 0, 0
+  index: -1
+arm_l_upper
+  rotate: false
+  xy: 620, 1642
+  size: 159, 253
+  orig: 159, 253
+  offset: 0, 0
+  index: -1
+thigh_r
+  rotate: false
+  xy: 788, 1642
+  size: 211, 230
+  orig: 211, 230
+  offset: 0, 0
+  index: -1
+jaw_win
+  rotate: false
+  xy: 4, 1657
+  size: 445, 251
+  orig: 445, 251
+  offset: 0, 0
+  index: -1
+string_l
+  rotate: false
+  xy: 460, 1657
+  size: 78, 146
+  orig: 78, 146
+  offset: 0, 0
+  index: -1
+ash_0
+  rotate: false
+  xy: 548, 1657
+  size: 44, 44
+  orig: 44, 44
+  offset: 0, 0
+  index: -1
+shin_l
+  rotate: false
+  xy: 1664, 1713
+  size: 248, 220
+  orig: 248, 220
+  offset: 0, 0
+  index: -1
+string_r
+  rotate: false
+  xy: 1920, 1713
+  size: 76, 124
+  orig: 76, 124
   offset: 0, 0
   index: -1
 ember_glow
   rotate: false
-  xy: 1886, 589
-  size: 58, 65
-  orig: 58, 65
+  xy: 460, 1807
+  size: 69, 64
+  orig: 69, 64
+  offset: 0, 0
+  index: -1
+arm_l_fore
+  rotate: false
+  xy: 1448, 1830
+  size: 204, 149
+  orig: 204, 149
+  offset: 0, 0
+  index: -1
+thigh_l
+  rotate: false
+  xy: 788, 1876
+  size: 212, 146
+  orig: 212, 146
   offset: 0, 0
   index: -1
 
 smoke-skull-2.webp
-size: 2048, 2048
+size: 2048,512
 format: RGBA8888
-filter: Linear, Linear
+filter: Linear,Linear
 repeat: none
 pma: false
-face_idle
+jaw_lose
   rotate: false
-  xy: 10, 10
-  size: 648, 712
-  orig: 648, 712
+  xy: 4, 4
+  size: 443, 249
+  orig: 443, 249
   offset: 0, 0
   index: -1
-face_anticipation
+jaw_big_win
   rotate: false
-  xy: 678, 10
-  size: 648, 712
-  orig: 648, 712
+  xy: 456, 4
+  size: 431, 249
+  orig: 431, 249
   offset: 0, 0
   index: -1
-face_win
+jaw_idle
   rotate: false
-  xy: 1346, 10
-  size: 648, 712
-  orig: 648, 712
+  xy: 896, 4
+  size: 431, 248
+  orig: 431, 248
   offset: 0, 0
   index: -1
-face_big_win
+jaw_anticipation
   rotate: false
-  xy: 10, 732
-  size: 661, 703
-  orig: 661, 703
+  xy: 1336, 4
+  size: 431, 248
+  orig: 431, 248
   offset: 0, 0
   index: -1
-face_lose
+arm_r_fore
   rotate: false
-  xy: 692, 732
-  size: 648, 689
-  orig: 648, 689
+  xy: 1776, 4
+  size: 255, 206
+  orig: 255, 206
+  offset: 0, 0
+  index: -1
+cigar
+  rotate: false
+  xy: 1776, 214
+  size: 215, 188
+  orig: 215, 188
+  offset: 0, 0
+  index: -1
+pelvis
+  rotate: false
+  xy: 896, 256
+  size: 383, 247
+  orig: 383, 247
+  offset: 0, 0
+  index: -1
+mouth
+  rotate: false
+  xy: 1288, 256
+  size: 408, 200
+  orig: 408, 200
+  offset: 0, 0
+  index: -1
+pocket
+  rotate: false
+  xy: 4, 257
+  size: 310, 185
+  orig: 310, 185
+  offset: 0, 0
+  index: -1
+hand_r
+  rotate: false
+  xy: 324, 257
+  size: 261, 164
+  orig: 261, 164
+  offset: 0, 0
+  index: -1
+hand_l
+  rotate: false
+  xy: 596, 257
+  size: 279, 163
+  orig: 279, 163
   offset: 0, 0
   index: -1

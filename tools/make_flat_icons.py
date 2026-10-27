@@ -26,9 +26,8 @@ for f in sorted(os.listdir(SRC)):
         continue
     im = Image.open(os.path.join(SRC, f)).convert("RGBA")
     size = BIG.get(f[:-4], SIZE)
-    hi = os.path.join(ROOT, "art", "letters", f[:-4] + "_traced.png")   # the scatters' 2x renders (tools/letter_art)
-    if os.path.exists(hi):
-        im = Image.open(hi).convert("RGBA")
+    # (the scatters used to come from their traced letter renders in art/letters/; since the
+    # 2026-10-27 redraw art/icons-src holds the new art for every icon, scatters included)
     if max(im.size) < size:
         import upscale
         im = upscale.esrgan(upscale.bleed(im), upscale.A)

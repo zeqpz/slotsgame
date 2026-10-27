@@ -79,18 +79,18 @@
    "attachments": {
     "crown": {
      "L3/crown": {
-      "x": 2.3,
-      "y": 14.5,
-      "width": 77.8,
-      "height": 51.8
+      "x": 2.5,
+      "y": 14.75,
+      "width": 79.2,
+      "height": 52.3
      }
     },
     "cuff": {
      "L3/cuff": {
-      "x": 1.45,
-      "y": 24.75,
-      "width": 86.9,
-      "height": 61.5
+      "x": 1.35,
+      "y": 24.9,
+      "width": 87.5,
+      "height": 61.2
      }
     },
     "logo": {

@@ -1,7 +1,10 @@
 # High-resolution art pass
 
-The flat UI art (HUD plates and buttons, panels, win headlines, the digit font, the wall, the board
-frame, the wall tag, the logo...) is rebuilt from `art/ui-src/` into `frontend/assets/` by
+The flat UI art (HUD plates and buttons, panels, win headlines, the digit font, the board frame, the
+logo...) is rebuilt from `art/ui-src/` into `frontend/assets/` by the commands below. Not the wall
+or its tag any more: since the 2026-10-27 redesign they are tile-detailed 3840 px art in
+`art/wall-src/` (an upscale of the 1600 px copy in art/ui-src would undo that detail), so their
+rows are out of assets.json.
 
 ```
 python tools/hires/upscale.py              # everything in assets.json
@@ -45,6 +48,32 @@ phone) showed two problems:
 Where the shipped file had been re-encoded lossy, the source is the older lossless PNG from git
 history (`01e6c50^`). The wall tag starts from the 1101 px original cut-out (`8f50a0f`), not the
 2202 px copy blown up from it.
+
+## The 2026-10-27 re-theme (art/STYLE.md)
+
+The UI moved off electric blue onto the wall's palette: charcoal concrete plates, violet sprayed
+edges, neon-lime trim and fire, gold only for wins. Two kinds of change:
+
+- **Redrawn** with `openai/gpt-image-2.5-sunburst` (OpenRouter Images API), each piece's old art as
+  the reference image, one key light from the upper left: the HUD (bar, hexagon, the four slanted
+  plates, the bet steppers, the spin arrows), the six live-rim panels (bonus panel, rules panel,
+  feature box, auto play box, win box, volume frame). The HUD pieces were drawn together on one
+  sprite sheet so they share one hand and one light; the panels used that sheet as a style sample.
+  Each redraw was cut out and laid exactly over the art it replaces (box fit, then an ECC fit of
+  the two silhouettes), any saturated blue pushed to violet. The new source is
+  `art/ui-src/<name>.png`, the replaced art is kept beside it as `<name>_v1.png`, and the row says
+  `"esrgan": false`: the source is clean, full-colour art, only resampled (Lanczos keeps its grain;
+  the anime model smeared the concrete and the photo model polished it flat).
+- **Recoloured** (their drawing kept, hue bands moved onto the palette; originals in `_v1` too):
+  the BIG / MEGA / TOTAL WIN lettering, the tier splash, the banner box, the board frame fallback,
+  the volume liquid, the replay Play pill, the Close box, the BONUS plate's tube
+  (`bonus_btn_plate.png`, from `art/letters/BONUS_plate.png`), and the unused spin plate / ui box /
+  bet box. These keep their old rows (de-dither, Real-ESRGAN).
+
+The live-rim cut-outs (`frontend/assets/rim/`) still take the plate's shape from the `_v1` art, so
+the distance fields and `rims.json` did not change (`tools/sprayrim/make_rims.py`). The big
+charcoal plates ship at WebP quality 56-64 for the full art (only seen without WebGL) and 72-78
+for the rim cut-outs: the concrete grain costs bytes and looks the same.
 
 Related passes:
 

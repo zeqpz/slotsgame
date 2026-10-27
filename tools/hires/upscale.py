@@ -40,8 +40,11 @@ A = "realesrgan-x4plus-anime"
 TABLE = {}
 
 
-def add(name, src, out, scale, dd=0.0, model=A, q=90, kit=None, accent=False, note=""):
-    TABLE[name] = dict(src=src, out=out, scale=scale, dd=dd, model=model, q=q, kit=kit, accent=accent)
+def add(name, src, out, scale, dd=0.0, model=A, q=90, kit=None, accent=False, esrgan=True, note=""):
+    # esrgan false: the source is already clean, full-colour art at (or above) the output size - the
+    # 2026-10-27 redraws (art/ui-src/<name>.png, the art they replaced kept as <name>_v1.png) - so it
+    # is only resampled to the output size
+    TABLE[name] = dict(src=src, out=out, scale=scale, dd=dd, model=model, q=q, kit=kit, accent=accent, esrgan=esrgan)
 
 
 def load():
@@ -157,7 +160,7 @@ def make(name):
     w, h = im.size
     pre = dedither(im, t["dd"]) if t["dd"] else im
     pre = bleed(pre)
-    up = esrgan(pre, t["model"])
+    up = esrgan(pre, t["model"]) if t["esrgan"] else pre
     size = (max(1, round(w * t["scale"])), max(1, round(h * t["scale"])))
     out = resize_premul(up, size) if size != up.size else up
     if t["kit"] == "plate":   # the grey-plate / blue-rim family is painted again, layer by layer

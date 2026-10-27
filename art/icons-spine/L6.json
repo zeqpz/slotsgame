@@ -101,34 +101,34 @@
    "attachments": {
     "sleeve_l": {
      "L6/sleeve_l": {
-      "x": -6.45,
-      "y": -2.65,
-      "width": 26.3,
-      "height": 37.5
+      "x": -6.35,
+      "y": -2.55,
+      "width": 26.1,
+      "height": 37.7
      }
     },
     "sleeve_r": {
      "L6/sleeve_r": {
-      "x": 8.9,
-      "y": -0.75,
-      "width": 28.2,
-      "height": 39.3
+      "x": 8.65,
+      "y": -0.1,
+      "width": 27.7,
+      "height": 40.2
      }
     },
     "body": {
      "L6/body": {
-      "x": -1.3,
-      "y": -43.05,
-      "width": 60.6,
-      "height": 88.3
+      "x": -1.35,
+      "y": -43.0,
+      "width": 60.7,
+      "height": 88.4
      }
     },
     "hem": {
      "L6/hem": {
-      "x": -0.1,
-      "y": -6.45,
-      "width": 58.2,
-      "height": 19.1
+      "x": 0.65,
+      "y": -6.55,
+      "width": 60.5,
+      "height": 19.3
      }
     },
     "logo": {
