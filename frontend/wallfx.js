@@ -11,6 +11,10 @@
 //   own paint moving, not a sticker on top of it.
 // - the SMUKIEZ tag's green outline glows like neon (#tagglow) and throws its light on the bricks
 //   round it (#tagspill) - both CSS, they ride the tag's wander, hop and pop (index.html).
+// - that neon is the light of the scene: light() says where it comes from for any point on the
+//   page and how strong it is there, neon() is the sign's flicker right now. The wet paint here
+//   takes its green on the edges that face the sign; the two characters take it as a rim light
+//   from behind (neonRim, index.html).
 // One small canvas per blob (its tips down to the pavement), drawn on animation frames.
 (function () {
   "use strict";
@@ -18,6 +22,7 @@
   const FLOOR = .875 * ART[1];                  // the pavement's edge
   const DIM = [.78, .9], TINT = "20,18,24";     // #bgwall's gradient over the art, top to bottom (index.html)
   const G = 2600;                               // gravity, art px / s^2: a drop crosses the wall in about a second
+  const NEON = [110, 255, 70];                  // the tube's lime (make_wall_fx.py tag())
   const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
   let regions = [], layer = null, raf = 0, last = 0;
 
@@ -25,6 +30,104 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const smooth = v => v * v * (3 - 2 * v);
   const rgb = (c, k = 1) => `rgb(${c.map(v => Math.round(v * k)).join(",")})`;
+
+  // ------------------------------------------------------------------ the tag's light
+  // The glowing tube is read off tag_glow.webp (its alpha, 128 px across - squared, so the tube
+  // outshines its own halo) and laid over #tagglow's box wherever that is on the page. For a
+  // point, the light comes from the tube round it weighted by closeness - inverse square,
+  // softened, so the nearest stretch leads and the rest of the sign still pulls - and its
+  // strength is how much tube there is how close: 1 a short way off the tube's end.
+  const GLOW_W = 128, SOFT = .12, NORM = .5;     // SOFT in tag heights; NORM: the light called 1 (the pair stand in about that)
+  let glow = null, glowLoad = null;
+  function loadGlow() {
+    if (glowLoad) return glowLoad;
+    glowLoad = new Promise(res => {
+      const im = new Image();
+      im.onload = () => {
+        const w = GLOW_W, h = Math.max(1, Math.round(GLOW_W * im.naturalHeight / im.naturalWidth));
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        x.drawImage(im, 0, 0, w, h);
+        const px = x.getImageData(0, 0, w, h).data, pts = [];
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+          const a = px[(j * w + i) * 4 + 3] / 255;
+          if (a > .05) pts.push((i + .5) / w, (j + .5) / h, a * a);
+        }
+        glow = { aspect: w / h, pts: new Float32Array(pts), n: w * h };
+        res(glow);
+      };
+      im.onerror = () => res(null);
+      im.src = "assets/wallfx/tag_glow.webp";
+    });
+    return glowLoad;
+  }
+  // where a page point's light comes from (page px) and how strong it is there; null until the
+  // tube is read, or while the tag is not on screen
+  function light(x, y) {
+    if (!glow) { loadGlow(); return null; }
+    const box = document.querySelector("#tagglow > i"), r = box && box.getBoundingClientRect();
+    if (!r || !r.width || !r.height) return null;
+    const H = r.height, u = (x - r.left) / H, v = (y - r.top) / H, aw = r.width / H, P = glow.pts;
+    let sw = 0, su = 0, sv = 0;
+    for (let n = 0; n < P.length; n += 3) {
+      const pu = P[n] * aw, pv = P[n + 1], du = pu - u, dv = pv - v;
+      const k = P[n + 2] / (du * du + dv * dv + SOFT * SOFT);
+      sw += k; su += k * pu; sv += k * pv;
+    }
+    if (!sw) return null;
+    // the sum is over the image's pixels: times a pixel's area (in tag heights squared) it is the
+    // same light at any size the glow is read at
+    return { x: r.left + su / sw * H, y: r.top + sv / sw * H, k: sw * aw / glow.n / NORM };
+  }
+  // The sign's flicker now, about 1 on average: #tagglow's own neonTag animation (its opacity
+  // times its brightness) read at its current time, so what the tube lights flickers with it.
+  // Asking a CSS animation for its state flushes the page's style, and this is asked every frame
+  // by both figures and the wall, so the animation is read four times a second and the flicker
+  // followed on the document's clock in between.
+  let neonAnim = null, neonTrack = null, neonRead = -1e9, neonStart = 0, neonDur = 1;
+  function neon() {
+    if (REDUCED) return 1;
+    const now = document.timeline.currentTime ?? performance.now();
+    if (now - neonRead > 250) {
+      neonRead = now;
+      if (!neonAnim || neonAnim.playState !== "running") {
+        const el = document.getElementById("tagglow");
+        neonAnim = (el && el.getAnimations().find(a => a.animationName === "neonTag")) || null;
+        neonTrack = neonAnim ? neonTracks(neonAnim.effect.getKeyframes()) : null;
+      }
+      if (neonAnim) { neonDur = neonAnim.effect.getTiming().duration || 1; neonStart = now - (neonAnim.currentTime || 0); }
+    }
+    if (!neonTrack) return 1;
+    return neonAt(neonTrack, ((((now - neonStart) % neonDur) + neonDur) % neonDur) / neonDur) / neonTrack.mean;
+  }
+  // the keyframes as a track per property, each closed at both ends with the plain value
+  function neonTracks(kf) {
+    const op = [], br = [];
+    for (const f of kf) {
+      const o = f.computedOffset ?? f.offset;
+      if (f.opacity !== undefined && f.opacity !== "") op.push([o, parseFloat(f.opacity)]);
+      const m = /brightness\(([\d.]+)\)/.exec(f.filter || "");
+      if (m) br.push([o, parseFloat(m[1])]);
+    }
+    for (const t of [op, br]) {
+      if (!t.length || t[0][0] > 0) t.unshift([0, 1]);
+      if (t[t.length - 1][0] < 1) t.push([1, 1]);
+    }
+    const track = { op, br, mean: 1 };
+    let s = 0;
+    for (let i = 0; i < 240; i++) s += neonAt(track, i / 240);
+    track.mean = s / 240 || 1;
+    return track;
+  }
+  function neonAt(track, p) {
+    const at = t => {
+      let i = 1;
+      while (i < t.length - 1 && t[i][0] < p) i++;
+      const [o0, v0] = t[i - 1], [o1, v1] = t[i];
+      return v0 + (v1 - v0) * clamp((p - o0) / ((o1 - o0) || 1), 0, 1);
+    };
+    return at(track.op) * at(track.br);
+  }
 
   // ------------------------------------------------------------------ one drip's life
   // Its shape at any moment, from its age: the run (top, end, widths, an optional neck), the
@@ -132,8 +235,9 @@
     const pc = (v, of) => (v / of * 100).toFixed(3) + "%";
     Object.assign(cv.style, { left: pc(x0, ART[0]), top: pc(y0, ART[1]), width: pc(x1 - x0, ART[0]), height: pc(y1 - y0, ART[1]) });
     const img = new Image(); img.src = `assets/wallfx/blob_${i}.webp`;
+    const lcv = document.createElement("canvas");   // off the page: where the lit edge is cut out
     return {
-      b, tips, x0, y0, x1, y1, cv, ctx: cv.getContext("2d"), img, box: [bx, by, bw, bh],
+      b, tips, x0, y0, x1, y1, cv, ctx: cv.getContext("2d"), img, box: [bx, by, bw, bh], lcv, lctx: lcv.getContext("2d"), light: null,
       fill: b.fill || (b.colour === "green" ? [127, 234, 95] : [225, 130, 198]), line: b.line || [104, 30, 100], hi: b.hi || [194, 206, 237], lw: b.lw || 10,
       drip: null, wait: rnd(.4, 5), lastTip: -1, drops: [], ooze: rnd(5.5, 9), ph: rnd(0, 6.3), dim: [DIM[0], DIM[1]], k: 1,
     };
@@ -180,14 +284,8 @@
     ctx.fillStyle = rgb(R.line); shape(R.lw); ctx.fill("nonzero");
     ctx.restore();
     // 2. the blob, breathing: it swells and sags from its top, never smaller than the art's own
-    const [bx, by, bw, bh] = R.box, a = now / 1000 / R.ooze * Math.PI * 2 + R.ph, s1 = .5 - .5 * Math.cos(a);
-    if (R.img.complete && R.img.naturalWidth) {
-      ctx.save();
-      ctx.translate(bx + bw / 2, by + bh * .08);
-      ctx.transform(1.004 + .022 * s1, 0, Math.tan(-.009 * Math.sin(a)), 1.008 + .05 * s1, 0, 0);
-      ctx.drawImage(R.img, -bw / 2, -bh * .08, bw, bh);
-      ctx.restore();
-    }
+    const a = now / 1000 / R.ooze * Math.PI * 2 + R.ph;
+    blob(ctx, R, a);
     // 3. the paint: the run's top is painted over the blob's line where it flows out of the tip's
     //    rounded end, so the two are one shape; no higher, so the blob keeps its own shape and shine
     ctx.fillStyle = rgb(R.fill);
@@ -217,6 +315,67 @@
     gr.addColorStop(0, `rgba(${TINT},${R.dim[0]})`); gr.addColorStop(1, `rgba(${TINT},${R.dim[1]})`);
     ctx.fillStyle = gr; ctx.fillRect(R.x0, R.y0, R.x1 - R.x0, R.y1 - R.y0);
     ctx.globalCompositeOperation = "source-over";
+    // 6. the tag's neon on the wet paint: a thin line of its green along every edge that faces the
+    //    sign, flickering with the sign. The paint's shape less the same shape a step toward the
+    //    light is exactly its lit edge; it is softened (rounded off, and a little of it glancing
+    //    past onto the bricks) and screened on, so it lights the paint rather than covering it.
+    //    Light, not paint: on after the dimming.
+    const L = R.light, lit = L ? Math.min(1.2, L.k) * neon() : 0;
+    if (lit > .02) {
+      const lc = R.lctx, W = R.lcv.width, H = R.lcv.height;
+      lc.setTransform(1, 0, 0, 1, 0, 0); lc.globalCompositeOperation = "source-over"; lc.clearRect(0, 0, W, H);
+      lc.setTransform(k, 0, 0, k, -R.x0 * k, -R.y0 * k);
+      silhouette(lc, R, d, s, a);
+      lc.globalCompositeOperation = "destination-out";
+      lc.translate(-L.dx * R.lw * NEON_EDGE.depth, -L.dy * R.lw * NEON_EDGE.depth);
+      silhouette(lc, R, d, s, a);
+      lc.setTransform(1, 0, 0, 1, 0, 0); lc.globalCompositeOperation = "source-in";
+      lc.fillStyle = rgb(NEON); lc.fillRect(0, 0, W, H);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = "screen"; ctx.globalAlpha = Math.min(1, lit * NEON_EDGE.alpha);
+      ctx.filter = `blur(${(R.lw * NEON_EDGE.soft * k).toFixed(2)}px)`;
+      ctx.drawImage(R.lcv, 0, 0);
+      ctx.filter = "none"; ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    }
+  }
+  // the neon's line on the paint's lit edge, in widths of the paint's dark line: how deep it
+  // reaches in, how far it is softened, and how strong it is where the light is 1
+  const NEON_EDGE = { depth: .55, soft: .45, alpha: .45 };   // alpha .45: dimmed with the tag, then 35% brighter (owner, 2026-10-25)
+
+  // the blob's own paint, breathing on its clock a: it swells and sags from its top, never
+  // smaller than the art's own
+  function blob(c, R, a) {
+    if (!R.img.complete || !R.img.naturalWidth) return;
+    const [bx, by, bw, bh] = R.box, s1 = .5 - .5 * Math.cos(a);
+    c.save();
+    c.translate(bx + bw / 2, by + bh * .08);
+    c.transform(1.004 + .022 * s1, 0, Math.tan(-.009 * Math.sin(a)), 1.008 + .05 * s1, 0, 0);
+    c.drawImage(R.img, -bw / 2, -bh * .08, bw, bh);
+    c.restore();
+  }
+  // all the paint as one shape - the blob, the run and its bead, the drops - out to the outside
+  // of the dark line, where the light catches it
+  function silhouette(c, R, d, s, a) {
+    blob(c, R, a);
+    c.beginPath();
+    if (d) dripPath(c, R, d, s, R.lw);
+    for (const p of R.drops) dropPath(c, p, R.lw);
+    c.fill("nonzero");
+  }
+
+  // where each blob's light comes from - the way to the tube from its middle - and how strong
+  function aimLight() {
+    if (!layer || !regions.length) return;
+    const lr = layer.getBoundingClientRect();
+    if (!lr.width || !lr.height) return;
+    for (const R of regions) {
+      const [bx, by, bw, bh] = R.box;
+      const x = lr.left + (bx + bw / 2) / ART[0] * lr.width, y = lr.top + (by + bh / 2) / ART[1] * lr.height;
+      const L = light(x, y);
+      if (!L) { R.light = null; continue; }
+      const dx = L.x - x, dy = L.y - y, dd = Math.hypot(dx, dy) || 1;
+      R.light = { dx: dx / dd, dy: dy / dd, k: L.k };
+    }
   }
 
   function frame(now) {
@@ -225,8 +384,10 @@
     // every display frame (144, 165 a second) was redrawing every canvas
     if (last && now - last < 1000 / 30 - 2) return;
     const dt = Math.min(.05, last ? (now - last) / 1000 : 0); last = now;
+    if (now - aimed > 2000) { aimed = now; aimLight(); }   // the tag wanders and the layout moves: keep aiming
     for (const R of regions) { step(R, dt, now); draw(R, now); }
   }
+  let aimed = 0;
 
   // ------------------------------------------------------------------ layout
   function place() {
@@ -242,9 +403,11 @@
     for (const R of regions) {
       R.k = s * dpr;
       R.cv.width = Math.max(1, Math.round((R.x1 - R.x0) * R.k)); R.cv.height = Math.max(1, Math.round((R.y1 - R.y0) * R.k));
+      R.lcv.width = R.cv.width; R.lcv.height = R.cv.height;
       // the wall's gradient runs down #bgwall's own box: its strength at this canvas's top and bottom
       R.dim = [R.y0, R.y1].map(y => DIM[0] + (DIM[1] - DIM[0]) * clamp((top + y * s) / H, 0, 1));
     }
+    aimLight();
   }
 
   async function start() {
@@ -255,9 +418,11 @@
     regions = meta.blobs.map(makeRegion);
     for (const R of regions) layer.appendChild(R.cv);
     place();
+    loadGlow().then(aimLight);
     addEventListener("resize", place);
     if (window.ResizeObserver) new ResizeObserver(place).observe(document.getElementById("bgwall"));
     if (!raf) raf = requestAnimationFrame(frame);
   }
-  window.WallFX = { start, place, regions: () => regions };
+  loadGlow();   // the light is read off the tube once, for the paint here and for the characters
+  window.WallFX = { start, place, regions: () => regions, light, neon };
 })();

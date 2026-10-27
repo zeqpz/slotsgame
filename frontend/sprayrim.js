@@ -12,7 +12,12 @@
 // Only what is on screen is drawn, at most 30 times a second. No WebGL: the page keeps the art's
 // own painted outlines (the html.sprayfx class is what swaps them out).
 //
+// A rim with `flare` can be stoked like blowing on a fire (SprayFX.stoke): its flames whoosh up
+// - taller by up to `flare` of their height, brighter, quicker - and settle back. Its canvas is
+// sized for the tallest of them from the start, so a stoke never reallocates anything.
+//
 //   SprayFX.start({ rules: [...], boxes: [...] })
+//   SprayFX.stoke(el, { peak, hold })
 (function () {
   "use strict";
   const VS = "attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }";
@@ -30,6 +35,7 @@ uniform vec4 uLin;        // linear: css px per src px x, y; offset x, y (css)
 uniform vec4 uMapX, uMapY;// nine-slice per axis: border b0, b1 (css), slice s0, s1 (src px)
 uniform float uBandSrc;   // field mode: the outline's width, src px
 uniform float uL, uFlame, uTime, uBoil, uSeed, uGlow;
+uniform float uBlow;      // a stoke: the flames this much taller (0 = at rest), brighter and wider-glowing with it
 uniform vec3 uShadow;     // the drop shadow under the outline: offset down, blur (css px), alpha
 uniform sampler2D uSdf;
 uniform vec3 uNavy, uDeep, uMid, uLight, uCore;
@@ -72,10 +78,11 @@ void main() {
   vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y) / uPx;   // canvas css px, y down
   vec2 lp = p - uBox.xy, WH = uBox.zw - uBox.xy;
   float aa = .7 / uPx;
-  float reach = max(uFlame * 2.1, uShadow.x + uShadow.y) + 6. * aa;
-  float D, band; vec2 n;
+  float reach = max(uFlame * (1. + uBlow) * 2.1, uShadow.x + uShadow.y) + 6. * aa;
+  float D, band, beyond; vec2 n;   // beyond: how far out this is, as the cut-off below measures it
   if (uMode < .5) {
     float o = roundBox(lp, WH);
+    beyond = o;
     if (o < -uRound.z - 6. * aa - .5 * uL || o > reach) { gl_FragColor = vec4(0.); return; }
     vec2 e = vec2(.75, 0.);
     vec2 g = vec2(roundBox(lp + e.xy, WH) - roundBox(lp - e.xy, WH), roundBox(lp + e.yx, WH) - roundBox(lp - e.yx, WH));
@@ -86,7 +93,8 @@ void main() {
     vec2 uy = uFit > .5 ? slice(lp.y, WH.y, uSrc.y, uMapY) : vec2((lp.y - uLin.w) / uLin.y, 1. / uLin.y);
     vec2 uv = vec2(ux.x, uy.x), J = vec2(ux.y, uy.y);              // src px, src px per css px
     float s = field(uv), jm = .5 * (J.x + J.y);
-    if (s / jm < -6. * aa - .5 * uL || (s - uBandSrc) / jm > reach) { gl_FragColor = vec4(0.); return; }
+    beyond = (s - uBandSrc) / jm;
+    if (s / jm < -6. * aa - .5 * uL || beyond > reach) { gl_FragColor = vec4(0.); return; }
     float h = uField.z * 2.;                                        // two texels: a steadier slope
     vec2 g = vec2(field(uv + vec2(h, 0.)) - field(uv - vec2(h, 0.)), field(uv + vec2(0., h)) - field(uv - vec2(0., h))) / (2. * h);
     vec2 gc = g * J;                                               // the field's slope per css px
@@ -108,8 +116,8 @@ void main() {
   // glow off the outer edge, breathing
   // (outside only: inside, it stopped in a hard straight line where the shader stops drawing -
   // a boxy band of blue round the inside of every outline)
-  float glow = uGlow * exp(-max(dOut, 0.) / (uFlame * .55)) * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011))
-             * smoothstep(-2. * aa, 2. * aa, dOut);
+  float glow = uGlow * (1. + 1.6 * uBlow) * exp(-max(dOut, 0.) / (uFlame * .55 * (1. + .7 * uBlow)))
+             * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011)) * smoothstep(-2. * aa, 2. * aa, dOut);
   col = vec4(uMid * glow, glow) + col * (1. - glow);
 
   // flames: tongues that climb out of the rim (outward, pulled upward)
@@ -117,8 +125,9 @@ void main() {
   float fl = max(1.15 * uFlame, 5. * fmin);                           // tongues about as wide as they are tall
   float lick = flow(p / fl, dir, uTime * 1.4, true);
   float lick2 = flow(p / max(.45 * uFlame, 3.5 * fmin), dir, uTime * 2.2 + .3, false);
-  float height = uFlame * (.6 + .9 * smoothstep(.3, .75, fbm(p / max(3. * uFlame, 10. * fmin) + vec2(uTime * .27, uTime * .19) + uSeed)));
-  float f = lick * 1.38 + lick2 * .14 - max(dOut, 0.) / height;
+  float height = uFlame * (1. + uBlow) * (.6 + .9 * smoothstep(.3, .75, fbm(p / max(3. * uFlame, 10. * fmin) + vec2(uTime * .27, uTime * .19) + uSeed)));
+  // a stoke also fills the tongues out, so more of each burns cyan and white-hot
+  float f = lick * 1.38 + lick2 * .14 - max(dOut, 0.) / height + .09 * uBlow;
 #ifdef GL_OES_standard_derivatives
   float fw = max(fwidth(f) * .7, .006);
 #else
@@ -139,8 +148,12 @@ void main() {
   float rr = mix(.1, .2, h21(cell * 3.1 + uSeed));
   float dd = (length(fc2 - off) - rr) * C;                                // css px
   float drop = step(.8, h21(cell + uSeed)) * smoothstep(aa, -aa, dd);
-  drop *= smoothstep(.1, .3, f) * (1. - b0) * outside * exp(-max(dOut, 0.) / (uFlame * 1.3));
+  drop *= smoothstep(.1, .3, f) * (1. - b0) * outside * exp(-max(dOut, 0.) / (uFlame * 1.3 * (1. + uBlow)));
   fc = mix(fc, uDeep, drop); fa = max(fa, drop);
+  // the tongues and drops are gone before the cut-off, whatever fwidth says there: at the cut, half
+  // of each 2x2 pixel block has stopped drawing, its derivatives are garbage, and the bands lit a
+  // 1 px line all round the rim (seen once a stoke's headroom put the cut-off on the canvas)
+  fa *= 1. - smoothstep(.82 * reach, .95 * reach, beyond);
   col = vec4(fc * fa, fa) + col * (1. - fa);
 
   // the rim: sprayed blue between a navy keyline on each edge
@@ -185,7 +198,7 @@ void main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     U = {};
-    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uShadow", "uSdf", "uNavy", "uDeep", "uMid", "uLight", "uCore"]) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uShadow", "uSdf", "uNavy", "uDeep", "uMid", "uLight", "uCore"]) U[n] = gl.getUniformLocation(prog, n);
     gl.uniform3fv(U.uNavy, COLORS.navy); gl.uniform3fv(U.uDeep, COLORS.deep); gl.uniform3fv(U.uMid, COLORS.mid);
     gl.uniform3fv(U.uLight, COLORS.light); gl.uniform3fv(U.uCore, COLORS.core);
     gl.uniform1i(U.uSdf, 0);
@@ -285,9 +298,15 @@ void main() {
     const sh = o.shadow || [0, 0, 0];
     g.shadow = sh;
     g.margin = Math.ceil(Math.max(g.flame * 2.15 + 8, sh[0] + sh[1] + 6));
-    if (!o.box) {                                                  // the field only reaches so far past the art
-      const room = (g.m.pad - 4) / g.J;
-      if (g.margin > room) { g.margin = Math.floor(room); g.flame = Math.max(2, (g.margin - 8) / 2.15); }
+    const room = o.box ? Infinity : (g.m.pad - 4) / g.J;          // the field only reaches so far past the art
+    if (g.margin > room) { g.margin = Math.floor(room); g.flame = Math.max(2, (g.margin - 8) / 2.15); }
+    // a rim that can be stoked has room for its tallest flames from the start, as far as the field
+    // reaches; g.flare is how much taller they may grow here
+    g.flare = 0;
+    if (o.flare && !still) {
+      const m = Math.min(Math.ceil(g.flame * (1 + o.flare) * 2.15 + 8), Math.floor(room));
+      if (m > g.margin) g.margin = m;
+      g.flare = Math.max(0, Math.min(o.flare, (g.margin - 8) / 2.15 / g.flame - 1));
     }
     const cw = W + 2 * g.margin, ch = H + 2 * g.margin;
     // A pop, a bounce or a lean-in scales the element for a moment: keep the density the canvas
@@ -320,8 +339,11 @@ void main() {
     gl.uniform4f(U.uBox, g.margin, g.margin, g.margin + g.W, g.margin + g.H);
     gl.uniform3f(U.uShadow, g.shadow[0], g.shadow[1], g.shadow[2]);
     gl.uniform1f(U.uL, g.L); gl.uniform1f(U.uFlame, g.flame); gl.uniform1f(U.uSeed, t.seed); gl.uniform1f(U.uGlow, t.o.glow ?? 1);
-    const tt = now / 1000;
-    gl.uniform1f(U.uTime, (tt + t.seed) % 900); gl.uniform1f(U.uBoil, Math.floor(tt * 8) % 7919 + 1);
+    const tt = now / 1000, lvl = g.flare ? stokeLevel(t.el, now) : 0;
+    // the flames' own clock, which runs quicker while they are stoked
+    t.clock = (t.clock ?? tt) + (t.at !== undefined ? Math.min(.1, tt - t.at) : 0) * (1 + 1.5 * lvl); t.at = tt;
+    gl.uniform1f(U.uTime, (t.clock + t.seed) % 900); gl.uniform1f(U.uBoil, Math.floor(tt * 8) % 7919 + 1);
+    gl.uniform1f(U.uBlow, lvl * g.flare);
     if (t.o.box) {
       gl.uniform1f(U.uMode, 0); gl.uniform3f(U.uRound, g.inset, g.radius, g.band);
     } else {
@@ -372,6 +394,30 @@ void main() {
     });
   }
 
+  // A breath on the fire. The flames rise fast and die back slowly, from wherever they were; a hold
+  // is a gentle breath kept up underneath (a pointer resting on a plate) until it is let go.
+  // The level is 0..1 of the rim's flare.
+  const ATTACK = .1, DECAY = .45;   // s: up in a breath, back down over a second or so
+  function envelope(s, now) {
+    const a = (now - s.at) / 1000;
+    if (a < 0) return s.base;
+    if (a < ATTACK) { const v = a / ATTACK; return s.base + (s.peak - s.base) * (1 - (1 - v) * (1 - v)); }
+    return s.peak * Math.exp(-(a - ATTACK) / DECAY);
+  }
+  function stokeLevel(el, now) {
+    const s = el.__stoke;
+    if (!s) return 0;
+    s.held += (s.hold - s.held) * .18;   // once a redraw: the hold eases in and out
+    return Math.max(envelope(s, now), s.held);
+  }
+  function stoke(el, { peak = 1, hold = 0 } = {}) {
+    if (!el || still) return;
+    const now = performance.now();
+    const s = el.__stoke || (el.__stoke = { at: -1e9, base: 0, peak: 0, hold: 0, held: 0 });
+    if (peak > 0) { s.base = Math.min(1, envelope(s, now)); s.peak = Math.max(peak, s.base); s.at = now; }
+    s.hold = hold;
+  }
+
   function stopAll() {
     alive = false; cancelAnimationFrame(raf);
     for (const t of targets) { t.cv.remove(); if (t.el) delete t.el.__rim; }
@@ -394,5 +440,5 @@ void main() {
     scan(rules);
     return true;
   }
-  window.SprayFX = { start, stop: stopAll, get ok() { return ok; }, targets };
+  window.SprayFX = { start, stop: stopAll, stoke, get ok() { return ok; }, targets };
 })();

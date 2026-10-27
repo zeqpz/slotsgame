@@ -4,15 +4,17 @@
 // A stream of particles leaves the ember. Off the cigar it is a thin clean thread; as it climbs
 // it warms, quickens and starts to turn in a swirling draft (the curl of a few travelling waves:
 // it folds and curls the smoke without bunching or thinning it), so the thread wavers, rolls
-// over into curls and billows, and puffs of it break away; at the top every puff shrinks away
-// to nothing. Particles keep to the air, not the skull, so when the head turns or bobs the
-// stream bends behind it the way real smoke does.
+// over into curls and billows, and puffs of it break away; at the top every puff gives way to a
+// soft haze that keeps spreading as it thins out into the air (owner, 2026-10-25: more like real
+// smoke - it was shrinking away like a balloon going down). Particles keep to the air, not the
+// skull, so when the head turns or bobs the stream bends behind it the way real smoke does.
 //
-// It is drawn in the characters' own cartoon paint: every particle is four discs - the white
-// sticker edge, the black line, a grey shade, and a white fill set up and to the left - drawn
-// layer by layer, so overlapping discs merge into one outlined shape whose lower-right rim is
-// shaded, like the plume the art had. In the rig's own Pixi scene, over the figure, so it takes
-// the figure's lean, turn, fade and walk-off.
+// It is drawn in the characters' own cartoon paint: every particle is three discs - the ink line,
+// a cool grey shade, and a pale fill set up and to the left - drawn layer by layer, so overlapping
+// discs merge into one outlined shape whose lower-right rim is shaded, like the plume the art had;
+// behind them, a soft haze round every puff. The line fades in off the ember (a fresh thread is
+// faint) and thins away as the smoke ages, so the curls are drawn and the spent smoke is soft.
+// In the rig's own Pixi scene, over the figure, so it takes the figure's lean, turn, fade and walk-off.
 (function () {
   "use strict";
   const TAU = Math.PI * 2;
@@ -26,10 +28,13 @@
     { l: 260, v: 70, w: .5, d: 4.0 }, { l: 75, v: 55, w: 2.1, d: 1.2 }, { l: 140, v: 80, w: -.7, d: 5.3 },
   ].map(W => Object.assign(W, { ph: rnd(0, TAU), kx: Math.cos(W.d), ky: Math.sin(W.d) }));
 
-  const LOOK = { sticker: 0xffffff, line: 0x141416, shade: 0xa8a8ae, fill: 0xf6f6f8 };
+  // cigar smoke is a cool blue-grey, not paper white
+  const LOOK = { haze: 0xb7bcc8, line: 0x18191e, shade: 0x9fa4b1, fill: 0xebedf2 };
+  const LAYERS = ["haze", "line", "shade", "fill"];   // drawn back to front
   const RATE = 60;          // particles a second off the ember (of the smoke's own, slowed time)
   const PACE = .35;         // the smoke runs at 35% speed: 65% slower (owner, 2026-10-24) - a lazy curl
   const ALPHA = .8;         // slightly see-through, the whole plume as one layer (owner, 2026-10-24)
+  const HAZE = .1;          // one haze disc's strength: a few overlap at any point of the ribbon
   // how long the smoke lasts, by when it left the cigar: it varies slowly along the stream, never
   // particle to particle - neighbours that ended at different moments broke the top into beads
   const lifeAt = tb => 3.6 + .3 * Math.sin(tb * .61) + .15 * Math.sin(tb * 1.7 + 2);
@@ -38,9 +43,15 @@
   // thread wavers before it breaks into curls
   const swayAt = tb => Math.sin(tb * 2.6 + .4) + .45 * Math.sin(tb * 6.1 + 2.7) + .2 * Math.sin(tb * 11.3);
 
-  function disc() {         // one antialiased white disc every layer tints
+  function disc(soft) {     // one white disc every layer tints: crisp (antialiased), or soft to its rim
     const c = document.createElement("canvas"); c.width = c.height = 128;
-    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.beginPath(); g.arc(64, 64, 62, 0, TAU); g.fill();
+    const g = c.getContext("2d");
+    if (soft) {
+      const gr = g.createRadialGradient(64, 64, 0, 64, 64, 62);
+      gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(.55, "rgba(255,255,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      g.fillStyle = gr;
+    } else g.fillStyle = "#fff";
+    g.beginPath(); g.arc(64, 64, 62, 0, TAU); g.fill();
     return PIXI.Texture.from(c);
   }
 
@@ -53,12 +64,23 @@
     }
     const bone = sk.findBone(cfg.from || "ember");
     if (!bone) return;
-    const tex = disc();
+    const tex = disc(false), soft = disc(true);
     const root = new PIXI.Container(), layers = {};
-    for (const k of ["sticker", "line", "shade", "fill"]) { layers[k] = new PIXI.Container(); root.addChild(layers[k]); }
+    // back to front; no white sticker edge since the skull lost his (2026-10-25). Every disc is a
+    // particle, each layer one batch written straight into its buffer: as ~2,000 sprites in the
+    // scene the plume cost the skull's frame more than the rest of him together
+    for (const k of LAYERS) {
+      layers[k] = new PIXI.ParticleContainer({ texture: k === "haze" ? soft : tex, dynamicProperties: { position: true, vertex: true, color: true } });
+      root.addChild(layers[k]);
+    }
     app.stage.addChild(root);
-    // the plume fades as one picture, so where its puffs overlap they do not show through each other
-    if (PIXI.AlphaFilter) root.filters = [new PIXI.AlphaFilter({ alpha: ALPHA })]; else root.alpha = ALPHA;
+    // the plume fades as one picture, so where its puffs overlap they do not show through each other.
+    // A particle batch has no bounds of its own, so the fade is told it covers the stage
+    if (PIXI.AlphaFilter) {
+      root.filters = [new PIXI.AlphaFilter({ alpha: ALPHA })];
+      const area = () => { root.filterArea = new PIXI.Rectangle(0, 0, app.screen.width, app.screen.height); };
+      area(); app.renderer.on("resize", area);
+    } else root.alpha = ALPHA;
 
     // where the ember is, after the rig poses each frame (in the stage's px)
     const at = { x: 0, y: 0, ok: false };
@@ -73,7 +95,7 @@
     const parts = [];
     let t = 0, owed = 0, last = null;
     const spawn = (x, y, vx, vy, puff) => {
-      const p = { x, y, vx, vy, age: 0, life: 3, puff, sway: 0, r: 0 };
+      const p = { x, y, vx, vy, age: 0, life: 3, puff, sway: 0, r: 0, rh: 0, u: 0 };
       parts.push(p);
       return p;
     };
@@ -81,24 +103,31 @@
     // and, wherever the draft has pulled two neighbours further apart than they are wide, in
     // between them too - so it is always one ribbon, never a string of bubbles - unless it is
     // stretched so thin that it tears, and then it comes apart into wisps with round ends
-    const stamps = [];
+    // the discs, made once and reused frame to frame; each frame a layer lists only those it shows
+    const pool = {}, shown = {};
+    for (const k of LAYERS) { pool[k] = []; shown[k] = layers[k].particleChildren; }
+    const put = (k, x, y, scale, alpha) => {
+      const list = shown[k];
+      let p = pool[k][list.length];
+      if (!p) { p = new PIXI.Particle({ texture: k === "haze" ? soft : tex, anchorX: .5, anchorY: .5, tint: LOOK[k] }); pool[k].push(p); }
+      p.x = x; p.y = y; p.scaleX = p.scaleY = scale; p.alpha = alpha;
+      list.push(p);
+    };
     let used = 0;
     const MAX_STAMPS = 900, PX = 1 / 62;   // the disc's radius in its texture
-    const stamp = (x, y, r, S) => {
+    // one stamp: the puff (line, shade, fill) at r - none once it has given way - and its haze at rh;
+    // u is how far through its life the smoke there is
+    const stamp = (x, y, r, rh, u, S, MIN) => {
       if (used >= MAX_STAMPS) return;
-      let sp = stamps[used];
-      if (!sp) {
-        sp = {};
-        for (const k in layers) { const s2 = new PIXI.Sprite(tex); s2.anchor.set(.5); s2.tint = LOOK[k]; layers[k].addChild(s2); sp[k] = s2; }
-        stamps.push(sp);
-      }
       used++;
-      const o = S * (4.5 + .1 * r / S), st = S * 3;
-      sp.sticker.position.set(x, y); sp.sticker.scale.set((r + o + st) * PX);
-      sp.line.position.set(x, y); sp.line.scale.set((r + o) * PX);
-      sp.shade.position.set(x, y); sp.shade.scale.set(r * PX);
-      sp.fill.position.set(x - r * .2, y - r * .22); sp.fill.scale.set(r * .8 * PX);
-      for (const k in sp) sp[k].visible = true;
+      const body = r > MIN;
+      // the ink line comes in off the ember and thins away as the smoke ages
+      const ink = smooth(u / .12) * (1 - smooth((u - .5) / .35)), o = S * (3.6 + .08 * r / S) * ink;
+      if (body && o > S * .2) put("line", x, y, (r + o) * PX, 1);
+      if (body) { put("shade", x, y, r * PX, 1); put("fill", x - r * .2, y - r * .22, r * .8 * PX, 1); }
+      // the haze: from the billows on, spreading, and gone by the end of the smoke's life
+      const hz = smooth((u - .25) / .3) * (1 - smooth((u - .72) / .28));
+      if (hz > .02) put("haze", x, y, rh * PX, HAZE * hz);
     };
 
     app.ticker.add(tk => {
@@ -151,26 +180,32 @@
         p.vx += (tx - p.vx) * k; p.vy += (ty - p.vy) * k;
         p.x += p.vx * dt; p.y += p.vy * dt;
         // a thin thread off the ember, then swelling into billows (in puffs, the draw on the
-        // cigar), then shrinking away to nothing as it spreads
-        p.r = S * (4 + p.puff * 40 * smooth((u - .3) / .42)) * (1 - smooth((u - .72) / .28));
+        // cigar); at the end the drawn puff gives way and its haze goes on spreading into the air
+        const grow = S * (2.8 + p.puff * 40 * smooth((u - .3) / .42));
+        p.r = grow * (1 - smooth((u - .66) / .26));
+        p.rh = (grow + S * 34 * smooth((u - .45) / .55)) * 1.35;
+        p.u = u;
       }
       used = 0;
+      for (const k of LAYERS) shown[k].length = 0;
       const MIN = S * 1.2;
       // which neighbours still hold together (both drawn, not torn apart)
       const linked = (a, b) => b && Math.min(a.r, b.r) > MIN && Math.hypot(b.x - a.x, b.y - a.y) <= Math.min(a.r, b.r) * 9;
       for (let i = 0; i < parts.length; i++) {
         const a = parts[i], b = parts[i + 1], toNext = linked(a, b);
-        // a speck left on its own where a wisp tore reads as a bubble: only a real puff stands alone
-        if (a.r > MIN && (toNext || linked(a, parts[i - 1]) || a.r > S * 7)) stamp(a.x, a.y, a.r, S);
+        // a speck left on its own where a wisp tore reads as a bubble: only a real puff stands alone;
+        // a spent puff is its haze alone
+        const own = a.r > MIN && (toNext || linked(a, parts[i - 1]) || a.r > S * 7);
+        if (own || a.u > .6) stamp(a.x, a.y, own ? a.r : 0, a.rh, a.u, S, MIN);
         if (!toNext) continue;
         const rm = Math.min(a.r, b.r), d = Math.hypot(b.x - a.x, b.y - a.y);
         const n = Math.ceil(d / (rm * .55)) - 1;
         for (let j = 1; j <= n; j++) {
           const f = j / (n + 1);
-          stamp(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.r + (b.r - a.r) * f, S);
+          stamp(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f, a.r + (b.r - a.r) * f, a.rh + (b.rh - a.rh) * f, a.u + (b.u - a.u) * f, S, MIN);
         }
       }
-      for (let i = used; i < stamps.length; i++) for (const k in stamps[i]) stamps[i][k].visible = false;
+      for (const k of LAYERS) layers[k].update();   // the lists changed: each batch is rebuilt from them
     });
     return (window.__cigarSmoke = { parts: () => parts.length, stamps: () => used });   // QA handle
   }
