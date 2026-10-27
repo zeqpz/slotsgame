@@ -418,6 +418,7 @@
   }
   @media (prefers-reduced-motion: reduce) { .bonusintro .bnum::before, .bonusintro .bnum::after { animation: none !important; } }
   .bonusintro .bnum img { height: clamp(56px, 12vh, 120px); width: auto; display: block; }
+  .bonusintro .bfig { display: flex; align-items: flex-end; justify-content: center; gap: .4vw; }
   /* the how-it-works box: the same grey plate with the blue sprayed frame as the info panel,
      so it switches to the panel's dark ink too */
   .bonusintro .bhow {
@@ -425,12 +426,13 @@
     background: none; border: 20px solid transparent;
     border-image: url("assets/info_panel.webp") 4.9% 6.25% fill / 20px stretch;
     box-shadow: 0 14px 34px rgba(0, 0, 0, .6);
-    --ink: #17161c; --ink-soft: #46434f;
-    font-family: var(--legible); font-size: clamp(14px, 2.05vh, 19px); line-height: 1.45; color: var(--ink);
+    /* the info panel's lettering (owner, 2026-10-26): white Fredoka with a black outline */
+    font-family: "Fredoka", var(--read); font-weight: 500; font-size: clamp(14px, 2.05vh, 19px); line-height: 1.5; letter-spacing: .01em;
+    color: #fff; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.55);
   }
   .bonusintro .bhow p { margin: 0 0 .7em; } .bonusintro .bhow p:last-child { margin-bottom: 0; }
-  .bonusintro .bhow b { font-family: var(--num); color: var(--gold); font-size: 1.12em; }
-  .bonusintro .bhow strong { color: var(--fs-green); }
+  .bonusintro .bhow b { font-family: "Fredoka", var(--num); font-weight: 700; color: var(--gold); font-size: 1.1em; letter-spacing: .1em; -webkit-text-stroke: 4px #000; }
+  .bonusintro .bhow strong { font-weight: 700; color: var(--fs-green); letter-spacing: .06em; -webkit-text-stroke: 4px #000; }
   /* "Click or press Space to continue": the bonus intro waits for the player */
   .bonusintro .bcont {
     position: relative; margin-top: 2.2vh; text-align: center; z-index: 2;
@@ -655,15 +657,19 @@
   }
   .fbox .fmult.tick { animation: fmultpop .38s cubic-bezier(.2,.9,.3,1.3); }
   @keyframes fmultpop { 0% { scale: .7; } 55% { scale: 1.22; } 100% { scale: 1; } }
+  /* the info panel's lettering (owner, 2026-10-26): Fredoka in white with a black outline, and
+     the yellow bold - the titles and the figures in the copy - spaced out */
   .fbox h3 {
-    margin: 2.5cqw 0 1.5cqw; font-family: var(--disp); font-size: 6cqw; letter-spacing: .04em; text-transform: uppercase; line-height: 1.1;
-    color: var(--gold); text-shadow: 0 2px 0 rgba(0,0,0,.8), 0 0 10px rgba(0,0,0,.6);
+    margin: 2.5cqw 0 1.5cqw; font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 5.6cqw; letter-spacing: .12em;
+    text-transform: uppercase; line-height: 1.15;
+    color: var(--gold); -webkit-text-stroke: 1.1cqw #000; paint-order: stroke fill;
+    text-shadow: 0 .5cqw 0 rgba(0,0,0,.6), 0 0 10px rgba(0,0,0,.5);
   }
   .fbox p {
-    margin: 0; font-family: var(--legible); font-size: 4.3cqw; line-height: 1.35;
-    color: #f4f0ea; text-shadow: 0 1px 0 rgba(0,0,0,.85), 0 0 5px rgba(0,0,0,.75);
+    margin: 0; font-family: "Fredoka", var(--read); font-weight: 500; font-size: 4.1cqw; line-height: 1.45; letter-spacing: .01em;
+    color: #fff; -webkit-text-stroke: .75cqw #000; paint-order: stroke fill; text-shadow: 0 .4cqw 0 rgba(0,0,0,.55);
   }
-  .fbox p b { font-family: var(--num); color: var(--gold); font-size: 1.12em; }
+  .fbox p b { font-family: "Fredoka", var(--num); font-weight: 700; color: var(--gold); font-size: 1.08em; letter-spacing: .1em; }
   .features .fcont {
     position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
     font-family: var(--disp); font-size: clamp(16px, 2.6vh, 24px); letter-spacing: .14em; text-transform: uppercase;
@@ -2026,11 +2032,12 @@
   .bonuscard:disabled { opacity: .4; cursor: default; }
   /* bet stepper inside the panel — same control as the bar, driving the same bet */
   .bonusbet { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 4px; }
+  /* the words and figures in the info panel's lettering (owner, 2026-10-26) */
   .bonusbet .lbl {
-    font-family: var(--label); font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
-    color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55);
+    font-family: "Fredoka", var(--label); font-weight: 700; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 3.5px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.55);
   }
-  .bonusbet .amt { color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
+  .bonusbet .amt { color: #fff; -webkit-text-stroke: 4px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.55); }
   /* the same two the bar's stepper uses, a size up for the panel */
   .bonusbet button {
     position: relative; width: 38px; height: 38px; padding: 0; border: 0; font-size: 0; color: transparent;
@@ -2045,14 +2052,17 @@
   .bonusbet button:active:not(:disabled) { transform: scale(.9); }
   .bonusbet button:disabled { filter: grayscale(.9) brightness(.7); opacity: .6; cursor: default; }
   .bonusbet .amt {
-    font-family: var(--num); font-size: 19px; font-weight: 400; min-width: 132px; text-align: center;
-    letter-spacing: .06em; font-variant-numeric: tabular-nums;
+    font-family: "Fredoka", var(--num); font-size: 21px; font-weight: 700; min-width: 132px; text-align: center;
+    letter-spacing: .08em; font-variant-numeric: tabular-nums;
   }
   .bonustotal {
-    text-align: center; font-family: var(--plain); font-size: 12.5px; color: #fff;   /* the word stays in the original face */
-    text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
+    text-align: center; font-family: "Fredoka", var(--plain); font-weight: 700; font-size: 14px; letter-spacing: .12em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 3.5px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
   }
-  .bonustotal b { font-family: var(--num); font-size: 24px; letter-spacing: .05em; color: #fff; display: block; margin-top: 4px; }   /* the amount, like every other amount */
+  .bonustotal b {
+    font-family: "Fredoka", var(--num); font-weight: 700; font-size: 27px; letter-spacing: .08em; text-transform: none;
+    color: var(--gold); -webkit-text-stroke: 5px #000; display: block; margin-top: 4px;
+  }
   /* Play is the sprayed yellow plate with the word set into it */
   .bonusgo {
     display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
@@ -2067,8 +2077,8 @@
   /* the only time this button says anything longer than PLAY is when it is disabled */
   .bonusgo:disabled { filter: grayscale(.55) brightness(.85); cursor: default; font-size: 17px; }
   .bonusnote {
-    text-align: center; font-family: var(--legible); font-size: 11px; color: #fff;
-    text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-top: 12px;
+    text-align: center; font-family: "Fredoka", var(--legible); font-weight: 500; font-size: 12.5px; letter-spacing: .01em; color: #fff;
+    -webkit-text-stroke: 2.5px #000; paint-order: stroke fill; text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-top: 12px;
   }
   @media (max-width: 560px) { .bonusgrid { grid-template-columns: 1fr; } }
   @media (prefers-reduced-motion: reduce) {
@@ -5855,6 +5865,64 @@ for (const id of ["fsNow", "fsWin"]) hoverWin($(id), { x: .35, y: .45, r: .4, s:
 // for - a currency mark, a letter - is set beside them in the number font instead of being
 // dropped, so the figure still reads in every currency.
 const NUMERAL = { ".": "dot", ",": "comma" };
+// A bad-TV-signal twitch (owner, 2026-10-26: YOU WON, the spins and every win figure): now and
+// then, for a fraction of a second, the element tears - bands of scanlines slide sideways, the
+// colour channels split red one way and cyan the other, and it jumps a pixel or two - a few
+// frames of it, then clean again. An SVG filter of its own, applied only during a burst (no cost
+// between them), so it works on lettering and on the numeral pictures alike and survives the
+// win figure re-rendering itself as it counts. It stops by itself once the element is gone.
+const SVG_NS = "http://www.w3.org/2000/svg";
+let tvDefs = null, tvSeq = 0;
+function tvGlitch(el, { strength = 1, every = [1300, 3600], burst = [120, 320] } = {}) {
+  if (REDUCED_MOTION || !el) return;
+  if (!tvDefs) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("aria-hidden", "true");
+    svg.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none";
+    tvDefs = document.createElementNS(SVG_NS, "defs");
+    svg.appendChild(tvDefs); document.body.appendChild(svg);
+  }
+  const id = "tvglitch" + (++tvSeq);
+  const f = document.createElementNS(SVG_NS, "filter");
+  f.setAttribute("id", id);
+  for (const [k, v] of [["x", "-15%"], ["y", "-30%"], ["width", "130%"], ["height", "160%"], ["color-interpolation-filters", "sRGB"]]) f.setAttribute(k, v);
+  // noise that varies only down the picture (bands of scanlines), its red channel the sideways
+  // push and its green held at the middle (no push up or down)
+  f.innerHTML =
+    `<feTurbulence type="fractalNoise" baseFrequency="0.00001 0.12" numOctaves="1" seed="1" result="n"/>` +
+    `<feColorMatrix in="n" type="matrix" values="1 0 0 0 0  0 0 0 0 .5  0 0 0 0 0  0 0 0 0 1" result="m"/>` +
+    `<feDisplacementMap in="SourceGraphic" in2="m" scale="0" xChannelSelector="R" yChannelSelector="G" result="d"/>` +
+    `<feColorMatrix in="d" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>` +
+    `<feOffset in="r" dx="0" dy="0" result="ro"/>` +
+    `<feColorMatrix in="d" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0" result="c"/>` +
+    `<feOffset in="c" dx="0" dy="0" result="co"/>` +
+    `<feBlend in="ro" in2="co" mode="screen" result="b"/>` +
+    `<feOffset in="b" dx="0" dy="0"/>`;
+  tvDefs.appendChild(f);
+  const [turb, , disp, , redOff, , cyanOff, , jump] = f.children;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  let timer = 0;
+  const gone = () => { clearTimeout(timer); f.remove(); };
+  const frame = (until, k) => {
+    if (!el.isConnected) return gone();
+    if (performance.now() >= until) { el.style.filter = ""; timer = setTimeout(start, rnd(every[0], every[1])); return; }
+    const split = rnd(1.5, 4) * k;
+    turb.setAttribute("seed", String(Math.floor(rnd(1, 999))));
+    turb.setAttribute("baseFrequency", `0.00001 ${rnd(.04, .22).toFixed(3)}`);
+    disp.setAttribute("scale", (Math.random() < .25 ? 0 : rnd(5, 16) * k).toFixed(1));   // now and then a frame of colour split alone
+    redOff.setAttribute("dx", split.toFixed(1)); cyanOff.setAttribute("dx", (-split).toFixed(1));
+    jump.setAttribute("dx", rnd(-3, 3).toFixed(1)); jump.setAttribute("dy", rnd(-1.2, 1.2).toFixed(1));
+    el.style.filter = `url(#${id})`;
+    timer = setTimeout(() => frame(until, k), rnd(35, 75));
+  };
+  const start = () => {
+    if (!el.isConnected) return gone();
+    const k = strength * (Math.random() < .2 ? 1.4 : 1);   // one burst in five hits a little harder
+    frame(performance.now() + rnd(burst[0], burst[1]) * (k > strength ? 1.4 : 1), k);
+  };
+  timer = setTimeout(start, rnd(500, 1500));
+}
+
 function numeralRow(text) {
   let html = "", sym = "";
   const flush = () => { if (sym) { html += `<span class="sym">${sym.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]))}</span>`; sym = ""; } };
@@ -6097,6 +6165,7 @@ function totalWinScreen(amount, { total = true } = {}) {
     // headline climbs with it: every mark the running figure passes swaps the lettering and
     // lands it with a thump, the tier's bright splash under it from the first mark on.
     const amountEl = wrap.querySelector(".twfig");   // the numerals (their sweep is .twamount's)
+    tvGlitch(amountEl, { strength: 1.1 });           // and they twitch like a bad TV signal now and then
     // Each headline is its own image, decoded now, so a mark shows its own art on the frame it
     // lands - swapping one image's source could show the art before it until the new one loads.
     const logos = [...wrap.querySelectorAll(".twlogo")];
@@ -6335,7 +6404,7 @@ function bonusIntro(spins, extreme) {
           ? `<img class="blogo" src="assets/xbonus_text.webp" alt="${T("Xtreme Bonus")}" draggable="false">`
           : `<img class="blogo" src="assets/bonus_btn_text.webp" alt="${T("Bonus")}" draggable="false">`) +
         `<div class="byou">${T("You won")}</div>` +
-        `<div class="bnum" aria-label="${spins}">${numeralRow(String(spins))}</div>` +
+        `<div class="bnum" aria-label="${spins}"><div class="bfig">${numeralRow(String(spins))}</div></div>` +
         `<div class="bfs">${T("Free spins")}</div>` +
         `<div class="bhow">${bonusIntroHow(extreme)}</div>` +
         `<div class="bcont">${T("Click or press Space to continue")}</div>` +
@@ -6350,6 +6419,8 @@ function bonusIntro(spins, extreme) {
     // feels alive rather than printed; each stops with the screen
     for (const el of wrap.querySelectorAll(".blogo, .byou, .bnum, .bfs, .bhow")) hoverWin(el, { x: .5, y: .7, r: .5, s: 0, unit: "vh", pace: 2.2 }, 0);
     tiltPlates([wrap.querySelector(".inner")]);   // and the whole screen tips toward the cursor, its pieces at their own depths
+    tvGlitch(wrap.querySelector(".byou"));        // YOU WON and the figure twitch like a bad TV signal now and then
+    tvGlitch(wrap.querySelector(".bfig"), { strength: 1.1 });
     const step = (ms, fn) => setTimeout(fn, REDUCED_MOTION ? 0 : ms);
     let phase = 0;   // 0 fading to black, 1 up and waiting, 2 leaving
     // It waits for the player: a click, or Space / Enter (owner, 2026-10-24: it used to move on by
