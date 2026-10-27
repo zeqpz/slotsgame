@@ -14,106 +14,106 @@ smoke
 torso
   rotate: false
   xy: 318, 10
-  size: 576, 521
-  orig: 576, 521
+  size: 483, 464
+  orig: 483, 464
   offset: 0, 0
   index: -1
 shoe_left
   rotate: false
-  xy: 914, 10
-  size: 402, 345
-  orig: 402, 345
-  offset: 0, 0
-  index: -1
-shoe_right
-  rotate: false
-  xy: 1336, 10
-  size: 374, 319
-  orig: 374, 319
+  xy: 822, 10
+  size: 380, 329
+  orig: 380, 329
   offset: 0, 0
   index: -1
 leg_right
   rotate: false
-  xy: 1730, 10
-  size: 256, 317
-  orig: 256, 317
-  offset: 0, 0
-  index: -1
-leg_left
-  rotate: false
-  xy: 1730, 337
-  size: 218, 293
-  orig: 218, 293
+  xy: 1222, 10
+  size: 246, 318
+  orig: 246, 318
   offset: 0, 0
   index: -1
 ash_0
   rotate: false
-  xy: 1336, 339
+  xy: 1488, 10
   size: 355, 299
   orig: 355, 299
   offset: 0, 0
   index: -1
-neck_fill
+leg_left
   rotate: false
-  xy: 914, 365
-  size: 411, 292
-  orig: 411, 292
+  xy: 1488, 319
+  size: 210, 293
+  orig: 210, 293
   offset: 0, 0
   index: -1
 ash_1
   rotate: false
-  xy: 318, 541
+  xy: 1718, 319
   size: 273, 260
   orig: 273, 260
   offset: 0, 0
   index: -1
 ash_2
   rotate: false
-  xy: 612, 541
+  xy: 1254, 338
   size: 207, 209
   orig: 207, 209
   offset: 0, 0
   index: -1
-ember_glow
+neck_fill
   rotate: false
-  xy: 840, 541
-  size: 58, 65
-  orig: 58, 65
+  xy: 822, 349
+  size: 411, 292
+  orig: 411, 292
+  offset: 0, 0
+  index: -1
+shoe_right
+  rotate: false
+  xy: 318, 484
+  size: 357, 267
+  orig: 357, 267
   offset: 0, 0
   index: -1
 crotch_fill
   rotate: false
-  xy: 10, 564
-  size: 117, 183
-  orig: 117, 183
-  offset: 0, 0
-  index: -1
-smoke_wisp
-  rotate: false
-  xy: 148, 564
-  size: 160, 170
-  orig: 160, 170
+  xy: 696, 484
+  size: 111, 139
+  orig: 111, 139
   offset: 0, 0
   index: -1
 cigar_clean
   rotate: false
-  xy: 1712, 640
+  xy: 1254, 557
   size: 200, 182
   orig: 200, 182
   offset: 0, 0
   index: -1
+smoke_wisp
+  rotate: false
+  xy: 10, 564
+  size: 160, 170
+  orig: 160, 170
+  offset: 0, 0
+  index: -1
 ash_4
   rotate: false
-  xy: 1932, 640
+  xy: 190, 564
   size: 101, 97
   orig: 101, 97
   offset: 0, 0
   index: -1
 ash_3
   rotate: false
-  xy: 1346, 648
+  xy: 1718, 589
   size: 148, 158
   orig: 148, 158
+  offset: 0, 0
+  index: -1
+ember_glow
+  rotate: false
+  xy: 1886, 589
+  size: 58, 65
+  orig: 58, 65
   offset: 0, 0
   index: -1
 

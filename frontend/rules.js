@@ -40,7 +40,7 @@ const RULES = (() => {
   };
   const ORDER = ["H1", "H2", "H3", "H4", "H5", "H6", "H7",
                  "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9", "L10"];
-  const RTP = "96.50%", MAX_WIN = 5000;
+  const RTP = "96.70%", MAX_WIN = 10000;
   const MULTI_MIN = 1.25, MULTI_MAX = 1000;
 
   // Restricted phrase -> replacement, from Stake's jurisdiction-requirements table. Longer
@@ -138,6 +138,10 @@ const RULES = (() => {
   <h4>${t("Special symbols")}</h4>
   <div class="prow">${tile("M")}<div class="pname">${t("Multi — Multiplier")}<small>M</small></div>
     <div class="ptext">${t(`Lands with a value from ${x(MULTI_MIN)} to ${x(MULTI_MAX)}, shown on the symbol. Every winning cluster on the board is paid first; only then does it blow out: the Multi and the four symbols sharing an edge with it are removed, each of those five cells keeps the Multi's value, and new symbols drop in on top. A winning cluster that covers one or more of those cells is multiplied by the SUM of the values on the cells it covers. When two Multis reach the same cell their values add. In the base game the values last for the rest of the spin, including every tumble; in a bonus they stay on the board for the whole feature. Crew Leader and The Phantom are never removed by a Multi. The Multi does not form clusters and has no value of its own.`)}</div></div>
+  <div class="prow">${tile("M")}<div class="pname">${t("Wall Line and Full Wall")}<small>M</small></div>
+    <div class="ptext">${t("Wall Line: a straight line of 3 or 4 Multis can land together, along a row or down a column; their blasts overlap, so the cells between them collect more than one value. It can land on any spin, and far more often in a bonus. Full Wall: very rarely, in the base game, every cell of the board except a Crew Leader or Phantom becomes a Multi at once; they all blow out together and the whole board drops in on top of their values.")}</div></div>
+  <div class="prow"><div class="ptile multi"><span>x1.25</span><small>DROP</small></div><div class="pname">${t("Line Drops")}</div>
+    <div class="ptext">${t("Every winning cluster, once paid, leaves a small multiplier (x1.25, x1.5 or x2) on one of its own cells for every five symbols it held, chosen at random. A line drop adds to whatever value that cell already holds and lasts exactly as a Multi's value does: for the rest of the spin in the base game, for the whole feature in a bonus. It never changes the win of the cluster that left it.")}</div></div>
   <div class="prow"><img class="ptile" src="assets/flat/BS.webp" alt="Crew Leader" draggable="false"><div class="pname">${t("Crew Leader — Bonus Scatter")}<small>BS</small></div>
     <div class="ptext">${t("Appears anywhere. 3, 4 or 5 Crew Leaders on one spin award 10, 12 or 15 free spins (the Standard Bonus). Crew Leader does not form clusters and has no value of its own.")}</div></div>
   <div class="prow"><img class="ptile" src="assets/flat/ES.webp" alt="The Phantom" draggable="false"><div class="pname">${t("The Phantom — Extreme Scatter")}<small>ES</small></div>
@@ -146,9 +150,9 @@ const RULES = (() => {
 
 <section>
   <h4>${t("Free spins")}</h4>
-  <p><b>${t("Standard Bonus")}</b> — ${t("3 / 4 / 5 Crew Leaders award 10 / 12 / 15 free spins. Multis land more often than in the base game, and every value a Multi leaves on the board stays there for the whole bonus. Tag Meter target: 4.")}</p>
-  <p><b>${t("Extreme Bonus")}</b> — ${t("2 Phantoms award 17 free spins; a Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme with its own spin count. Multis land more often still and their values run richer. Tag Meter target: 3.")}</p>
-  <p><b>${t("Tag Meter")}</b> — ${t("every winning free spin adds one tag. When the meter fills it awards +3 free spins (at most +9 per bonus), then resets. Free spins are not re-triggered by scatters; extra spins come only from the Tag Meter.")}</p>
+  <p><b>${t("Standard Bonus")}</b> — ${t("3 / 4 / 5 Crew Leaders award 10 / 12 / 15 free spins. Multis land more often than in the base game and Wall Lines far more often, and every value on the board - a Multi's or a line drop's - stays there for the whole bonus.")}</p>
+  <p><b>${t("Extreme Bonus")}</b> — ${t("2 Phantoms award 17 free spins; a Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme with its own spin count. Multis land more often still, every Multi is worth x2 or more, and Wall Lines land far more often than in the base game.")}</p>
+  <p><b>${t("Spins")}</b> — ${t("a bonus plays exactly the free spins its trigger awarded. Free spins are not re-triggered and no spins are added during the feature.")}</p>
   <p class="fine">${t("Free spins are played at the bet and mode of the triggering spin. If the connection drops, reload the game to finish the round.")}</p>
 </section>
 

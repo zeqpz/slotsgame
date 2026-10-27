@@ -85,6 +85,12 @@
     src: url("assets/bromo.otf") format("opentype");
     font-display: swap;
   }
+  /* the lettered buttons: PLAY in the bonus buy panel, START in the auto play picker */
+  @font-face {
+    font-family: "LLambozy";
+    src: url("assets/llambozy.ttf") format("truetype");
+    font-display: swap;
+  }
   /* the bonus screen's own three: YOU WON, the trigger line, and FREE SPINS (the fat cut) */
   @font-face {
     font-family: "Apocalypse Grunge";
@@ -153,35 +159,64 @@
     translate: -50% -50%; pointer-events: none;
   }
   .tagfx > i { position: absolute; inset: 0; background: center / 100% 100% no-repeat; }
-  #tagglow { mix-blend-mode: screen; animation: neonSign 5.7s infinite; }
-  #tagglow > i { inset: -6%; background-image: url("assets/wallfx/tag_glow.webp"); }   /* the halo's padding (make_wall_fx GLOW_PAD) */
-  #tagglow::after {   /* the sheen */
-    content: ""; position: absolute; inset: -6%; background: url("assets/wallfx/tag_glow.webp") center / 100% 100% no-repeat;
-    filter: brightness(1.7) saturate(.8);
-    -webkit-mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
-    mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 300% 100% no-repeat;
-    animation: sheen 6.5s cubic-bezier(.45,0,.55,1) infinite;
+  /* the tube burns at a little over half its painted strength, its light on the bricks at half, and
+     it flickers gently (neonTag) - it was too bright and too busy (owner, 2026-10-25) */
+  #tagglow { mix-blend-mode: screen; animation: neonTag 12s infinite; }
+  #tagglow > i { inset: -6%; background-image: url("assets/wallfx/tag_glow.webp"); opacity: .55; }   /* the halo's padding (make_wall_fx GLOW_PAD) */
+  /* the sheen, a band of brighter light sweeping along the tube now and then. It runs on the
+     compositor: the band is a mask three boxes wide (.sheen > b) that slides across on transform,
+     and the brightened glow inside it (tag_sheen.webp: brightness(1.3) saturate(.8) baked in by
+     make_wall_fx) slides back just as far, so the light stays on the tube while the band moves
+     over it - the sweep the moving mask drew, which repainted the whole tag every frame */
+  #tagglow > .sheen { position: absolute; inset: -6%; opacity: .45; }
+  #tagglow > .sheen > b {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 300%;
+    -webkit-mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 100% 100% no-repeat;
+    mask: linear-gradient(105deg, transparent 42%, #000 50%, transparent 58%) 0 0 / 100% 100% no-repeat;
+    animation: sheenBand 6.5s cubic-bezier(.45,0,.55,1) infinite;
   }
-  #tagspill { mix-blend-mode: color-dodge; animation: neonSpill 5.2s infinite; }
-  #tagspill > i { inset: -22%; background-image: url("assets/wallfx/tag_spill.webp"); }
-  #tagglow.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonSign 5.7s infinite; }
-  #tagglow.pop { animation: tagPop .6s, neonSign 5.7s infinite; }
-  #tagspill.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonSpill 5.2s infinite; }
-  #tagspill.pop { animation: tagPop .6s, neonSpill 5.2s infinite; }
+  #tagglow > .sheen > b > i {
+    position: absolute; top: 0; bottom: 0; left: 0; width: calc(100% / 3);
+    background: url("assets/wallfx/tag_sheen.webp") center / 100% 100% no-repeat;
+    animation: sheenBack 6.5s cubic-bezier(.45,0,.55,1) infinite;
+  }
+  #tagspill { mix-blend-mode: color-dodge; animation: neonSpill 11s infinite; }
+  #tagspill > i { inset: -22%; background-image: url("assets/wallfx/tag_spill.webp"); opacity: .5; }
+  #tagglow.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonTag 12s infinite; }
+  #tagglow.pop { animation: tagPop .6s, neonTag 12s infinite; }
+  #tagspill.bounce { animation: tagBounce .7s cubic-bezier(.22,.9,.32,1.25), neonSpill 11s infinite; }
+  #tagspill.pop { animation: tagPop .6s, neonSpill 11s infinite; }
   @keyframes neon {
     0%, 100% { opacity: .62; } 18% { opacity: .9; } 21% { opacity: .55; } 23% { opacity: .88; }
     46% { opacity: .7; } 62% { opacity: .95; } 80% { opacity: .66; }
   }
   @keyframes neonSpill {
-    0%, 100% { opacity: .7; } 18% { opacity: 1; } 21% { opacity: .6; } 23% { opacity: .97; }
-    46% { opacity: .78; } 62% { opacity: 1; } 80% { opacity: .74; }
+    0%, 100% { opacity: .86; } 18% { opacity: 1; } 21% { opacity: .78; } 23% { opacity: .98; }
+    46% { opacity: .88; } 62% { opacity: 1; } 80% { opacity: .86; }
   }
-  @keyframes sheen { 0% { -webkit-mask-position: 100% 0; mask-position: 100% 0; } 55%, 100% { -webkit-mask-position: -50% 0; mask-position: -50% 0; } }
+  /* the tag's flicker: a sign that stays on - over 12 s it dips twice, softly, each taking about
+     half a second down and as long back (owner, 2026-10-25: less often, slower). WallFX.neon
+     reads it, so what the tag lights flickers the same. */
+  @keyframes neonTag {
+    0%   { opacity: .9; filter: brightness(1); }
+    8%   { opacity: 1; filter: brightness(1.05); }
+    12%  { opacity: .78; filter: brightness(.97); }
+    17%  { opacity: .97; filter: brightness(1.03); }
+    45%  { opacity: .9; filter: brightness(1); }
+    64%  { opacity: 1; filter: brightness(1.04); }
+    69%  { opacity: .82; }
+    75%  { opacity: .96; filter: brightness(1.02); }
+    100% { opacity: .9; filter: brightness(1); }
+  }
+  /* the band from where the moving mask began (its bright middle off the tube's left) to where
+     it ended, off the right, and the glow inside it the same distance back */
+  @keyframes sheenBand { 0% { transform: translateX(-66.6667%); } 55%, 100% { transform: translateX(33.3333%); } }
+  @keyframes sheenBack { 0% { transform: translateX(200%); } 55%, 100% { transform: translateX(-100%); } }
   /* the paint in the wall: wallfx.js draws each blob and its drips into canvases here, dimmed
      the way this wall's own gradient dims the art (so no filter on the layer) */
   #wallpaint { position: absolute; pointer-events: none; }
   #wallpaint > * { position: absolute; display: block; }
-  @media (prefers-reduced-motion: reduce) { .tagfx, .tagfx::after, #tagglow::after { animation: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .tagfx, .tagfx::after, #tagglow .sheen * { animation: none !important; } }
   @keyframes tagBounce { 0% { scale: 1; } 38% { scale: calc(1 + .06 * var(--bounce, 1)); } 100% { scale: 1; } }
   @keyframes tagPop {   /* a quick punch out, a dip back under, and a settle */
     0%   { scale: 1; animation-timing-function: cubic-bezier(.2,.8,.3,1); }
@@ -212,13 +247,10 @@
     scale: var(--char-depth, 1);
     transform: perspective(900px) rotateY(var(--scene-yaw));   /* no turn of their own (owner, 2026-10-24) */
   }
-  /* a soft contact shadow on the pavement under each, so the figure stands on something */
-  .charfx::before {
-    content: ""; position: absolute; left: 18%; right: 18%; bottom: 0; height: 9%; z-index: 0; pointer-events: none;
-    background: radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,.28) 55%, transparent);
-    translate: 0 45%; opacity: 0; transition: opacity var(--char-fade, .4s) linear;
-  }
-  .charfx:has(canvas.on)::before { opacity: 1; }
+  /* the shadows on the pavement under each figure's feet (footShadow): a canvas of their own just
+     under the figure - outside its box, which cut the old one in half - shown with the figure */
+  .charshadow { position: fixed; z-index: -1; pointer-events: none; opacity: 0; transition: opacity var(--char-fade, .4s) linear; }
+  .charshadow.on { opacity: 1; }
   .charfx canvas { z-index: 1; }
   /* --char-shift centres each character's own column on the union of its clips' content:
      char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
@@ -263,7 +295,7 @@
     :root { --char-height: 22vh; --char-inset: -4vw; --char-drop: -46vh; }
     #charfx { right: -2vw; }   /* the skull's figure sits further out in its box than the boy's: this evens their margins */
     .charfx { clip-path: inset(0 0 var(--char-cut, 0px) 0); }
-    .charfx::before { display: none; }   /* their feet are behind the board here */
+    .charshadow { display: none; }   /* their feet are behind the board here */
   }
   /* Landscape phone: short screen, board fitted to the height, room either side again. */
   @media (max-height: 500px) {
@@ -585,8 +617,8 @@
      characters, no bar. The Multi with its value climbing and warming, the Crew Leader and
      the Phantom, and what each one does. They drift; the one under the mouse comes forward.
      The wall is the real one behind the game: the game itself is faded out beneath. */
-  body.features-fade #app, body.features-fade .charfx { transition: opacity .7s ease; }
-  body.features-up #app, body.features-up .charfx { opacity: 0; }
+  body.features-fade #app, body.features-fade .charfx, body.features-fade .charshadow { transition: opacity .7s ease; }
+  body.features-up #app, body.features-up .charfx, body.features-up .charshadow { opacity: 0; }
   .features {
     position: fixed; inset: 0; z-index: 58;
     /* never sideways: a plate's drift tilts it a degree past its box, and that alone would
@@ -801,7 +833,7 @@
   }
   #autoPop::after { border-top-color: #1f8fff; }   /* the little arrow, in the plate's blue */
   /* a plain face here, not the graffiti one: this panel is read, not admired. Everything
-     centred on the plate, the words in grey, Start in black */
+     centred on the plate; Start is the lettered button (.wordbtn) */
   #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: var(--plain); }
   #autoPop { text-align: center; }
   /* white cut out of a black outline: the stone is mottled, and an outline holds the letters
@@ -818,10 +850,6 @@
   }
   #autoPop .popsub b { color: #fff; font-weight: 800; }
   #autoPop .autoopts button { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
-  #autoPop .infoclose {
-    display: inline-block; margin: 0 auto; min-width: 120px;
-    font-size: 13px; font-weight: 700; letter-spacing: .14em;
-  }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .popover .autoopts { margin: 0 0 10px; }
@@ -1149,9 +1177,10 @@
   .infopanel p { font-family: var(--read); font-size: 14px; line-height: 1.6; color: var(--ink); margin: 0 0 14px; }
   .infopanel p.legal { color: var(--ink-soft); font-size: 11.5px; line-height: 1.7; }
   .infopanel b, .infopanel strong { font-family: var(--legible); }
-  /* The plain buttons wear the sprayed boxes the rest of the UI does: Play and Start on the
-     yellow pill the Bonus panel's Play already uses, Close on the lime box, the count picks on
-     the magenta box of the sound and info buttons - each stretched to the text it carries. */
+  /* The plain buttons wear the sprayed boxes the rest of the UI does: the replay's Play on the
+     yellow pill, Close on the lime box, the count picks on the magenta box of the sound and info
+     buttons - each stretched to the text it carries. (The Bonus panel's Play and the auto play
+     picker's Start are lettered: .wordbtn.) */
   .infoclose {
     font-family: var(--disp); font-size: 16px; letter-spacing: .08em; text-transform: uppercase;
     min-width: 150px; padding: 13px 30px 12px; border: 0;
@@ -1450,6 +1479,16 @@
     100% { scale: 1; filter: brightness(1); }
   }
   @media (prefers-reduced-motion: reduce) { .multlayer .gmult.bare { animation: none; } }
+  /* a line drop (math v5): a winning cluster's small multiplier drops into its cell from just
+     above and lands with a bounce, on translate so the idle stretch and the pop ride on top */
+  .multlayer .gmult.drop { animation: gmultDrop calc(.5s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.3,.9,.35,1.3); }
+  @keyframes gmultDrop {
+    0%   { translate: 0 -55%; opacity: 0; filter: brightness(2); }
+    45%  { translate: 0 6%; opacity: 1; filter: brightness(1.5); }
+    70%  { translate: 0 -4%; }
+    100% { translate: 0 0; filter: brightness(1); }
+  }
+  @media (prefers-reduced-motion: reduce) { .multlayer .gmult.drop { animation: none; } }
   /* and when a new spin clears the board it fades away, drawing in a little, rather than
      vanishing (paintCell hides the slot once the fade is through) */
   .multlayer .gmult.gone { opacity: 0; scale: .72; transition: opacity .45s ease, scale .45s ease; }
@@ -1747,9 +1786,6 @@
   .wall.muralwall span.done { box-shadow: none; }
   .kv { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12.5px; margin-top: 6px; color: var(--ink-soft); }
   .kv b { color: var(--ink); }
-  .tags { display: flex; gap: 4px; }
-  .tags span { width: 20px; height: 20px; border: 2px solid var(--line); background: var(--panel2); transition: background .3s; }
-  .tags span.done { background: var(--gold); border-color: var(--gold); }
   #chars { display: flex; flex-direction: column; gap: 5px; font-family: var(--mono); font-size: 13px; }
   #chars .chip { display: flex; justify-content: space-between; border: 1px solid var(--teal); color: var(--teal); padding: 3px 8px; }
   #chars .total { border-color: var(--spray); color: var(--spray); font-weight: 700; }
@@ -1839,10 +1875,16 @@
   /* greyed while a round runs, armed or not: the choice is kept, only the press is off */
   .sidebtn:disabled, .sidebtn.on:disabled { filter: grayscale(.95) brightness(.7); opacity: .6; cursor: default; }
   .sidebtn:disabled::before, .sidebtn.on:disabled::before { filter: grayscale(1) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
+  /* the rounds left: a gold bubble that reads at a glance - the solid money face (the hollow
+     one vanished at this size), black-ringed against the plate, with a glow to catch the eye */
   .sidebtn #autoN {
-    position: absolute; right: -3px; top: -3px; font-size: 10px; line-height: 1;
-    font-family: var(--mono); font-weight: 700; color: #16130f; background: var(--gold);
-    border-radius: 7px; padding: 2px 4px; min-width: 14px; text-align: center;
+    position: absolute; right: -3px; top: -3px; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+    min-width: calc(22px * var(--hs, 1)); height: calc(22px * var(--hs, 1)); padding: 0 calc(5px * var(--hs, 1));
+    font-family: var(--num); font-size: calc(15px * var(--hs, 1)); font-weight: 400; line-height: 1;
+    color: #16130f; background: var(--gold);
+    border: 2px solid #000; border-radius: 999px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, .6), 0 0 10px rgba(245, 197, 24, .8);
   }
   .sidebtn #autoN[hidden] { display: none; }
 
@@ -1970,16 +2012,23 @@
   }
   /* the heading is the painted BONUS lettering. The word stays in the markup at font-size 0
      so a screen reader still announces the dialog; only the eye gets the art. */
-  /* the heading wears the Bonus button's pink box, the lettering sitting on it the same way */
+  /* the heading wears the Bonus button's pink box, the lettering sitting on it the same way, and
+     its neon too: the plate's cyan tube lit and flickering like the button's (.bglow, below) */
   .bonuspanel h3 {
     position: relative; width: 186px; height: 120px; margin: -6px auto 10px;
     font-size: 0; color: transparent;
+  }
+  /* the plate and its shadow on a layer of their own: a filter on the heading itself would shade
+     the tube's glow and keep it from screening onto the panel the way the button's does */
+  .bonuspanel h3::before {
+    content: ""; position: absolute; inset: 0;
     background: url("assets/bonus_btn_bg.webp") center / contain no-repeat;
     filter: drop-shadow(0 4px 7px rgba(0,0,0,.55));
   }
   .bonuspanel h3::after {
-    content: ""; position: absolute; inset: 5% 6%;
+    content: ""; position: absolute; inset: 5% 6%; z-index: 1;
     background: url("assets/bonus_btn_text.webp") center / contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
   }
   .bonusgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   /* Each card is just its scatter: FS for the standard feature, XFS for extreme. The
@@ -2053,19 +2102,40 @@
     text-shadow: 0 2px 0 rgba(0,0,0,.55); margin-bottom: 16px;
   }
   .bonustotal b { font-family: var(--num); font-size: 24px; letter-spacing: .05em; color: #fff; display: block; margin-top: 4px; }   /* the amount, like every other amount */
-  /* Play is the sprayed yellow plate with the word set into it */
-  .bonusgo {
-    display: block; width: min(100%, 310px); margin: 0 auto; aspect-ratio: 2.805;
-    background: url("assets/bonus_play.webp") center / 100% 100% no-repeat;
-    border: 0; padding: 0 12%;
-    font-family: var(--disp); font-size: 27px; line-height: 1.15; letter-spacing: .1em;
-    text-transform: uppercase; color: #171203; text-shadow: 0 2px 0 rgba(255, 255, 255, .22);
-    transition: transform .14s cubic-bezier(.3,.8,.4,1), filter .14s linear;
+  /* The lettered buttons - the Bonus panel's PLAY, the auto play picker's START: the word itself,
+     lettered like BONUS in white with black ink and drips (art/letters/, tools/letter_art/make.py
+     play start), on a dark card like the FS and XFS cards. The sprayed yellow plate they sat on
+     shouted over the panels around them. */
+  .wordbtn {
+    position: relative; display: block; margin: 0 auto; aspect-ratio: 2.805;
+    background: rgba(12, 10, 16, .74); border: 2px solid rgba(0, 0, 0, .5); border-radius: 13px;
+    padding: 0 8%; cursor: pointer;
+    /* words shown instead of the art (Play's "Not enough balance"), in its colours: white, black line */
+    font-family: var(--label); font-size: 17px; line-height: 1.15; letter-spacing: .08em;
+    text-transform: uppercase; color: #fff;
+    -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 3px 0 #000;
+    transition: transform .14s cubic-bezier(.3,.8,.4,1), border-color .18s, box-shadow .18s;
   }
-  .bonusgo:hover:not(:disabled) { transform: scale(1.04); filter: brightness(1.07); }
-  .bonusgo:active:not(:disabled) { transform: scale(.96); }
-  /* the only time this button says anything longer than PLAY is when it is disabled */
-  .bonusgo:disabled { filter: grayscale(.55) brightness(.85); cursor: default; font-size: 17px; }
+  /* the word is the art (--word); it stays in the markup at font-size 0 for screen readers */
+  .wordbtn.art { font-size: 0; color: transparent; -webkit-text-stroke: 0; text-shadow: none; }
+  .wordbtn.art::after {
+    content: ""; position: absolute; inset: 9% 14% 3%;
+    background: var(--word) center / contain no-repeat;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
+    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
+  }
+  .wordbtn:hover:not(:disabled) {
+    transform: scale(1.04); border-color: rgba(255, 255, 255, .6);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .14), 0 0 20px rgba(255, 255, 255, .22);
+  }
+  .wordbtn.art:hover:not(:disabled)::after { scale: 1.06; }
+  .wordbtn:active:not(:disabled) { transform: scale(.96); }
+  .wordbtn:disabled { opacity: .6; cursor: default; }
+  .bonusgo { width: min(100%, 310px); }
+  #autoYes { width: 170px; border-radius: 11px; }
+  /* PLAY and START are set in type now, in LLambozy (the "Not enough balance" state keeps its own face) */
+  .bonusgo:not(:disabled), #autoPop #autoYes { font-family: "LLambozy", var(--label); font-size: 46px; letter-spacing: .06em; line-height: 1; padding: 0; justify-content: center; }
+  #autoPop #autoYes { font-size: 34px; }
   .bonusnote {
     text-align: center; font-family: var(--legible); font-size: 11px; color: #fff;
     text-shadow: 0 1px 0 rgba(0,0,0,.6); margin-top: 12px;
@@ -2121,7 +2191,7 @@
   .bonusbtn:hover:not(:disabled)::before, .bonusbtn:hover:not(:disabled) .bglow { scale: 1.04; }
   /* the plate's cyan outline lit like a neon sign: the tube buzzing on and off at random beats,
      a slow breath through it, and a brighter pulse as the gas catches - over the plate, screened */
-  .bonusbtn .bglow {
+  .bonusbtn .bglow, .bonuspanel h3 .bglow {
     position: absolute; inset: -14% -14%; z-index: 0; pointer-events: none;   /* the glow's padding (make_wall_fx BTN_PAD) */
     background: url("assets/wallfx/bonus_glow.webp") center / contain no-repeat;   /* fitted like the plate, so the tube lies on its outline */
     mix-blend-mode: screen; transition: scale .18s ease;
@@ -2143,7 +2213,7 @@
     100% { opacity: .75; filter: brightness(1); }
   }
   .bonusbtn:disabled .bglow { animation: none; opacity: .3; }
-  @media (prefers-reduced-motion: reduce) { .bonusbtn .bglow { animation: none; opacity: .85; } }
+  @media (prefers-reduced-motion: reduce) { .bonusbtn .bglow, .bonuspanel h3 .bglow { animation: none; opacity: .85; } }
   .bonusbtn.clicked { animation: btnBounce2 .34s cubic-bezier(.3,.7,.4,1.4); }
   .bonusbtn:disabled { opacity: .5; }
   .bonusbtn:disabled::after { animation-play-state: paused; }
@@ -2213,7 +2283,7 @@
   .sidebtn.on:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(79,232,255,.85)); }
   .bonusbtn:disabled { opacity: 1; }
   .bonusbtn:disabled::after { animation-play-state: running; }
-  .sidebtn #autoN { right: -3px; top: -5px; }
+  .sidebtn #autoN { right: calc(-8px * var(--hs, 1)); top: calc(-12px * var(--hs, 1)); }
   /* the long plate: its rounded ends are cut from the art and kept at their own width, the
      middle stretches to whatever the figures need */
   .hudbar {
@@ -2323,7 +2393,7 @@
 </style>
 </head>
 <body>
-<div id="bgwall"><div id="wallpaint" aria-hidden="true"></div><div id="tagspill" class="tagfx" aria-hidden="true"><i></i></div><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"><div id="tagglow" class="tagfx" aria-hidden="true"><i></i></div></div>
+<div id="bgwall"><div id="wallpaint" aria-hidden="true"></div><div id="tagspill" class="tagfx" aria-hidden="true"><i></i></div><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"><div id="tagglow" class="tagfx" aria-hidden="true"><i></i><b class="sheen"><b><i></i></b></b></div></div>
 <div id="charfx" class="charfx" aria-hidden="true"></div>
 <div id="charfx2" class="charfx" aria-hidden="true"></div>
 
@@ -2331,7 +2401,7 @@
 <div class="main">
   <div class="stage">
     <div class="board" id="board"><div class="boardplate" aria-hidden="true"></div><img id="paintframe" src="assets/frame.webp" alt="" draggable="false"></div>
-    <div class="ticker" id="ticker">Draws come from the optimized 96.5% RTP lookup tables — the real math.</div>
+    <div class="ticker" id="ticker">Draws come from the optimized 96.7% RTP lookup tables — the real math.</div>
     <div class="banner" id="banner"><div class="big" id="bannerBig"></div><div class="sub2" id="bannerSub"></div><img id="bannerMural" class="muralimg" alt=""></div>
     <div class="tally" id="tally">0.00</div>
   </div>
@@ -2376,7 +2446,7 @@
               <button type="button" data-n="50">50</button>
               <button type="button" data-n="100">100</button>
             </div>
-            <button class="infoclose" id="autoYes">Start</button>
+            <button class="wordbtn" id="autoYes">Start</button>
           </div>
       </div>
     </div>
@@ -2406,19 +2476,19 @@
 <div class="infowrap" id="bonusWrap" hidden>
   <div class="bonuspop">
     <div class="bonuspanel" role="dialog" aria-modal="true" aria-label="Bonus">
-      <h3 id="bonusTitle">Bonus</h3>
+      <h3 id="bonusTitle"><i class="bglow" aria-hidden="true"></i>Bonus</h3>
       <div class="bonusgrid">
         <button type="button" class="bonuscard gold on" id="bonusStd" data-mode="bonus">
           <img class="cardart" src="assets/flat/BS.webp" alt="" draggable="false">
           <span class="ttl">Standard</span>
           <span class="mult" id="bonusStdCost"></span>
-          <span class="desc" id="bonusStdDesc">10, 12 or 15 free spins. Multis land often and every value they leave stays on the board for the whole bonus. Tag Meter 4.</span>
+          <span class="desc" id="bonusStdDesc">10, 12 or 15 free spins. Multis land often and drop in lines, and every value they leave stays on the board for the whole bonus.</span>
         </button>
         <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
           <img class="cardart" src="assets/flat/ES.webp" alt="" draggable="false">
           <span class="ttl">Extreme</span>
           <span class="mult" id="bonusExtCost"></span>
-          <span class="desc" id="bonusExtDesc">17 free spins. Every Multi is worth x2 or more, values stack across the feature, Tag Meter 3.</span>
+          <span class="desc" id="bonusExtDesc">17 free spins. Every Multi is worth x2 or more, walls drop in lines, and values stack across the feature.</span>
         </button>
       </div>
       <div class="bonusbet">
@@ -2428,7 +2498,7 @@
         <button type="button" id="bonusBetUp" aria-label="Raise bet">+</button>
       </div>
       <div class="bonustotal" id="bonusTotalLbl">Total<b id="bonusTotal"></b></div>
-      <button class="bonusgo" id="bonusGo">Play</button>
+      <button class="wordbtn bonusgo" id="bonusGo">Play</button>
       <div class="bonusnote" id="bonusNote">Pressing Play charges the total above and starts the feature.</div>
     </div>
   </div>
@@ -2591,6 +2661,11 @@ function buildBoard() {
   const layer = document.createElement("div");
   layer.className = "multlayer"; layer.id = "multLayer";
   board.appendChild(layer);
+  // a line drop falls in once: the class goes when it has landed (or was cut short), so a slot
+  // that is hidden and shown again later doesn't fall in a second time
+  for (const t of ["animationend", "animationcancel"]) {
+    layer.addEventListener(t, e => { if (e.animationName === "gmultDrop") e.target.classList.remove("drop"); });
+  }
   for (let r = 0; r < REELS; r++) {
     multEls.push([]);
     for (let y = 0; y < ROWS; y++) {
@@ -2647,6 +2722,9 @@ function drift(stepLo, stepHi) {
 // random, never-repeating wander as before, with no JavaScript and no style work per frame.
 // (These loops used to write CSS variables on 98 elements every frame; on a laptop that alone
 // held the idle board near 20 fps.) frames(t) -> one keyframe; targets() -> the elements.
+// The stretches are short, six seconds or so: Chrome still samples every running animation on the
+// main thread each frame, at a cost that grows with its keyframes, and 105 wanders of 24 s (193
+// keyframes each) held an idle frame at ~9 ms of main-thread work. Same path, a quarter the keyframes.
 // A wander on something not on screen right now (a multiplier slot with no value, the bonus
 // counters outside a bonus) holds still: an animation on an element with no box cannot run on
 // the compositor, so Chrome would tick it on the main thread every frame for nothing.
@@ -2659,7 +2737,7 @@ const wanderIO = typeof IntersectionObserver === "function" ? new IntersectionOb
     if (a) { if (e.isIntersecting) a.play(); else a.pause(); }
   }
 }) : null;
-function wander(targets, frames, { seg = 24, rate = 8 } = {}) {
+function wander(targets, frames, { seg = 6, rate = 8 } = {}) {
   let t = 0;
   // the first stretch is a random part of a full one, so the 49 cells (each its own wander)
   // renew at scattered moments instead of all in the same frame every `seg` seconds
@@ -2717,7 +2795,7 @@ function idleStretch() {
 const RIM_SLICE_INFO = [.049, .0625, .049, .0625], RIM_SLICE_AUTO = [.09, .09, .09, .09];
 const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art had in CSS
   { sel: ".bonuspanel", art: "bonus_panel", fit: "stretch", flameK: 1.7, shadow: [18, 40, .6] },
-  { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65] },
+  { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7 },   // stoked under the mouse (runFeatures)
   { sel: ".infopanel", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, host: el => el.parentElement, flameK: 1.9, shadow: [14, 30, .55] },   // it scrolls: its rim lives beside it
   { sel: ".bonusintro .bhow", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, flameK: 1.9, shadow: [14, 30, .55] },
   { sel: "#autoPop", art: "auto_box", fit: "slice", slice: RIM_SLICE_AUTO, shadow: [10, 22, .6] },
@@ -2737,7 +2815,7 @@ function startRims() {
   if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
   SprayFX.start({
     boxes: [{ sel: "#board", box: true, grow: 10, inset: .01, band: .03, radius: .022, flameK: 1.76, z: 3, cls: "framefx",
-              onAttach: el => el.classList.add("livefx") }],
+              flare: 1, onAttach: el => el.classList.add("livefx") }],   // stoked as a spin starts (playRound)
     rules: RIM_RULES,
   });
 }
@@ -2747,7 +2825,7 @@ function frameIdle() {
   const dx = drift(2.5, 4.5), dy = drift(2.5, 4.5), dr = drift(3, 5), dsx = drift(2.5, 4.5), dsy = drift(2.5, 4.5);
   wander(() => [frame, document.querySelector("#board .sprayrim")].filter(Boolean), t => ({
     transform: `translate(${(5 * dx(t)).toFixed(2)}px, ${(5 * dy(t)).toFixed(2)}px) rotate(${(.35 * dr(t)).toFixed(3)}deg) scale(${(1 + .004 * dsx(t)).toFixed(4)}, ${(1 + .004 * dsy(t)).toFixed(4)})`,
-  }), { seg: 30, rate: 6 });
+  }), { seg: 8, rate: 6 });
 }
 function cellClass(sym) {
   return "cell " + (SYM[sym.name] || { cls: "low" }).cls;
@@ -3433,11 +3511,14 @@ function canRattle(ms, inMs = 0) {
 // fall or drop in on top of its number without ever taking the number with it.
 const emptyGrid = () => Array.from({ length: REELS }, () => Array(ROWS).fill(0));
 // A multiplier's colour is its heat: green for a nudge, yellow at 5x, orange at 20x, red
-// from 100x up. Anchored on the value table (log scale between anchors) so each step up
-// the table is a visible step warmer.
-const HEAT_ANCHORS = [[1.25, 100], [3, 75], [5, 58], [10, 45], [20, 32], [50, 18], [100, 8], [1000, 0]];   // [value, hue]
+// from 100x up - and purple over 500x (owner, 2026-10-25), the rare ones in a colour of their
+// own. Anchored on the value table (log scale between anchors) so each step up the table is a
+// visible step warmer.
+const HEAT_ANCHORS = [[1.25, 100], [3, 75], [5, 58], [10, 45], [20, 32], [50, 18], [100, 8], [500, 0]];   // [value, hue]
+const HEAT_PURPLE = 285;   // the hue of everything over 500x
 function heatHue(v) {
-  const x = Math.max(1.25, Math.min(1000, v));
+  if (v > 500) return HEAT_PURPLE;
+  const x = Math.max(1.25, Math.min(500, v));
   let hue = 0;
   for (let i = 1; i < HEAT_ANCHORS.length; i++) {
     const [v0, h0] = HEAT_ANCHORS[i - 1], [v1, h1] = HEAT_ANCHORS[i];
@@ -3837,17 +3918,6 @@ async function renderReveal(ev) {
 }
 
 /* ---------- rail widgets ---------- */
-function setTags(n, target) {
-  const box = $("tags");
-  if (!box) return;   // tag meter card was removed from the rail
-  box.innerHTML = "";
-  for (let i = 0; i < target; i++) {
-    const s = document.createElement("span");
-    if (i < n) s.classList.add("done");
-    box.appendChild(s);
-  }
-}
-
 /* ---------- banner / ticker ---------- */
 async function banner(big, sub, ms, cls) {
   const b = $("banner");
@@ -4515,9 +4585,11 @@ const handlers = {
       // every performance - the Multi's and its neighbours' - plays through before anything moves on
       await hold((Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - 360) + 80)) / MULTI_RATE);
     };
+    // a board cover sets off a wall in every cell: those go in a quick ripple, not one by one
+    const list = ev.boosters || [], stagger = list.length > 6 ? Math.max(24, MULTI_STAGGER * 6 / list.length) : MULTI_STAGGER;
     const runs = [];
-    for (const [i, b] of (ev.boosters || []).entries()) {
-      if (i) await hold(MULTI_STAGGER);
+    for (const [i, b] of list.entries()) {
+      if (i) await hold(stagger);
       runs.push(one(b));
     }
     await Promise.all(runs);
@@ -4527,6 +4599,37 @@ const handlers = {
     eachCell(el => el.classList.remove("boom", "hit"));
     clearFxWins();
     $("board").classList.remove("spotlight");
+  },
+
+  // A wall event on the board just revealed (math v5): a line of 3 or 4 walls dropping in
+  // together, or the whole board covered in walls - named before the walls go off
+  async wallDrop(ev) {
+    const cells = (ev.positions || []).map(p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)]);
+    for (const c of cells) c.classList.add("pulse");
+    if (ev.kind === "cover") {
+      // no banner over the board (owner, 2026-10-25): the board turning to walls is the announcement
+      charReact("big_win");
+      sfx("alertA");
+      tick(`<b>FULL WALL</b> \u2014 every cell is a Multi`);
+      await hold(700 / MULTI_RATE);
+    } else {
+      sfx("alertB");
+      tick(`<b>WALL LINE</b> \u2014 ${cells.length} Multis in a row`);
+      await hold(420 / MULTI_RATE);
+    }
+    for (const c of cells) c.classList.remove("pulse");
+  },
+
+  // The clusters just paid drop small multipliers under themselves (math v5): each value lands
+  // in its cell's slot as the tiles leave, with a little drop, and adds to what was there
+  async lineMults(ev) {
+    state.grid = (ev.gridMults || []).map(col => col.slice());
+    paintGrid();
+    for (const d of ev.drops || []) {
+      const g = multEls[d.reel] && multEls[d.reel][Math.min(Math.max(d.row - 1, 0), ROWS - 1)];
+      if (g) { g.classList.remove("drop"); restyle(g); g.classList.add("drop"); }
+    }
+    await hold(160 / MULTI_RATE);
   },
 
   async setWin() { await delay(120); },
@@ -4557,10 +4660,8 @@ const handlers = {
     await bonusIntro(spins, true);
   },
 
-  async enterBonus(ev) {
+  async enterBonus() {
     resetGrid();   // the bonus starts clean and then keeps every multiplier it lays down
-    setTags(0, ev.reason === "standard" ? 4 : 3);
-    state.tagTarget = ev.reason === "standard" ? 4 : 3;
   },
 
   async updateFreeSpin(ev) {
@@ -4580,16 +4681,7 @@ const handlers = {
     await delay(160);
   },
 
-  async tagMeter(ev) { setTags(ev.tags, ev.target); tick(`Tag Meter <b>${ev.tags} / ${ev.target}</b>`); await delay(200); },
-
-  async tagMeterFull() {
-    // no banner: the meter pays without stopping the bonus to announce it. The free-spin
-    // counter climbing is the award, and the meter resets under it
-    setTags(0, state.tagTarget || 4);
-    await delay(200);
-  },
-
-  async wincap(ev) { charReact("big_win"); await banner("MAX WIN", `${fmt(cents(ev.amount))} — 5000x cap`, 1600); },
+  async wincap(ev) { charReact("big_win"); await banner("MAX WIN", `${fmt(cents(ev.amount))} — ${RULES.MAX_WIN.toLocaleString("en-US")}x cap`, 1600); },
 
   async freeSpinEnd(ev) {
     // profit is measured against what the round cost: a bought bonus that pays less than
@@ -4694,7 +4786,7 @@ function hoverWin(host, reach, lag, css) {
   };
   // Pieces that stay on screen for good (the wall tag, the bonus counters) hand their path to
   // the compositor: css(v) turns a point on it into real properties, and wander() plays it.
-  if (css) { wander(() => [host, ...(host._followers || [])], t => css(at(t)), { seg: 24, rate: 8 }); return; }
+  if (css) { wander(() => [host, ...(host._followers || [])], t => css(at(t)), { seg: 6, rate: 8 }); return; }
   const put = (tag, v) => {
     host.style.setProperty(`--${tag}x`, v.x.toFixed(2) + unit);
     host.style.setProperty(`--${tag}y`, v.y.toFixed(2) + unit);
@@ -4783,7 +4875,6 @@ async function presentRound(round, { settle = true } = {}) {
   boardZoom(false);   // never carried into a new round
   state.bonusHit = false;
   state.multiCount = 0; state.multiTotal = 0;
-  setTags(0, 4);
 
   // The amounts inside a round's events are hundredths of the bet, which is what cents()
   // converts. The round TOTAL is not: the RGS reports it as `payout` in money units and
@@ -4929,6 +5020,7 @@ async function playRound(mode) {
   state.playing = true; state.skip = false; state.mode = mode;
   setButtons(false);
   bounceFx();
+  if (window.SprayFX) SprayFX.stoke($("board"));   // the spin blows on the frame's fire: its flames whoosh up and settle
   tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
   const t0 = performance.now();
   let ok = true;
@@ -5143,6 +5235,7 @@ const CHARACTERS = [
     ambient: ["ember_loop"],
     // the painted plume comes off the figure and live smoke rises from the ember (smoke.js)
     smoke: { from: "ember", hide: ["smoke", "wisp_a", "wisp_b"] },
+    unlit: ["cigar", "shoe_left", "shoe_right"],   // the neon from behind leaves the cigar and the laces alone (owner, 2026-10-25)
     flavour: [["ash_break"]],
     swap: { big_win: "win" },   // the skull's big-win clip is retired: its normal win plays for both
   },
@@ -5155,6 +5248,12 @@ const CHARACTERS = [
   },
 ];
 const CHAR_RATE = .8;                     // both rigs play at 80% speed, as the clips did
+// The pair redraw at most about 60 times a second: on the owner's 165 Hz screen each figure - its
+// rig, rim light, cigar smoke and shadow - was drawn 165 times a second, the heaviest thing on an
+// idle page. 63 rather than 60 because Pixi rounds the time since its last frame down to whole ms
+// before it compares: at exactly 60 a 60 Hz screen would now and then lose a frame; at 63 it never
+// does, and a faster screen is held near 63.
+const CHAR_FPS = 63;
 const CHAR_FLAVOUR_GAP = [7000, 16000];   // how long idle runs before the next break
 
 // How hard each moment grabs the body track. A bigger moment cuts off a smaller one; a
@@ -5233,7 +5332,248 @@ function uploadPages(app, pages) {
   } catch (e) { /* a page that will not go up early just goes up when it is first drawn */ }
 }
 
-async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smoke = null }) {
+// The tag's neon lights the pair from behind (owner, 2026-10-25): each figure takes a band of its
+// green just inside its black outline, on the edges that face where the light comes from,
+// softening off into the figure, strongest nearest the glowing tube and flickering with the sign.
+// The ink stays ink - the outline and the lines inside it are never lit - and some slots are left
+// out of the light altogether (`unlit`, owner 2026-10-25: the skull's cigar, and his shoes, whose
+// laces are painted into them). Where the light comes from is read off the tag itself
+// (WallFX.light), so it is right wherever the figure and the tag stand (the portrait rules move
+// both). A Pixi filter on the rig: every pixel looks toward the light, past one outline's width,
+// and is lit by how near the figure's edge is that way - so the head, the shoulder and the arm each
+// catch it at their own angle.
+const NEON_RIM = { ink: .005, width: .007, reach: .6, gain: .54, rgb: [.6, 1, .45] };   // ink (the outline's width), width, reach: of the canvas height; gain .54: dimmed with the tag, then 35% brighter (owner, 2026-10-25)
+const NEON_RIM_VERT = `in vec2 aPosition;
+out vec2 vTextureCoord;
+uniform vec4 uInputSize;
+uniform vec4 uOutputFrame;
+uniform vec4 uOutputTexture;
+void main(void) {
+  vec2 position = aPosition * uOutputFrame.zw + uOutputFrame.xy;
+  position.x = position.x * (2.0 / uOutputTexture.x) - 1.0;
+  position.y = position.y * (2.0 * uOutputTexture.z / uOutputTexture.y) - uOutputTexture.z;
+  gl_Position = vec4(position, 0.0, 1.0);
+  vTextureCoord = aPosition * (uOutputFrame.zw * uInputSize.zw);
+}`;
+const NEON_RIM_FRAG = `in vec2 vTextureCoord;
+out vec4 finalColor;
+uniform sampler2D uTexture;
+uniform highp vec4 uInputSize;    // highp as in the vertex stage: a uniform both stages use must agree, or it will not link
+uniform vec4 uInputClamp;
+uniform highp vec4 uOutputFrame;
+uniform vec2 uLight;    // where the light comes from, stage px
+uniform vec3 uColor;
+uniform float uPower;   // its strength at the figure, flicker included
+uniform float uInk;     // the outline's width, stage px: the light starts inside it
+uniform float uWidth;   // how deep the band reaches in past the outline, stage px
+uniform float uReach;   // how far from the light it has fallen to half, stage px
+uniform sampler2D uUnlit;   // the slots the light leaves alone, drawn over the stage in their own shapes
+uniform vec2 uStage;        // the stage's size, px
+float open(vec2 uv) { return 1.0 - texture(uTexture, clamp(uv, uInputClamp.xy, uInputClamp.zw)).a; }
+void main(void) {
+  vec4 c = texture(uTexture, vTextureCoord);
+  finalColor = c;
+  if (c.a < 0.004 || uPower <= 0.0) return;
+  vec3 rgb = c.rgb / c.a;
+  // the ink stays ink: the light falls on the paint between the lines
+  float paint = smoothstep(0.06, 0.12, dot(rgb, vec3(0.2126, 0.7152, 0.0722)));
+  if (paint <= 0.0) return;
+  vec2 pos = uOutputFrame.xy + vTextureCoord * uInputSize.xy;
+  float keep = 1.0 - texture(uUnlit, pos / uStage).a;
+  if (keep <= 0.0) return;
+  vec2 to = uLight - pos;
+  float d = length(to);
+  vec2 dir = to / max(d, 1e-3) * uInputSize.zw;   // one stage px toward the light, in uv
+  vec2 o = vTextureCoord + dir * uInk, s = dir * uWidth;
+  // inside the outline only: the figure is still there one outline's width toward the light
+  float inner = 1.0 - open(o);
+  // how near the edge that faces the light is, past the outline: 1 just inside it, easing off inward
+  float rim = 0.34 * open(o + s * 0.3) + 0.28 * open(o + s * 0.65) + 0.22 * open(o + s * 1.05) + 0.16 * open(o + s * 1.6);
+  // and a faint wrap further in: the glare bleeding over the edge
+  float wrap = 0.5 * open(o + s * 2.6) + 0.5 * open(o + s * 4.0);
+  float k = inner * paint * keep * (smoothstep(0.0, 1.0, rim) + 0.22 * wrap) * uPower / (1.0 + d * d / (uReach * uReach));
+  rgb = mix(rgb, uColor, clamp(k, 0.0, 0.8));
+  finalColor = vec4(rgb * c.a, c.a);
+}`;
+// The slots the light leaves alone, posed with the rig: each is a Pixi mesh of its attachment (a
+// region's quad or a mesh's triangles, off its own atlas page), moved to the rig's pose after
+// every pose and drawn into `mask`, a texture the size of the stage that the filter reads. Drawn
+// in the same step that poses the rig, so the two never disagree by a frame.
+function unlitMask(app, actor, names, mask) {
+  const slots = names.map(n => actor.skeleton.findSlot(n)).filter(Boolean);
+  if (!slots.length) return null;
+  const stage = new PIXI.Container(), made = new Map(), wv = new Float32Array(4096), pt = { x: 0, y: 0 };
+  const meshOf = a => {   // one mesh per attachment, made the first time it shows
+    if (made.has(a)) return made.get(a);
+    const region = a instanceof spine.RegionAttachment, page = a.region && a.region.texture && a.region.texture.texture;
+    let m = null;
+    if (page && (region || a instanceof spine.MeshAttachment) && (region || a.worldVerticesLength <= wv.length)) {
+      m = new PIXI.MeshSimple({
+        texture: new PIXI.Texture({ source: page.source }),
+        vertices: new Float32Array(region ? 8 : a.worldVerticesLength), uvs: new Float32Array(a.uvs),
+        indices: new Uint32Array(region ? [0, 1, 2, 2, 3, 0] : a.triangles),
+      });
+      stage.addChild(m);
+    }
+    made.set(a, m);
+    return m;
+  };
+  const pose = () => {
+    for (const m of made.values()) if (m) m.visible = false;
+    for (const slot of slots) {
+      const a = slot.getAttachment(), m = a && slot.bone.active ? meshOf(a) : null;
+      if (!m) continue;
+      if (a instanceof spine.RegionAttachment) a.computeWorldVertices(slot, wv, 0, 2);
+      else a.computeWorldVertices(slot, 0, a.worldVerticesLength, wv, 0, 2);
+      const v = m.vertices;
+      for (let i = 0; i < v.length; i += 2) { pt.x = wv[i]; pt.y = wv[i + 1]; actor.skeletonToPixiWorldCoordinates(pt); v[i] = pt.x; v[i + 1] = pt.y; }
+      m.alpha = slot.color.a; m.visible = true;
+    }
+    app.renderer.render({ container: stage, target: mask, clear: true, clearColor: [0, 0, 0, 0] });
+  };
+  const prev = actor.afterUpdateWorldTransforms;
+  actor.afterUpdateWorldTransforms = o => { if (prev) prev(o); pose(); };
+  return pose;
+}
+function neonRim(app, actor, unlit = []) {
+  if (!window.WallFX || !WallFX.light || !PIXI.Filter || !PIXI.GlProgram || app.renderer.type !== PIXI.RendererType.WEBGL) return;
+  const mask = PIXI.RenderTexture.create({ width: app.screen.width, height: app.screen.height, resolution: app.renderer.resolution });
+  let filter;
+  try {
+    filter = new PIXI.Filter({
+      glProgram: PIXI.GlProgram.from({ vertex: NEON_RIM_VERT, fragment: NEON_RIM_FRAG, name: "neon-rim" }),
+      // the rig is drawn into the filter at the canvas's own density and smoothing: Pixi's filter
+      // default (1x, no antialias) drew it at two thirds of the pixels with jagged edges
+      resolution: app.renderer.resolution, antialias: "inherit",
+      resources: {
+        neonRim: {
+          uLight: { value: new Float32Array(2), type: "vec2<f32>" },
+          uColor: { value: new Float32Array(NEON_RIM.rgb), type: "vec3<f32>" },
+          uPower: { value: 0, type: "f32" },
+          uInk: { value: 2, type: "f32" },
+          uWidth: { value: 4, type: "f32" },
+          uReach: { value: 300, type: "f32" },
+          uStage: { value: new Float32Array([app.screen.width, app.screen.height]), type: "vec2<f32>" },
+        },
+        uUnlit: mask.source,
+      },
+    });
+  } catch (e) { console.warn("neon rim:", e.message); return; }
+  filter.enabled = false;   // until the tube has been read
+  actor.filters = [filter];
+  const u = filter.resources.neonRim.uniforms;
+  const repose = unlitMask(app, actor, unlit, mask);
+  app.renderer.on("resize", () => {
+    mask.resize(app.screen.width, app.screen.height);
+    u.uStage[0] = app.screen.width; u.uStage[1] = app.screen.height;
+    if (repose) repose();
+  });
+  let light = null, aimed = -1e9;
+  // where the light falls on this figure, in its own stage px: off the tube, seen from its chest
+  const aim = () => {
+    const r = app.canvas.getBoundingClientRect();
+    const L = r.width && r.height ? WallFX.light(r.left + r.width / 2, r.top + r.height * .42) : null;
+    light = L && { x: (L.x - r.left) * app.screen.width / r.width, y: (L.y - r.top) * app.screen.height / r.height, k: L.k };
+  };
+  app.ticker.add(() => {
+    const now = performance.now();
+    if (now - aimed > 1000) { aimed = now; aim(); }   // the layout moves (a resize, the portrait rules): keep aiming
+    filter.enabled = !!light;
+    if (!light) return;
+    const h = app.screen.height;
+    u.uLight[0] = light.x; u.uLight[1] = light.y;
+    u.uPower = Math.min(1.3, light.k) * WallFX.neon() * NEON_RIM.gain;
+    u.uInk = h * NEON_RIM.ink; u.uWidth = h * NEON_RIM.width; u.uReach = h * NEON_RIM.reach;
+  });
+}
+
+// The pair's shadows on the pavement (owner, 2026-10-25: the old one was a fixed blur centred on
+// the box and cut in half by its edge). Each shoe throws its own soft shadow, under where the shoe
+// is and as wide as it, and a lighter pool spans both feet; a foot that lifts (a step, a hop, the
+// walk-on) shrinks and fades its shadow, which stays on the ground. Drawn from the rig's pose on a
+// small canvas of its own just under the figure (.charshadow), outside the figure's box.
+const FOOT_SHADOW = { alpha: .52, pool: .24, squash: .26, fps: 60, rgb: "6,5,10" };
+function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
+  const slots = feet.map(n => actor.skeleton.findSlot(n)).filter(Boolean);
+  if (!slots.length || !root.parentNode) return;
+  const cv = document.createElement("canvas");
+  cv.className = "charshadow"; cv.setAttribute("aria-hidden", "true");
+  root.parentNode.insertBefore(cv, root);   // under the figure, over the wall
+  const ctx = cv.getContext("2d"), wv = new Float32Array(4096), pt = { x: 0, y: 0 };
+  let map = null, placedAt = -1e9, drawnAt = 0;
+  // where the stage sits on the page (read between hops) and the canvas round the figure's ground:
+  // its width, a little above the ground and a little below
+  const place = () => {
+    if (root.classList.contains("bounce")) return;
+    const r = app.canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const dpr = Math.min(2, devicePixelRatio || 1), sx = r.width / app.screen.width, sy = r.height / app.screen.height;
+    const grounds = rest.map(y => r.top + toStage(0, y).y * sy);   // each shoe's ground, on the page
+    const above = r.height * .06, below = r.height * .05, y0 = Math.min(...grounds) - above, y1 = Math.max(...grounds) + below;
+    map = { sx, sy, left: r.left, top: r.top, x0: r.left, y0, dpr };
+    Object.assign(cv.style, { left: r.left + "px", top: y0 + "px", width: r.width + "px", height: (y1 - y0) + "px" });
+    const W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round((y1 - y0) * dpr));
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  };
+  addEventListener("resize", () => { placedAt = -1e9; });
+  // a shoe's outline in skeleton units (y down): its left and right, and its lowest point
+  const span = (slot, sk = actor.skeleton) => {
+    const s = sk === actor.skeleton ? slot : sk.findSlot(slot.data.name), a = s && s.getAttachment();
+    if (!a || !s.bone.active) return null;
+    let n = 0;
+    if (a instanceof spine.RegionAttachment) { a.computeWorldVertices(s, wv, 0, 2); n = 4; }
+    else if (a instanceof spine.MeshAttachment && a.worldVerticesLength <= wv.length) { a.computeWorldVertices(s, 0, a.worldVerticesLength, wv, 0, 2); n = a.worldVerticesLength / 2; }
+    if (!n) return null;
+    let x0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (let i = 0; i < n; i++) { x0 = Math.min(x0, wv[i * 2]); x1 = Math.max(x1, wv[i * 2]); y1 = Math.max(y1, wv[i * 2 + 1]); }
+    return { x0, x1, y1 };
+  };
+  // Where each shoe stands: its lowest point in the setup pose, read off a skeleton of its own so the
+  // live one is never touched. The feet stand at their own depths - the skull's back shoe rests
+  // higher on the pavement than his front one - so each keeps its own ground.
+  const stance = new spine.Skeleton(actor.skeleton.data);
+  stance.setToSetupPose(); stance.updateWorldTransform(spine.Physics ? spine.Physics.none : undefined);
+  const rest = slots.map(s => { const b = span(s, stance); return b ? b.y1 : 0; });
+  const toStage = (x, y) => { pt.x = x; pt.y = y; actor.skeletonToPixiWorldCoordinates(pt); return pt; };
+  // a shoe now: where its shadow lies (stage px), how wide, and how far the shoe is off its ground
+  // (as a share of its width, a hair of the art's own gap allowed)
+  const foot = (slot, i) => {
+    const b = span(slot);
+    if (!b) return null;
+    const w = b.x1 - b.x0, lift = Math.max(0, Math.min(1, (rest[i] - b.y1 - w * .04) / (w * .9)));
+    const c = toStage((b.x0 + b.x1) / 2, rest[i]);
+    return { cx: c.x, gy: c.y, w: w * Math.abs(actor.scale.x), lift, a: slot.color.a };
+  };
+  const blot = (x, y, rx, ry, a) => {   // a soft ellipse, darkest in the middle
+    if (rx < 1 || ry < .5 || a < .01) return;
+    ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1), c = FOOT_SHADOW.rgb;
+    g.addColorStop(0, `rgba(${c},${a})`); g.addColorStop(.5, `rgba(${c},${a * .62})`); g.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  };
+  app.ticker.add(() => {
+    const now = performance.now();
+    if (now - placedAt > 1000) { placedAt = now; place(); }   // the layout moves: keep following it
+    cv.classList.toggle("on", app.canvas.classList.contains("on"));
+    if (!map || now - drawnAt < 1000 / FOOT_SHADOW.fps - 2) return;
+    drawnAt = now;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+    const F = slots.map(foot).filter(Boolean);
+    if (!F.length) return;
+    const k = map.sx * map.dpr, X = x => (map.left + x * map.sx - map.x0) * map.dpr, Y = y => (map.top + y * map.sy - map.y0) * map.dpr;
+    // the pool under both feet first, then each shoe's own darker shadow over it
+    const lo = Math.min(...F.map(f => f.cx - f.w / 2)), hi = Math.max(...F.map(f => f.cx + f.w / 2));
+    const up = F.reduce((s, f) => s + f.lift, 0) / F.length, gy = F.reduce((s, f) => s + f.gy, 0) / F.length, rp = (hi - lo) / 2 * 1.08 * k;
+    blot(X((lo + hi) / 2), Y(gy), rp, rp * FOOT_SHADOW.squash * .62, FOOT_SHADOW.pool * (1 - .5 * up));
+    for (const f of F) {
+      const rx = f.w * .6 * (1 - .3 * f.lift) * k;
+      blot(X(f.cx), Y(f.gy), rx, rx * FOOT_SHADOW.squash, FOOT_SHADOW.alpha * (1 - .7 * f.lift) * f.a);
+    }
+  });
+}
+
+async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smoke = null, unlit = [] }) {
   const root = document.getElementById(el);
   if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
 
@@ -5247,13 +5587,18 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smok
     resolution: Math.min(2, window.devicePixelRatio || 1),
     resizeTo: root,
   });
+  app.ticker.maxFPS = CHAR_FPS;
   root.appendChild(app.canvas);
 
   uploadPages(app, pages);
-  const actor = new spine.Spine({ skeletonData: data, autoUpdate: true });
+  // posed on the canvas's own clock (Pixi's shared ticker, the default, ran uncapped at the screen's
+  // rate and re-posed the rig - and redrew its unlit mask - on frames the canvas never showed)
+  const actor = new spine.Spine({ skeletonData: data, autoUpdate: true, ticker: app.ticker });
   actor.state.data.defaultMix = .2;
   actor.state.timeScale = CHAR_RATE;
   app.stage.addChild(actor);
+  neonRim(app, actor, unlit);   // the tag's light on them from behind
+  footShadow(app, actor, root);   // and their shadows on the pavement, under each shoe
   // with reduced motion the painted plume stays, still
   if (smoke && !REDUCED_MOTION && window.CigarSmoke) {
     try { CigarSmoke.attach(app, actor, smoke); } catch (e) { console.warn("cigar smoke:", e.message); }
@@ -5509,7 +5854,6 @@ if (window.ResizeObserver) {
 }
 
 buildBoard();
-setTags(0, 4);
 eachCell((el, r, y) => setCell(r, y, { name: ["L1","L2","L3","L4","L5"][(r + y) % 5] }));
 fitToScreen();   // fit once the board exists; `load` and fonts.ready refine it after art settles
 
@@ -6251,18 +6595,24 @@ function runFeatures() {
     `<div class="fboxes">` +
       box(`<img src="${SYM.M.img}" alt="${T("Multi")}" draggable="false"><div class="fmult" id="featMult">x${fmtMult(FEATURE_VALUES[0])}</div>`,
         T("Multi"),
-        T(`Lands with a value from <b>x1.25</b> to <b>x1000</b>. Every winning cluster is paid first; then it blows out and leaves its value on five cells. A cluster on those cells is multiplied by the <b>sum</b> it covers, and values that meet add up. In a bonus they stay for the whole feature.`)) +
+        T(`Lands with a value from <b>x1.25</b> to <b>x1000</b> - sometimes in a line of 3 or 4, and once in a long while over the whole board. Every winning cluster is paid first; then it blows out and leaves its value on five cells, and a cluster on those cells is multiplied by the <b>sum</b> it covers. Winning clusters drop small multipliers under themselves too.`)) +
       box(`<img src="${SYM.BS.img}" alt="${T("Crew Leader")}" draggable="false">`,
         T("Crew Leader \u00b7 Bonus"),
-        T(`<b>3</b>, <b>4</b> or <b>5</b> anywhere award <b>10</b>, <b>12</b> or <b>15</b> free spins. Multis land more often, and every value one leaves stays on the board for the whole bonus. Every winning spin adds a tag to the Tag Meter: <b>4</b> tags pay <b>+3</b> spins.`)) +
+        T(`<b>3</b>, <b>4</b> or <b>5</b> anywhere award <b>10</b>, <b>12</b> or <b>15</b> free spins. Multis land more often and drop in lines, and every value - a Multi's or a cluster's drop - stays on the board for the whole bonus.`)) +
       box(`<img src="${SYM.ES.img}" alt="${T("The Phantom")}" draggable="false">`,
         T("The Phantom \u00b7 Extreme"),
-        T(`<b>2</b> anywhere award <b>17</b> free spins under Extreme rules: Multis land more often still and every value is <b>x2</b> or more. A Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme. Tag Meter: <b>3</b> tags pay <b>+3</b> spins.`)) +
+        T(`<b>2</b> anywhere award <b>17</b> free spins under Extreme rules: Multis land more often still, drop in lines, and every value is <b>x2</b> or more. A Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme.`)) +
     `</div>` +
     `<div class="fcont"><span class="fhit"><span class="ftxt">${T("Click to play")}</span></span></div>`;
   document.body.appendChild(wrap);
   // the plate under the mouse tips toward it, and so does CLICK TO PLAY under them
   const tilt = tiltPlates([...wrap.querySelectorAll(".fbox"), wrap.querySelector(".fcont .fhit")]);
+  // the mouse coming onto a plate blows on its fire - the flames whoosh up - and a gentle breath
+  // keeps them up while it stays
+  for (const el of wrap.querySelectorAll(".fbox")) {
+    el.addEventListener("pointerenter", e => { if (e.pointerType !== "touch" && window.SprayFX) SprayFX.stoke(el, { peak: 1, hold: .3 }); });
+    el.addEventListener("pointerleave", () => { if (window.SprayFX) SprayFX.stoke(el, { peak: 0, hold: 0 }); });
+  }
   // the Multi's value climbs the table and warms with it, round and round
   const face = wrap.querySelector("#featMult");
   let vi = 0;
@@ -6313,13 +6663,12 @@ introDone = introDone.then(() => featuresDone);   // a resumed round waits for t
 const MULTI_RANGE = ["x1.25", "x1000"];   // the Multi's values, as rules.js states them
 const EXTREME_DIRECT_SPINS = 17;          // two Phantoms, straight in (DESIGN.md, bonus rounds)
 function bonusIntroHow(extreme) {
-  const tags = extreme ? 3 : 4;
   return `<p><strong>${T("How the Multi works in here")}</strong></p>` +
     `<p>${T(`A Multi lands with a value from <b>${MULTI_RANGE[0]}</b> to <b>${MULTI_RANGE[1]}</b>. Every winning cluster is paid first; then it blows out, clearing itself and the four symbols beside it, and each of those five cells keeps its value. A cluster that lands on those cells is multiplied by the <strong>sum</strong> of the values it covers, and values that meet add together.`)}</p>` +
     `<p>${T(extreme
       ? `In the Extreme Bonus every value stays on the board for the whole feature, Multis land more often, and every value is <b>x2</b> or more.`
       : `In the bonus every value stays on the board for the whole feature: nothing is wiped between spins, so the board only gets richer.`)}</p>` +
-    `<p>${T(`Every winning spin adds a tag to the Tag Meter. Fill it, <b>${tags}</b> tags, for <b>+3</b> free spins.`)}</p>`;
+    `<p>${T(`Walls drop in lines of <b>3</b> or <b>4</b> far more often in here, and every winning cluster drops a small multiplier under itself - all of it stays for the rest of the bonus.`)}</p>`;
 }
 function bonusIntro(spins, extreme) {
   musicTo("bonus", 1.4);   // the base loop fades out with the game as the bonus's comes up
