@@ -135,6 +135,10 @@
      on top of one another without a fight. The art is painted dark already: the gradient only
      takes it down a little more toward the pavement (wallfx.js reads it, to darken its paint the
      same). */
+  /* The camera's layers (Cam): the wall (#camfar) and the figures with their shadows (#camnear), each
+     the size of the window, behind the game. Only the camera moves them, so the wall's lean and hop
+     and the figures' lift, depth and hop all ride inside, untouched. */
+  .camlayer { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
   #bgwall {
     position: fixed; inset: -4%; z-index: -1; pointer-events: none;   /* the bleed also covers the turned wall's far edge (to ~8deg) */
     background:
@@ -2760,9 +2764,10 @@
 </style>
 </head>
 <body>
-<div id="bgwall"><div id="wallpaint" aria-hidden="true"></div><div id="tagspill" class="tagfx" aria-hidden="true"><i></i></div><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"><div id="tagglow" class="tagfx" aria-hidden="true"><i></i><b class="sheen"><b><i></i></b></b></div></div>
-<div id="charfx" class="charfx" aria-hidden="true"></div>
-<div id="charfx2" class="charfx" aria-hidden="true"></div>
+<div id="camfar" class="camlayer"><div id="bgwall"><div id="wallpaint" aria-hidden="true"></div><div id="tagspill" class="tagfx" aria-hidden="true"><i></i></div><img id="walltag" src="assets/wall_tag.webp" width="3303" height="1674" alt="" draggable="false"><div id="tagglow" class="tagfx" aria-hidden="true"><i></i><b class="sheen"><b><i></i></b></b></div></div>
+</div>
+<div id="camnear" class="camlayer"><div id="charfx" class="charfx" aria-hidden="true"></div>
+<div id="charfx2" class="charfx" aria-hidden="true"></div></div>
 
 <div id="app">
 <div class="main">
@@ -4344,6 +4349,182 @@ function boardThud(r) {
   if (!state.skip) sfx("bet", 0.5 + r * 0.04);
 }
 
+/* ---------- the camera ---------- */
+// The scene is filmed, not just shown. The camera pushes in on a cluster as its line draws and
+// jumps on to the next; punches in on a Multi as it goes off, with a knock of shake; runs along a
+// line of walls; swoops in on the scatters when a bonus lands; and on a win's headline it is
+// knocked back by the slam, then creeps in with a slow sway while the figure counts. Three layers
+// move, each by its depth - the wall behind (#camfar) a little, the board (.stage) by the camera's
+// own amount, the figures in front (#camnear) a little more - so the scene has depth; the HUD and
+// the win screens never move. A move is a path of poses (x/y px, zoom, roll in degrees, about the
+// middle of the window) sampled here and played as a Web Animation of transforms only, so the
+// compositor runs it and a busy main thread cannot make it stutter; a new move sets off from
+// wherever the last one had got to (pose()). Skip: no new moves; Rapid: quicker; a phone: smaller;
+// reduced motion: no camera at all.
+const CAM_DEPTH = { far: .45, near: 1.12 };   // the wall and the figures, against the board's 1
+const Cam = (() => {
+  const REST = { x: 0, y: 0, z: 1, r: 0 };
+  let path = null, t0 = 0, dur = 1, anims = [], geo = null, gen = 0, side = 1;
+  const ease = {
+    snap: p => { const c = 1.15, q = p - 1; return 1 + (c + 1) * q * q * q + c * q * q; },   // out, a touch past and back
+    glide: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(2 - 2 * p, 3) / 2,
+    out: p => 1 - Math.pow(1 - p, 3),
+  };
+  const mix = (a, b, e) => ({ x: a.x + (b.x - a.x) * e, y: a.y + (b.y - a.y) * e, z: a.z + (b.z - a.z) * e, r: a.r + (b.r - a.r) * e });
+  const plus = (q, s) => s ? { x: q.x + s.x, y: q.y + s.y, z: q.z, r: q.r + s.r } : q;
+  // a knock that dies away: two sines on each axis, a new mix for every knock
+  function shaker(amp, ms) {
+    const ph = [0, 1, 2, 3, 4].map(() => Math.random() * 6.3);
+    return t => {
+      if (t >= ms) return null;
+      const k = amp * Math.pow(1 - t / ms, 2), u = t / 1000;
+      return { x: k * (.7 * Math.sin(u * 47 + ph[0]) + .3 * Math.sin(u * 83 + ph[1])),
+               y: k * (.7 * Math.sin(u * 53 + ph[2]) + .3 * Math.sin(u * 91 + ph[3])), r: k * .06 * Math.sin(u * 39 + ph[4]) };
+    };
+  }
+  function pose(t = performance.now()) { return path ? path(Math.min(dur, Math.max(0, t - t0))) : { ...REST }; }
+  // where things stand with the camera at rest: the window's middle, the stage's middle and the
+  // page's fit (#app is scaled to the window); read with nothing moved, again after a resize
+  function measure() {
+    const st = document.querySelector(".stage");
+    if (!st) return null;
+    const b = st.getBoundingClientRect();
+    if (!b.width) return null;
+    return { vx: innerWidth / 2, vy: innerHeight / 2, cx: b.left + b.width / 2, cy: b.top + b.height / 2, w: innerWidth, h: innerHeight,
+             fit: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1, phone: innerWidth < 700 };
+  }
+  // a pose as each layer's transform: the window-sized layers turn about the window's middle; the
+  // stage turns about its own (its transform-origin), so it is moved to match, in #app's units
+  const wrapT = (q, k) => `translate(${(q.x * k).toFixed(2)}px, ${(q.y * k).toFixed(2)}px) rotate(${(q.r * k).toFixed(3)}deg) scale(${(1 + (q.z - 1) * k).toFixed(4)})`;
+  function stageT(q) {
+    const a = q.r * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), dx = geo.vx - geo.cx, dy = geo.vy - geo.cy;
+    const tx = q.x + dx - q.z * (c * dx - s * dy), ty = q.y + dy - q.z * (s * dx + c * dy);
+    return { translate: `${(tx / geo.fit).toFixed(2)}px ${(ty / geo.fit).toFixed(2)}px`, rotate: `${q.r.toFixed(3)}deg`, scale: q.z.toFixed(4) };
+  }
+  function play(fn, ms) {
+    const els = [$("camfar"), $("camnear"), document.querySelector(".stage")];
+    if (els.some(e => !e)) return;
+    path = fn; t0 = performance.now(); dur = Math.max(1, ms);
+    const n = Math.max(2, Math.min(150, Math.round(ms / 33) + 1)), far = [], near = [], st = [];
+    for (let i = 0; i < n; i++) {
+      const q = fn(ms * i / (n - 1));
+      far.push({ transform: wrapT(q, CAM_DEPTH.far) }); near.push({ transform: wrapT(q, CAM_DEPTH.near) }); st.push(stageT(q));
+    }
+    const old = anims, mine = ++gen;
+    anims = [els[0].animate(far, { duration: ms, fill: "forwards" }), els[1].animate(near, { duration: ms, fill: "forwards" }),
+             els[2].animate(st, { duration: ms, fill: "forwards" })];
+    for (const a of old) a.cancel();   // after the new ones are on: no frame shows the scene at rest between them
+    return mine;
+  }
+  // a point on the page, as drawn now -> the same point with the camera at rest
+  function unproject(p, q = pose()) {
+    const a = -q.r * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    const dx = (p.x - geo.vx - q.x) / q.z, dy = (p.y - geo.vy - q.y) / q.z;
+    return { x: geo.vx + c * dx - s * dy, y: geo.vy + s * dx + c * dy };
+  }
+  function centreOf(els) {
+    let x = 0, y = 0, n = 0;
+    for (const el of els) { const b = el && el.getBoundingClientRect(); if (!b || !b.width) continue; x += b.left + b.width / 2; y += b.top + b.height / 2; n++; }
+    return n ? unproject({ x: x / n, y: y / n }) : null;
+  }
+  // the pose that brings a point (at rest) part of the way to the middle, zoomed in by z and rolled
+  // by r - never so far that the board leaves the window
+  function aim(F, z, pull, r) {
+    const a = r * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), dx = F.x - geo.vx, dy = F.y - geo.vy;
+    const lim = Math.min(geo.w, geo.h) * (geo.phone ? .08 : .12);
+    const tx = (1 - pull) * dx - z * (c * dx - s * dy), ty = (1 - pull) * dy - z * (s * dx + c * dy);
+    return { x: Math.max(-lim, Math.min(lim, tx)), y: Math.max(-lim, Math.min(lim, ty)), z, r };
+  }
+  const sp = () => Math.max(.45, tempo());                              // Rapid: quicker
+  const amp = v => v * (geo && geo.phone ? .65 : 1);                    // a phone: smaller
+  function ready() {
+    if (REDUCED_MOTION || state.skip) return false;
+    if (!path || !geo) geo = measure() || geo;                          // measured at rest (or first use)
+    return !!geo;
+  }
+
+  // a cluster as its line draws: in on it, quick and a touch past, and it holds there; the next
+  // cluster takes the camera on from there, rest() brings it home. winX: the cluster's win in bets
+  function cluster(els, winX = 1) {
+    if (!ready()) return;
+    const F = centreOf(els);
+    if (!F) return;
+    const big = Math.min(1, Math.log10(1 + Math.max(0, winX)) / 2);     // 1x .15, 10x .52, 100x 1
+    side = -side;                                                       // each cluster leans the other way
+    const from = pose(), to = aim(F, 1 + amp(.035 + .07 * big), .3 + .15 * big, amp(side * (.35 + .5 * big)));
+    const ms = 340 * sp();
+    play(t => mix(from, to, ease.snap(t / ms)), ms);
+  }
+  // a Multi going off: a hard punch in on it and a knock of shake (k 0-1: how big its value is)
+  function punch(el, k = .5) {
+    if (!ready()) return;
+    const F = centreOf([el]);
+    if (!F) return;
+    const from = pose(), to = aim(F, 1 + amp(.06 + .08 * k), .35, amp((Math.random() - .5) * 1.4));
+    const a = 150 * sp(), ms = 560 * sp(), knock = shaker(amp(5 + 7 * k), 440 * sp());
+    play(t => plus(mix(from, to, ease.out(Math.min(1, t / a))), knock(t)), ms);
+  }
+  // a whole board turning to walls: the camera rocks back and the scene shakes
+  function quake(k = 1) {
+    if (!ready()) return;
+    const from = pose(), to = { x: 0, y: 0, z: 1 - amp(.03 * k), r: 0 };
+    const a = 200 * sp(), ms = 900 * sp(), knock = shaker(amp(9 * k), 800 * sp());
+    play(t => plus(mix(from, to, ease.out(Math.min(1, t / a))), knock(t)), ms);
+  }
+  // a line of walls dropping in: in on its first cell, then along it to the last
+  function sweep(els, ms = 420) {
+    if (!ready() || !els.length) return;
+    const A = centreOf([els[0]]), B = centreOf([els[els.length - 1]]);
+    if (!A || !B) return;
+    const z = 1 + amp(.06), from = pose(), a = aim(A, z, .3, 0), b = aim(B, z, .3, 0), d = ms * sp(), d1 = d * .3;
+    play(t => t < d1 ? mix(from, a, ease.out(t / d1)) : mix(a, b, ease.glide((t - d1) / (d - d1))), d);
+  }
+  // the bonus lands: in hard on the scatters with a roll and a long shake (the intro then fades the
+  // game out over it, and rest(0) puts it back while the screen is dark)
+  function trigger(els, extreme = false) {
+    if (!ready()) return;
+    const F = centreOf(els) || { x: geo.vx, y: geo.vy };
+    const from = pose(), to = aim(F, 1 + amp(extreme ? .17 : .13), .45, amp(extreme ? -2 : 1.5));
+    const a = 380 * sp(), ms = 1600 * sp(), knock = shaker(amp(extreme ? 12 : 8), 1100 * sp());
+    play(t => plus(mix(from, to, ease.snap(Math.min(1, t / a))), knock(t)), ms);
+  }
+  // a win's headline (lvl 0 BIG ... 3 TOTAL WIN): knocked back by the slam, then creeping in with a
+  // slow sway while the figure counts; it holds at the end until the screen closes (rest())
+  function headline(lvl) {
+    if (!ready()) return;
+    const k = [.55, .75, 1, .85][lvl] ?? .6, from = pose();
+    const back = { x: 0, y: amp(-6 * k), z: 1 - amp(.03 * k), r: 0 };
+    const inn = { x: 0, y: 0, z: 1 + amp(.05 * k), r: amp(.8 * k) * (lvl % 2 ? -1 : 1) };
+    const a = 260 * sp(), ms = 4200 * sp(), knock = shaker(amp(6 * k), 360 * sp());
+    play(t => {
+      const q = t < a ? mix(from, back, ease.out(t / a)) : mix(back, inn, ease.glide((t - a) / (ms - a)));
+      const u = t / 1000, sw = Math.min(1, t / 600);
+      q.x += sw * amp(3 * k) * Math.sin(u * 1.3); q.y += sw * amp(2 * k) * Math.sin(u * .9 + 1);
+      return plus(q, knock(t));
+    }, ms);
+  }
+  // home: back to rest, and the animations dropped once there (nothing left on the layers)
+  function rest(ms = 650) {
+    if (!path) return;
+    const from = pose();
+    if (ms <= 0 || REDUCED_MOTION || (Math.abs(from.x) + Math.abs(from.y) < .5 && Math.abs(from.z - 1) < .002 && Math.abs(from.r) < .02)) return reset();
+    const d = ms * sp(), mine = play(t => mix(from, REST, ease.glide(t / d)), d);
+    setTimeout(() => { if (gen === mine) reset(); }, d + 40);
+  }
+  function reset() { for (const a of anims) a.cancel(); anims = []; path = null; gen++; }
+  // a box on the page that is drawn in #camnear, as it would be with the camera at rest (the
+  // figures' shadows are placed in the layer's own px)
+  function restRect(b, k = CAM_DEPTH.near) {
+    if (!path) return b;
+    const q = pose(), s = 1 + (q.z - 1) * k, a = -q.r * k * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);
+    const vx = innerWidth / 2, vy = innerHeight / 2, dx = (b.left + b.width / 2 - vx - q.x * k) / s, dy = (b.top + b.height / 2 - vy - q.y * k) / s;
+    const x = vx + c * dx - sn * dy, y = vy + sn * dx + c * dy, w = b.width / s, h = b.height / s;
+    return { left: x - w / 2, top: y - h / 2, width: w, height: h, right: x + w / 2, bottom: y + h / 2 };
+  }
+  addEventListener("resize", () => { reset(); geo = null; });   // a new layout: home at once, measured afresh
+  return { cluster, punch, quake, sweep, trigger, headline, rest, reset, restRect, pose };
+})();
+
 // The reveal. The column that is on screen drops out through the floor, then this round's
 // icons fall in from above the frame ONE AT A TIME, bottom row first, each landing on the
 // one before it with the same bounce a tumble uses. Reels go left to right; a reel held
@@ -5116,6 +5297,7 @@ async function tallyUp(amount) {
 /* ---------- event sequencing ---------- */
 const handlers = {
   async reveal(ev) {
+    Cam.rest(300);   // every spin is filmed from home
     // the base game starts every spin clean; a bonus keeps its multipliers across spins
     if (ev.gameType === "basegame") { resetGrid(); musicTo("base"); }   // (and the base loop, should a bonus have ended without its screen)
     await renderReveal(ev);
@@ -5147,6 +5329,7 @@ const handlers = {
       for (const p of w.positions) restyle(cellEls[p.reel][p.row - 1]);   // apply the removal so every cluster's tiles pop in fresh,
                                      // including cells carried over from the previous cluster
       for (const p of w.positions) { const cell = cellEls[p.reel][p.row - 1]; cell.classList.add("winhit"); rigPlay(cell, "win"); }
+      Cam.cluster(w.positions.map(p => cellEls[p.reel][p.row - 1]), cents(w.win) / Math.max(1, bet()));   // the camera jumps in on it
       const drawMs = drawWinLine(w.positions);   // the sprayed stroke draws itself along the cluster
       placeWinChip(w.positions, cents(w.win), mult);
       sfx("line");   // one call per cluster as it lights up - skipping does not skip clusters
@@ -5163,6 +5346,7 @@ const handlers = {
     await hold(180);
     clearFxWins();
     $("board").classList.remove("spotlight");
+    Cam.rest(600);   // and back out once the last cluster has had its moment
   },
 
   async tumbleBoard(ev) {
@@ -5296,6 +5480,9 @@ const handlers = {
       const multi = at(b), hits = (b.cells || []).map(at).filter(c => c !== multi);
       multi.classList.add("boom", "winhit");
       rigPlay(multi, "win", { speed: MULTI_RATE });
+      // the camera punches in on it - one Multi after another, it jumps from each to the next; a
+      // board cover's ripple of them is the wall event's quake instead
+      if (list.length <= 6) Cam.punch(multi, Math.min(1, Math.log10(1 + (b.mult || 1)) / 2));
       // every Multi in a round rings a little higher than the one before, and a run of them
       // is its own event: the third, and every third after, gets the jackpot alert (A, B, A...)
       state.multiCount++; state.multiTotal++;
@@ -5322,6 +5509,7 @@ const handlers = {
     eachCell(el => el.classList.remove("boom", "hit"));
     clearFxWins();
     $("board").classList.remove("spotlight");
+    Cam.rest(500);
   },
 
   // A wall event on the board just revealed (math v5): a line of 3 or 4 walls dropping in
@@ -5329,6 +5517,8 @@ const handlers = {
   async wallDrop(ev) {
     const cells = (ev.positions || []).map(p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)]);
     for (const c of cells) c.classList.add("pulse");
+    if (ev.kind === "cover") Cam.quake(1);                 // the whole board: the camera rocks back and shakes
+    else Cam.sweep(cells, 420 / MULTI_RATE);               // a line: the camera runs along it
     if (ev.kind === "cover") {
       // no banner over the board (owner, 2026-10-25): the board turning to walls is the announcement
       charReact("big_win");
@@ -5366,6 +5556,7 @@ const handlers = {
   async freeSpinTrigger(ev) {
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
     state.bonusHit = true;
+    Cam.trigger((ev.positions || []).map(p => cellEls[p.reel][p.row - 1]));   // the camera swoops in on the scatters
     charReact("big_win");   // the characters blow up the moment the bonus lands
     if (window.WallFX && WallFX.surge) WallFX.surge(1, 1800);   // and the sign behind the board flares with them
     sfx("bonusStart");
@@ -5377,6 +5568,7 @@ const handlers = {
   async extremeTrigger(ev) {
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
     state.bonusHit = true;
+    Cam.trigger((ev.positions || []).map(p => cellEls[p.reel][p.row - 1]), true);   // harder, and rolled the other way
     charReact("big_win");   // extreme is a bonus too — 2 scatters straight in, or an upgrade
     if (window.WallFX && WallFX.surge) WallFX.surge(1.2, 2000);   // the sign flares, harder for Extreme
     if (ev.reason !== "extreme_upgrade") sfx("bonusStart");   // an upgrade's note already played with its trigger
@@ -5386,6 +5578,7 @@ const handlers = {
   },
 
   async enterBonus() {
+    Cam.reset();   // home while the intro has the screen dark
     resetGrid();   // the bonus starts clean and then keeps every multiplier it lays down
   },
 
@@ -6271,7 +6464,9 @@ function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
   // its width, a little above the ground and a little below
   const place = () => {
     if (root.classList.contains("bounce")) return;
-    const r = app.canvas.getBoundingClientRect();
+    // the shadow lives in the figures' camera layer (#camnear): placed where the figure stands
+    // with the camera at rest, so the layer carries both alike while it moves
+    const r = Cam.restRect(app.canvas.getBoundingClientRect());
     if (!r.width || !r.height) return;
     const dpr = Math.min(2, devicePixelRatio || 1), sx = r.width / app.screen.width, sy = r.height / app.screen.height;
     const grounds = rest.map(y => r.top + toStage(0, y).y * sy);   // each shoe's ground, on the page
@@ -7117,6 +7312,7 @@ function headFx(wrap, head, lvl) {
   if (art && sheen) sheen.style.setProperty("--art", `url("${art.getAttribute("src")}")`);
   if (REDUCED_MOTION) return;
   if (window.WallFX && WallFX.surge) WallFX.surge(f.surge, 1400 + lvl * 300);
+  Cam.headline(lvl);   // the scene behind is knocked back by the slam, then creeps in while it counts
   sparkBurst(head, { n: f.sparks, reach: f.reach, colors: f.colors, size: 1 + lvl * .12 });
   const twin = wrap.querySelector(".twin"), flash = wrap.querySelector(".twflash");
   twin.style.setProperty("--knock", f.knock);
@@ -7341,6 +7537,7 @@ function totalWinScreen(amount, { total = true } = {}) {
       phase = 2;
       clearTimeout(holdTimer);
       hushRing(); hushArrival();   // nothing rings on into the game behind it
+      Cam.rest(700);               // and the camera eases home as the screen goes
       document.removeEventListener("keydown", onKey, true);
       removeEventListener("resize", centre);
       if (refit) refit.disconnect();

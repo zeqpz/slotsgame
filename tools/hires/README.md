@@ -69,6 +69,16 @@ edges, neon-lime trim and fire, gold only for wins. Two kinds of change:
   the volume liquid, the replay Play pill, the Close box, the BONUS plate's tube
   (`bonus_btn_plate.png`, from `art/letters/BONUS_plate.png`), and the unused spin plate / ui box /
   bet box. These keep their old rows (de-dither, Real-ESRGAN).
+- **Redrawn on 2026-10-29**, the same way (each recolour as the reference, fitted over it): the
+  BIG / MEGA / XTREME / TOTAL WIN headlines, the tier and total splashes, the digit font
+  (`num/`, drawn together on one sheet so the twelve glyphs share one hand), the BONUS plate
+  (`bonus_btn_plate.png`) and lettering (`bonus_text.png`, a new row that now makes
+  `bonus_btn_text.webp` instead of `tools/letter_art/make.py`), the banner box and the Close box.
+  The old art is kept as `_v1` (`num/<glyph>_v1.png`; `bonus_btn_plate_v1.png` and
+  `bonus_text_v1.png` are copies of `art/letters/BONUS_plate.png` and `BONUS_traced.png`). XTREME
+  WIN is a little taller than the art it replaced (1800x402): its redrawn drips are shorter and its
+  letters taller, so it is scaled evenly to the old width rather than squashed into the old frame.
+  They ship at WebP quality 78-86.
 
 The live-rim cut-outs (`frontend/assets/rim/`) still take the plate's shape from the `_v1` art, so
 the distance fields and `rims.json` did not change (`tools/sprayrim/make_rims.py`). The big
