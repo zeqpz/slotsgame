@@ -38,25 +38,25 @@ STRIPS = {
     "BR0": {
         "seed": 101,
         "scatters": {"BS": 1},
-        "specials": {"M": 1},
+        "specials": {"M": 3},   # v5: three times the walls, most of them teasers (owner, 2026-10-25)
         "highs": BASE_HIGHS,
     },
     "BRE": {
         "seed": 202,
         "scatters": {"BS": 1, "ES": [0, 1, 0, 1, 0, 1, 0]},
-        "specials": {"M": 1},
+        "specials": {"M": 3},
         "highs": BASE_HIGHS,
     },
     "FR0": {
         "seed": 303,
         "scatters": {},
-        "specials": {"M": 2},
+        "specials": {"M": 3},   # v5: the bonus drops walls where the Tag Meter gave spins
         "highs": FREE_HIGHS,
     },
     "FRE": {
         "seed": 404,
         "scatters": {},
-        "specials": {"M": 2},
+        "specials": {"M": 3},
         "highs": FREE_HIGHS,
     },
     "FRWCAP": {

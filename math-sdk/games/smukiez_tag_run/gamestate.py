@@ -14,7 +14,9 @@ class GameState(GameStateOverride):
         while self.repeat:
             self.reset_book()
             self.draw_board(emit_event=False)
+            self.apply_wall_events()       # a line of walls now and then, or the forced board cover
             reveal_event(self)
+            self.emit_wall_event()
 
             self.evaluate_and_emit_wins()
             self.win_manager.update_gametype_wins(self.gametype)
@@ -31,10 +33,10 @@ class GameState(GameStateOverride):
         self.imprint_wins()
 
     def run_freespin(self):
-        """Free spin loop shared by the Standard and Extreme Bonus (profile set on entry)."""
+        """Free spin loop shared by the Standard and Extreme Bonus (profile set on entry).
+        The spins are what the trigger awarded: no more are added along the way (the Tag Meter
+        is gone, owner 2026-10-25) - the bonus drops walls more often instead."""
         self.reset_fs_spin()
-        self.tag_meter = 0
-        self.extra_spins_awarded = 0
         # In the bonus the multipliers a Multi leaves behind stay on their cells for every
         # spin that follows, so the board fills with them as the feature goes on and the
         # late spins pay through everything the early ones laid down. The base game wipes
@@ -45,12 +47,12 @@ class GameState(GameStateOverride):
         while self.fs < self.tot_fs and not self.wincap_triggered:
             self.update_freespin()
             self.draw_board(emit_event=False)
+            self.apply_wall_events()
             reveal_event(self)
+            self.emit_wall_event()
 
             self.evaluate_and_emit_wins()
             self.win_manager.update_gametype_wins(self.gametype)
-            if not self.wincap_triggered:   # the round is over at the cap; no meter after it
-                self.update_tag_meter()
 
         self.end_freespin()
 
@@ -99,6 +101,8 @@ class GameState(GameStateOverride):
         win_info_event(self)
         update_tumble_win_event(self)
         self.evaluate_wincap()
+        if not self.wincap_triggered:
+            self.drop_line_mults()   # the paid clusters leave small multipliers under them
         # Only flag here. tumble_flagged() lists every flagged cell for the tumbleBoard event
         # at the moment of the tumble, so the Multi blast cells flagged after this join the
         # paid symbols in the same drop.

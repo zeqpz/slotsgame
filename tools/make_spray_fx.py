@@ -90,8 +90,13 @@ def game_hues():
     html = open(os.path.join(ROOT, "frontend", "index.html"), encoding="utf-8").read()
     anchors = json.loads(re.search(r"const HEAT_ANCHORS = (\[\[.*?\]\]);", html).group(1))
     values = json.loads(re.search(r"values: (\[[0-9., ]+\]),", html).group(1))
+    # everything past the top anchor takes a colour of its own (HEAT_PURPLE, over 500x)
+    purple = re.search(r"const HEAT_PURPLE = ([0-9.]+);", html)
+    top = anchors[-1][0]
     def hue(v):
-        x = max(1.25, min(1000, v))
+        if purple and v > top:
+            return float(purple.group(1))
+        x = max(anchors[0][0], min(top, v))
         for (v0, h0), (v1, h1) in zip(anchors, anchors[1:]):
             if x <= v1:
                 return h0 + (h1 - h0) * math.log(x / v0) / math.log(v1 / v0)

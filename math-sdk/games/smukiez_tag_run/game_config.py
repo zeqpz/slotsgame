@@ -13,9 +13,14 @@ Symbol legend (art layer maps these ids to final art):
     L1  Spray Can     L2  Graffiti Markers L3 Smukiez Beanie L4 Custom Hangtag L5 Dice
     L6  Smukiez Shirt L7  Hoodie           L8 Bag of Weed    L9 Freight Train  L10 Brick Wall Chunk
 
+Wall events (v5, owner 2026-10-25): far more Multis (walls) land, most of them teasers; now
+and then a straight line of 3 or 4 walls drops in together, and very rarely - an outcome of
+its own that the optimiser places - the whole board is covered in walls. Every winning
+cluster also drops small multipliers (x1.25-x2) on some of its own cells. Max win 10,000x.
+
 Gone since v2: the Paint Drip wild and the painted-reel colour bonus, the Full Wall mural
-award, and the C1/C2/C3 characters with their spin multipliers. The Tag Meter stays for its
-extra spins only.
+award, and the C1/C2/C3 characters with their spin multipliers. Gone in v5: the Tag Meter
+and its extra spins - the bonus drops more walls instead.
 """
 
 import os
@@ -35,9 +40,9 @@ class GameConfig(Config):
         self.provider_number = 0
         self.provider_name = "smukiez"
         self.working_name = "Smukiez Tag Run"
-        self.wincap = 5000.0
+        self.wincap = 10000.0
         self.win_type = "cluster"
-        self.rtp = 0.965
+        self.rtp = 0.967   # the top of the SDK's 3-star volatility band (rgs_verification: rtp <= 0.967)
         self.construct_paths()
 
         # Game dimensions: a 7x7 cluster board
@@ -105,10 +110,25 @@ class GameConfig(Config):
         # Smukiez feature constants
         self.extreme_direct_count = 2  # ES symbols needed to trigger Extreme Bonus directly
         self.extreme_direct_spins = 17
-        self.tag_meter_target_standard = 4  # winning spins needed to fill the Tag Meter
-        self.tag_meter_target_extreme = 3
-        self.tag_meter_extra_spins = 3
-        self.tag_meter_max_extra_spins = 9  # bound on meter-awarded spins per bonus
+
+        # Wall events. A wall line: a straight row or column of 3 or 4 walls landing together,
+        # a chance on every reveal - rarely in the base game, often in a bonus, which drops
+        # walls where it used to give spins. Adjacent walls' blasts overlap, so a line leaves
+        # a strip of stacked values behind it.
+        self.wall_line_chance = {self.basegame_type: 1 / 40, self.freegame_type: 1 / 6}
+        self.wall_line_lengths = {3: 70, 4: 30}
+        # The board cover: every cell but a scatter turns to a wall at once - each cell ends up
+        # the sum of its own value and up to four neighbours', and the whole board refills on
+        # top of them: the base game's jackpot, a four-figure win on average. Only in the base
+        # game, and only in the outcomes forced for it (criteria "wallcover"), so the optimiser
+        # sets how rare it is.
+        self.cover_mult_values = {5: 30, 10: 30, 20: 25, 50: 12, 100: 3}
+        # Line drops: every winning cluster leaves small multipliers on some of its own cells -
+        # one per five symbols it held - under the tiles, for the refill to land on. They add to
+        # whatever the cell holds, like a wall's, and last as a wall's do (the spin in the base
+        # game, the whole bonus in free spins).
+        self.line_drop_per = 5
+        self.line_drop_values = {1.25: 60, 1.5: 25, 2: 15}
 
         # Reels
         reels = {
@@ -135,22 +155,28 @@ class GameConfig(Config):
         # cluster times any SUM of values lands exactly on a tenth of the bet - the only
         # granularity the RGS accepts - with nothing rounded and nothing shown that is not
         # exactly what was paid. That is why the floor is 1.25x and not 1.2x.
+        # v5: three times the walls, so a wall is mostly a small teaser while the 500x and 1000x
+        # keep turning up - a sight far more often than a win. The 1000x is one wall in ~1,800
+        # (owner, 2026-10-25: about one base spin in 1,500 once the books are weighted;
+        # tools/finish_luts.py holds it there and keeps any one such board from repeating), and
+        # it is nearly always a teaser: the books where it pays are the ones the optimiser keeps
+        # rarest.
         booster_mults_base = {
-            1.25: 300, 1.5: 240, 2: 200, 3: 130, 5: 70, 10: 35, 20: 14,
-            50: 6, 100: 2.5, 250: 0.9, 500: 0.35, 1000: 0.15,
+            1.25: 480, 1.5: 280, 2: 150, 3: 60, 5: 22, 10: 7, 20: 3,
+            50: 1.2, 100: 0.5, 250: 0.22, 500: 0.12, 1000: 0.55,
         }
-        # in a bonus the values persist and stack across spins, so the tables lean richer:
-        # the standard bonus averages ~8x a Multi, the extreme ~10x and every one is 2x or more
+        # in a bonus the values persist and stack across spins, with the line drops on top of
+        # them: the standard bonus averages ~3.4x a wall, the extreme ~5.7x, every one 2x or more
         booster_mults_free = {
-            1.25: 120, 1.5: 140, 2: 180, 3: 180, 5: 140, 10: 90, 20: 45,
-            50: 20, 100: 8, 250: 3, 500: 1.2, 1000: 0.6,
+            1.25: 300, 1.5: 240, 2: 220, 3: 150, 5: 80, 10: 35, 20: 14,
+            50: 5, 100: 2, 250: 0.7, 500: 0.3, 1000: 0.15,
         }
         booster_mults_extreme = {
-            2: 200, 3: 200, 5: 180, 10: 110, 20: 50, 50: 20,
-            100: 8, 250: 3, 500: 1.2, 1000: 0.6,
+            2: 320, 3: 260, 5: 160, 10: 70, 20: 25, 50: 8,
+            100: 3, 250: 1, 500: 0.45, 1000: 0.22,
         }
         # wincap simulations only: the strip is dense with Multis and every one is huge, so
-        # the 5000x is reached in a handful of cascades instead of a thousand resimulations
+        # the 10,000x is reached in a handful of cascades instead of a thousand resimulations
         booster_mults_rich = {1000: 100}
 
         self.bet_modes = [
@@ -220,6 +246,19 @@ class GameConfig(Config):
                         },
                     ),
                     Distribution(
+                        # the board cover: forced on the reveal, so how often a player sees one
+                        # is the optimiser's call (game_optimization: hr for "wallcover")
+                        criteria="wallcover",
+                        quota=0.002,
+                        conditions={
+                            "reel_weights": {self.basegame_type: {"BR0": 1}},
+                            "booster_mult_values": {self.basegame_type: booster_mults_base},
+                            "force_wincap": False,
+                            "force_freegame": False,
+                            "force_cover": True,
+                        },
+                    ),
+                    Distribution(
                         criteria="0",
                         quota=0.35,
                         win_criteria=0.0,
@@ -232,7 +271,7 @@ class GameConfig(Config):
                     ),
                     Distribution(
                         criteria="basegame",
-                        quota=0.5598,
+                        quota=0.5578,
                         conditions={
                             "reel_weights": {self.basegame_type: {"BR0": 1}},
                             "booster_mult_values": {self.basegame_type: booster_mults_base},

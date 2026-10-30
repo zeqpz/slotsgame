@@ -1,12 +1,12 @@
-"""Executables for Smukiez Tag Run: the Multi booster, bonus triggers, extreme-board
-forcing, and the Tag Meter."""
+"""Executables for Smukiez Tag Run: the Multi booster, the wall events (lines and the board
+cover), the line drops, bonus triggers and extreme-board forcing."""
 
 import random
 from game_calculations import GameCalculations
 from game_events import (
     booster_event,
-    tag_meter_event,
-    tag_meter_full_event,
+    wall_drop_event,
+    line_mults_event,
     extreme_trigger_event,
 )
 from src.calculations.cluster import Cluster
@@ -66,6 +66,81 @@ class GameExecutables(GameCalculations):
             ):
                 return
         raise RuntimeError(f"could not force extreme board ({n_bs} BS, {n_es} ES) on {reelstrip_id}")
+
+    # ------------------------------------------------------------------ wall events
+    def apply_wall_events(self) -> None:
+        """After the board is drawn and before it is revealed: the board cover where the
+        criteria forces one, otherwise - now and then - a line of walls."""
+        conds = self.get_current_distribution_conditions()
+        if self.gametype == self.config.basegame_type and conds.get("force_cover", False):
+            self.cover_board()
+        elif random.random() < self.config.wall_line_chance.get(self.gametype, 0):
+            self.drop_wall_line()
+
+    def _wall_at(self, reel: int, row: int, values: dict = None) -> None:
+        """Turn one cell into a wall, its value rolled from `values` or the mode's own table."""
+        sym = self.create_symbol("M")
+        if values is not None:
+            sym.assign_attribute({"multiplier": get_random_outcome(values)})
+        self.board[reel][row] = sym
+
+    def drop_wall_line(self) -> bool:
+        """A straight run of 3 or 4 walls, along a row or down a column, never over a scatter."""
+        n = get_random_outcome(self.config.wall_line_lengths)
+        R, C = self.config.num_reels, self.config.num_rows[0]
+        options = []
+        for r in range(R):
+            for c in range(C):
+                if r + n <= R:
+                    options.append([(r + i, c) for i in range(n)])   # along a row
+                if c + n <= C:
+                    options.append([(r, c + i) for i in range(n)])   # down a column
+        options = [o for o in options if not any(self.board[r][c].check_attribute("scatter", "scatter_extreme") for r, c in o)]
+        if not options:
+            return False
+        cells = random.choice(options)
+        for r, c in cells:
+            self._wall_at(r, c)
+        self.get_special_symbols_on_board()
+        self.wall_event = ("line", cells)
+        return True
+
+    def cover_board(self) -> None:
+        """Every cell but a scatter becomes a wall - small ones (cover_mult_values): each cell
+        ends up the sum of its own value and its neighbours', and the board refills on them."""
+        cells = [
+            (r, c)
+            for r in range(self.config.num_reels)
+            for c in range(self.config.num_rows[r])
+            if not self.board[r][c].check_attribute("scatter", "scatter_extreme")
+        ]
+        for r, c in cells:
+            self._wall_at(r, c, self.config.cover_mult_values)
+        self.get_special_symbols_on_board()
+        self.wall_event = ("cover", cells)
+        self.record({"kind": len(cells), "symbol": "wallcover", "gametype": self.gametype})
+
+    def emit_wall_event(self) -> None:
+        """Name the wall event on the board just revealed, if there was one."""
+        if self.wall_event:
+            kind, cells = self.wall_event
+            wall_drop_event(self, kind, cells)
+            self.wall_event = None
+
+    # ------------------------------------------------------------------ line drops
+    def drop_line_mults(self) -> None:
+        """Every cluster just paid drops small multipliers on some of its own cells - one per
+        line_drop_per symbols it held - each added to whatever its cell already carries."""
+        drops = []
+        for win in self.win_data["wins"]:
+            cells = [(p["reel"], p["row"]) for p in win["positions"]]
+            n = max(1, len(cells) // self.config.line_drop_per)
+            for r, c in random.sample(cells, min(n, len(cells))):
+                v = get_random_outcome(self.config.line_drop_values)
+                self.grid_mults[r][c] = round(self.grid_mults[r][c] + v, 2)
+                drops.append((r, c, v))
+        if drops:
+            line_mults_event(self, drops)
 
     # ------------------------------------------------------------------ the Multi
     def find_boosters(self) -> list:
@@ -196,23 +271,4 @@ class GameExecutables(GameCalculations):
         if trigger == "extreme":
             extreme_trigger_event(self)
         enter_bonus_event(self)
-        self.tag_target = (
-            self.config.tag_meter_target_extreme if trigger == "extreme" else self.config.tag_meter_target_standard
-        )
         self.run_freespin()
-
-    # ------------------------------------------------------------------ tag meter
-    def update_tag_meter(self) -> None:
-        """A winning free spin adds a tag; a full meter adds spins."""
-        if self.win_manager.spin_win <= 0:
-            return
-        self.tag_meter += 1
-        tag_meter_event(self)
-        if self.tag_meter >= self.tag_target:
-            self.tag_meter = 0
-            extra_spins = 0
-            if self.extra_spins_awarded < self.config.tag_meter_max_extra_spins:
-                extra_spins = self.config.tag_meter_extra_spins
-                self.tot_fs += extra_spins
-                self.extra_spins_awarded += extra_spins
-            tag_meter_full_event(self, extra_spins)

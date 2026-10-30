@@ -1,11 +1,11 @@
-"""Events specific to Smukiez Tag Run: the Multi booster, the Tag Meter, and the Extreme
-Bonus trigger."""
+"""Events specific to Smukiez Tag Run: the Multi booster, the wall events, the line drops,
+and the Extreme Bonus trigger."""
 
 from copy import deepcopy
 
 BOOSTER = "booster"
-TAG_METER = "tagMeter"
-TAG_METER_FULL = "tagMeterFull"
+WALL_DROP = "wallDrop"
+LINE_MULTS = "lineMults"
 EXTREME_TRIGGER = "extremeTrigger"
 
 
@@ -33,24 +33,30 @@ def booster_event(gamestate) -> None:
     gamestate.book.add_event(event)
 
 
-def tag_meter_event(gamestate) -> None:
-    """Tag Meter progress after a winning free spin."""
+def wall_drop_event(gamestate, kind: str, positions: list) -> None:
+    """A wall event on the board just revealed: "line" (3 or 4 walls in a row or column) or
+    "cover" (every cell but a scatter). The walls themselves are in the reveal; this names
+    them so the client can announce the event. Positions carry the +1 padding offset."""
+    pad = 1 if gamestate.config.include_padding else 0
     event = {
         "index": len(gamestate.book.events),
-        "type": TAG_METER,
-        "tags": gamestate.tag_meter,
-        "target": gamestate.tag_target,
+        "type": WALL_DROP,
+        "kind": kind,
+        "positions": [{"reel": r, "row": c + pad} for r, c in positions],
     }
     gamestate.book.add_event(event)
 
 
-def tag_meter_full_event(gamestate, extra_spins: int) -> None:
-    """Tag Meter filled: extra spins awarded."""
+def line_mults_event(gamestate, drops: list) -> None:
+    """The small multipliers the clusters just paid have dropped on their own cells: each drop's
+    cell (+1 padding offset) and value, and the whole grid after them (visible rows, no
+    padding, as in the booster event) - what the client draws under the tiles as they leave."""
+    pad = 1 if gamestate.config.include_padding else 0
     event = {
         "index": len(gamestate.book.events),
-        "type": TAG_METER_FULL,
-        "extraSpins": extra_spins,
-        "totalFs": gamestate.tot_fs,
+        "type": LINE_MULTS,
+        "drops": [{"reel": r, "row": c + pad, "mult": v} for r, c, v in drops],
+        "gridMults": [[round(v, 2) for v in column] for column in gamestate.grid_mults],
     }
     gamestate.book.add_event(event)
 

@@ -9,9 +9,7 @@ class GameStateOverride(GameExecutables):
 
     def reset_book(self):
         super().reset_book()
-        self.tag_meter = 0
-        self.tag_target = self.config.tag_meter_target_standard
-        self.extra_spins_awarded = 0
+        self.wall_event = None   # (kind, cells) of the wall event on the board being revealed
         self.bonus_type = ""
         self.triggered_extreme = False
         self.booster_details = []

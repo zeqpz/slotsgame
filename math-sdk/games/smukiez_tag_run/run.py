@@ -36,7 +36,6 @@ if __name__ == "__main__":
 
     config = GameConfig()
     gamestate = GameState(config)
-    OptimizationSetup(config)
 
     if not args.no_sims:
         create_books(
@@ -49,6 +48,8 @@ if __name__ == "__main__":
             profiling,
         )
 
+    # after the sims: the base game's per-book scaling is read off the pool they just wrote
+    OptimizationSetup(config)
     generate_configs(gamestate)
 
     if args.optimize:
