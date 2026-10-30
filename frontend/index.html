@@ -3323,9 +3323,11 @@ function setCell(r, y, sym) {
 /* ---------- animated symbols ---------- */
 // Every symbol is a Spine 4.2 skeleton: tools/icon_rigs cuts the icon art into parts, packs
 // them into one atlas (assets/icons/icons*.webp) and authors each icon's clips - "idle" (its own
-// performance, played as the symbol drops in and every so often between rounds: the lowrider
-// hops on its hydraulics, the spray can's cloud billows and sheds puffs, the marker redraws its
-// line...), "land" (a spare, for a rig without an idle) and "win". The Spine runtime
+// performance, played as the symbol lands: the lowrider hops on its hydraulics, the spray can's
+// cloud billows and sheds puffs, the marker redraws its line...), "land" (a spare, for a rig
+// without an idle) and "win", played when it is in a paid cluster. Nothing replays between rounds:
+// a symbol performs as it first lands and when it wins, and rests otherwise (owner, 2026-10-30:
+// no spray cans and markers going off on an idle board). The Spine runtime
 // the characters already use evaluates every clip once, at load: each part's transform and
 // opacity, RIG_FPS times a second. Those are played back as Web Animations on plain elements
 // inside the cell - on the compositor, no per-frame script - so a symbol still rides on
@@ -3688,24 +3690,6 @@ function measureRigBox() {
   const w = c.clientWidth * .88, h = c.clientHeight * .88;
   if (w > 0 && h > 0) { $("board").style.setProperty("--boxw", w.toFixed(2)); $("board").style.setProperty("--boxh", h.toFixed(2)); }
 }
-// Between rounds the board performs: every so often a resting symbol plays its idle - never
-// more than a few at once, never the same one twice running, and nothing while a round plays.
-let rigIdleBusy = 0, rigIdleLast = null;
-function rigIdleTick() {
-  setTimeout(rigIdleTick, 420 + Math.random() * 640);
-  if (document.hidden || state.playing || REPLAY || !Object.keys(RIGS).length) return;
-  if (rigIdleBusy >= 4) return;
-  const r = Math.floor(Math.random() * REELS), y = Math.floor(Math.random() * ROWS);
-  const cell = cellEls[r] && cellEls[r][y];
-  const el = rigOf(cell);
-  if (!el || el._anims || cell === rigIdleLast || cell.classList.contains("winhit")) return;
-  rigIdleLast = cell;
-  const a = rigPlay(cell, "idle");
-  if (!a) return;
-  rigIdleBusy++;
-  const done = () => { rigIdleBusy = Math.max(0, rigIdleBusy - 1); };
-  a.addEventListener("finish", done); a.addEventListener("cancel", done);
-}
 function startRigs() {
   loadRigs().then(ok => {
     if (!ok) return;
@@ -3716,7 +3700,6 @@ function startRigs() {
       const sym = shownSym[r] && shownSym[r][y];
       if (sym && RIGS[sym.name]) fillCell(cellEls[r][y], sym);
     }
-    rigIdleTick();
   });
 }
 
