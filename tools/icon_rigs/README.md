@@ -11,6 +11,10 @@ measured on (`art/icons-src/geom/<ID>.png`) and the parts are cut out of the new
   and the channels (`x`, `y` in skeleton units, `r` degrees counter-clockwise, `sx`, `sy`;
   `alpha` per slot). Keys are `(time, value, ease)`; the ease shapes the run *into* that key
   (`in`, `out`, `inout`, `back`, `snap`, `drop`, `soft`, `linear`, `step`, or a bezier tuple).
+  Where the new art has something its measured drawing lacks, `("art", m)` reads a mask off the new
+  art instead: L2's line got a white sticker outline in the redraw, so L2 tells pen and line apart on
+  the new art with `fill`, `near` and `hard` (hard-edged, so two parts meet without a hairline).
+  Those three need scipy, so run the build with `.venv312\Scripts\python.exe`.
 - `python tools/icon_rigs/build.py --preview-only <ID>` - cut one rig and write preview sheets to
   `tools/icon_rigs/_preview/` (`<ID>_parts.png`, `<ID>_idle.png`, `<ID>_land.png`, `<ID>_win.png`).
 - `python tools/icon_rigs/build.py` - build every rig into the game: `frontend/assets/icons/`

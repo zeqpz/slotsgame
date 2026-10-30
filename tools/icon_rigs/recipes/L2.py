@@ -4,16 +4,30 @@
 # Win: a fast, bold redraw with the marker punching up.
 MARKER = ("poly", [(706, 100), (758, 66), (926, 186), (914, 246), (474, 826), (452, 840), (398, 884),
                    (306, 968), (160, 890), (208, 792), (236, 724), (290, 642)])
-STROKE = ("minus", ("grow", ("color", "#ff9200", 70), 3), ("grow", MARKER, 6))   # grown 3px: the soft edge goes with the stroke
+# The redrawn line has a white sticker outline the measured drawing lacks, so the pen and the line are
+# told apart on the new art: the pen is the shape its black outline rings plus its own white border
+# (about 14 px; the soft rim just past it, where nothing lies under the pen, stays the pen's too), and
+# everything else is the line, outline included. The slices then carry their piece of the outline and
+# wipe away with it, instead of the outline staying on the pen with no line in it (owner, 2026-10-30).
+# The split is hard-edged, so pen and line meet without a hairline.
+PEN_BODY = ("fill", ("and", ("ink",), ("grow", MARKER, 12)))
+PEN = ("or", ("near", PEN_BODY, 14),
+       ("and", ("near", PEN_BODY, 17), ("hard", ("minus", ("rect", -1, -1, 1001, 1001), ("opaque",)), .02)))
+STROKE = ("art", ("minus", ("grow", ("opaque",), 2), PEN))
 # the stroke's centre line, in the order it was drawn
 PATH = [(575, 100), (420, 140), (280, 195), (165, 270), (175, 330), (300, 335), (450, 295), (575, 250),
         (500, 320), (390, 430), (260, 520), (165, 590), (190, 650), (330, 660), (520, 640), (700, 600),
         (820, 610), (855, 670), (720, 730), (560, 790), (420, 850)]
 N = 12                                     # slices of the stroke
 SLICES = [f"s{i + 1:02d}" for i in range(N)]
+# Each slice reaches 8 px back under the one before it (so not exclusive). Two cuts meeting edge to
+# edge each come out of the atlas's resampling half see-through, which left a hairline at every joint.
+LENGTH = sum(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** .5 for (x0, y0), (x1, y1) in zip(PATH, PATH[1:]))
+BACK = 8 / LENGTH
 
-parts = [{"name": s, "mask": ("along", STROKE, PATH, i / N, (i + 1) / N), "pivot": (500, 500)} for i, s in enumerate(SLICES)]
-parts.append({"name": "marker", "mask": "rest", "pivot": (545, 515)})
+parts = [{"name": s, "mask": ("along", STROKE, PATH, max(0, i / N - BACK), (i + 1) / N), "exclusive": False, "pivot": (500, 500)}
+         for i, s in enumerate(SLICES)]
+parts.append({"name": "marker", "mask": ("art", PEN), "pivot": (545, 515)})
 
 
 def draw_on(start, span, each=.12, gone=.0, fade=.2):

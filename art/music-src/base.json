@@ -1,0 +1,29 @@
+{
+ "cue": "base",
+ "model": "google/lyria-3-pro-preview",
+ "prompt": "Instrumental only. An early-1990s piano house track with UK rave energy and the cool tension of a heist-movie score. 125 BPM, G minor, 4/4. Punchy four-on-the-floor kick, crisp claps on 2 and 4, shuffled 16th-note hi-hats with open hats on the off-beats, a chopped breakbeat layered under the kick, a bouncy M1-style organ bassline, bright syncopated house piano chord stabs over Gm9 - Ebmaj7 - Cm9 - D7, a warm pad and a tense plucked synth arpeggio. Confident, stylish and driving with steady energy: background music for a slot game. Structure: [Short intro] -> [Main groove] -> [Main groove, piano and arpeggio variations] -> [Main groove]. No breakdown, no fade-out.",
+ "text": "[[A0]]\n[[B1]]\n[[C2]]\n[[B3]]",
+ "usage": {
+  "prompt_tokens": 168,
+  "completion_tokens": 8,
+  "total_tokens": 176,
+  "cost": 0.08,
+  "is_byok": false,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "cache_write_tokens": 0,
+   "audio_tokens": 0,
+   "video_tokens": 0
+  },
+  "cost_details": {
+   "upstream_inference_cost": 0.08,
+   "upstream_inference_prompt_cost": 0,
+   "upstream_inference_completions_cost": 0.08
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 0,
+   "image_tokens": 0,
+   "audio_tokens": 8
+  }
+ }
+}

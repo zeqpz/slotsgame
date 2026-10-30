@@ -1491,15 +1491,20 @@
     width: calc(min(var(--boxw, 97), var(--boxh, 82)) * 1.44px); aspect-ratio: 1;
     translate: -50% -50%; background: center / 100% 100% no-repeat;
   }
+  /* The pair sits in one box so it can step aside as a whole. A win clip moves the symbol well off
+     the resting outline these pictures show, so while one plays (.perf, rigPlay) they fade out and
+     the win's own glow, drawn round the moving parts (.winhit .rigin), stands in. */
+  .cell .tglows { position: absolute; inset: 0; pointer-events: none; transition: opacity calc(.15s * var(--tempo, 1)) ease-out; }
+  .cell.perf .tglows { opacity: 0; }
   .cell .tglow.halo { animation: tglowHalo var(--tg-p, 3s) ease-in-out var(--tg-d, 0s) infinite; }
   .cell .tglow.tube { animation: tglowTube var(--tg-p2, 6s) linear var(--tg-d2, 0s) infinite; }
   .cell.t2 .tglow.halo { animation-name: tglowHalo2; }
   .cell.t2 .tglow.tube { animation-name: tglowTube2; }
   @keyframes tglowHalo  { 0%, 100% { opacity: .55; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.05); } }
   @keyframes tglowHalo2 { 0%, 100% { opacity: .4; transform: scale(.98); } 50% { opacity: .8; transform: scale(1.03); } }
-  @keyframes tglowTube {
-    0%, 100% { opacity: .92; } 37% { opacity: 1; } 38% { opacity: .3; } 39% { opacity: 1; }
-    41% { opacity: .45; } 42.5% { opacity: 1; } 70% { opacity: .84; }
+  @keyframes tglowTube {   /* a cycle of 16-28 s (tierGlow): its stutter a quick third of a second in it */
+    0%, 100% { opacity: .92; } 40% { opacity: 1; } 40.4% { opacity: .3; } 40.8% { opacity: 1; }
+    41.3% { opacity: .45; } 41.8% { opacity: 1; } 70% { opacity: .84; }
   }
   @keyframes tglowTube2 { 0%, 100% { opacity: .72; } 50% { opacity: .96; } }
   .cell.winhit .tglow.halo { animation: tglowFlare calc(.7s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1) forwards; }
@@ -1810,9 +1815,13 @@
     /* above its neighbours so the pop is never clipped by the next tile, but below the
        win chip (z-index 4) so the cluster's amount still reads on top */
     transform: scale(1.2); z-index: 1;
-    animation: winpop calc(.52s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1);
+    animation: winpop calc(.95s * var(--tempo, 1)) cubic-bezier(.25,.85,.35,1);
   }
   .cell.winhit img, .cell.winhit .rigin { filter: drop-shadow(0 0 12px rgba(255, 255, 255, .5)) drop-shadow(0 3px 5px rgba(0, 0, 0, .6)); }
+  /* the neon tiers glow in their own colours while lit (tools/make_tier_glow.py): the tube's light
+     close in, the halo's further out, round the moving parts themselves */
+  .cell.t1.winhit img, .cell.t1.winhit .rigin { filter: drop-shadow(0 0 1.5px rgb(108, 252, 84)) drop-shadow(0 0 5px rgba(108, 252, 84, .9)) drop-shadow(0 0 14px rgba(180, 84, 228, .9)); }
+  .cell.t2.winhit img, .cell.t2.winhit .rigin { filter: drop-shadow(0 0 1.5px rgb(199, 125, 255)) drop-shadow(0 0 5px rgba(199, 125, 255, .9)) drop-shadow(0 0 14px rgba(108, 36, 180, .9)); }
   /* ...and the icon itself comes alive inside the punch: it lands squashed, springs up stretched
      and wobbles back to shape on its base, while its own win clip plays on its parts (rigPlay). */
   .cell.winhit .rigin, .cell.winhit .ico > img { animation: iconPop calc(.66s * var(--tempo, 1)) cubic-bezier(.3,.7,.4,1); transform-origin: 50% 88%; }
@@ -1825,20 +1834,22 @@
     82%  { transform: scale(1.015, .985); }
     100% { transform: none; }
   }
-  @keyframes winpop {
-    0%   { transform: scale(1); }
-    18%  { transform: scale(1.45) rotate(-2.4deg); }   /* punched up, hard and fast */
-    34%  { transform: scale(1.1) rotate(1.6deg); }
-    50%  { transform: scale(1.3) rotate(-1deg); }
-    68%  { transform: scale(1.16) rotate(.5deg); }
-    84%  { transform: scale(1.23) rotate(-.2deg); }
-    100% { transform: scale(1.2); }                    /* lands where the base rule leaves it */
+  @keyframes winpop {   /* punched up hard and fast, then shaken side to side, each swing smaller (owner, 2026-10-30) */
+    0%   { transform: translateX(0) scale(1) rotate(0deg); }
+    11%  { transform: translateX(0) scale(1.44) rotate(-5deg); }
+    22%  { transform: translateX(2.6px) scale(1.14) rotate(4.4deg); }
+    33%  { transform: translateX(-2.1px) scale(1.3) rotate(-3.5deg); }
+    44%  { transform: translateX(1.6px) scale(1.17) rotate(2.6deg); }
+    56%  { transform: translateX(-1.1px) scale(1.25) rotate(-1.8deg); }
+    68%  { transform: translateX(.7px) scale(1.19) rotate(1.1deg); }
+    81%  { transform: translateX(-.3px) scale(1.21) rotate(-.5deg); }
+    100% { transform: translateX(0) scale(1.2) rotate(0deg); }   /* lands where the base rule leaves it */
   }
   /* A Multi going off is spotlit like a cluster (booster()): the Multi itself punches up
      harder and longer than a cluster tile, and the four cells it lands on take the cluster pop
      drawn out a little; both come to rest at the lit 1.2 */
   .cell.winhit.boom { animation: multiboomlit calc(.8s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.2,.9,.3,1.3); z-index: 2; }
-  .cell.winhit.hit  { animation: winpop calc(.7s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.25,.85,.35,1); }
+  .cell.winhit.hit  { animation: winpop calc(1.05s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.25,.85,.35,1); }
   @keyframes multiboomlit {
     0%   { transform: scale(1); }
     32%  { transform: scale(1.55) rotate(-4deg); filter: brightness(1.7); }
@@ -2611,22 +2622,17 @@
     position: absolute; inset: -14% -14%; z-index: 0; pointer-events: none;   /* the glow's padding (make_wall_fx BTN_PAD) */
     background: url("assets/wallfx/bonus_glow.webp") center / contain no-repeat;   /* fitted like the plate, so the tube lies on its outline */
     mix-blend-mode: screen; transition: scale .18s ease;
-    animation: neonSign 4.3s infinite;
+    animation: neonSign 13s infinite;   /* one short stutter a cycle (it was two every 4.3 s: owner, 2026-10-30) */
   }
   .bonusbtn::after { z-index: 1; }
-  @keyframes neonSign {
-    0%   { opacity: .75; filter: brightness(1); }
-    6%   { opacity: 1; filter: brightness(1.35); }
-    9%   { opacity: .35; filter: brightness(.8); }
-    11%  { opacity: 1; filter: brightness(1.3); }
-    13%  { opacity: .5; }
-    15%  { opacity: .95; filter: brightness(1.15); }
-    40%  { opacity: .8; filter: brightness(1); }
-    62%  { opacity: 1; filter: brightness(1.25); }
-    64%  { opacity: .4; }
-    66%  { opacity: .98; filter: brightness(1.2); }
-    85%  { opacity: .78; filter: brightness(1); }
-    100% { opacity: .75; filter: brightness(1); }
+  @keyframes neonSign {   /* a slow breath through the tube, and once a cycle a short stutter as the gas catches */
+    0%, 100% { opacity: .75; filter: brightness(1); }
+    35%   { opacity: .9; filter: brightness(1.12); }
+    68%   { opacity: .8; filter: brightness(1); }
+    70%   { opacity: 1; filter: brightness(1.3); }
+    71%   { opacity: .4; filter: brightness(.85); }
+    72.5% { opacity: 1; filter: brightness(1.25); }
+    76%   { opacity: .85; filter: brightness(1.05); }
   }
   .bonusbtn:disabled .bglow { animation: none; opacity: .3; }
   @media (prefers-reduced-motion: reduce) { .bonusbtn .bglow, .bonuspanel h3 .bglow { animation: none; opacity: .85; } }
@@ -3259,16 +3265,21 @@ function cellClass(sym) {
   return "cell " + (SYM[sym.name] || { cls: "low" }).cls + (TIER[sym.name] ? " t" + TIER[sym.name] : "");
 }
 function tierGlow(name) {
-  return ["halo", "tube"].map(kind => {
+  const box = document.createElement("i");
+  box.className = "tglows";   // the pair steps aside together while a win clip plays (.perf)
+  box.append(...["halo", "tube"].map(kind => {
     const i = document.createElement("i");
     i.className = "tglow " + kind;
     i.style.backgroundImage = `url("assets/glow/${name}_${kind}.webp")`;
     // each on its own clock, started somewhere inside its cycle, so the board never pulses in step
-    const p = kind === "halo" ? 2.6 + Math.random() * .9 : 5 + Math.random() * 3.5, v = kind === "halo" ? "" : "2";
+    // the halo breathes every few seconds; the tube stutters once in 16-28 s (a board of them every 5-8 s
+    // kept something flickering all the time: owner, 2026-10-30)
+    const p = kind === "halo" ? 2.6 + Math.random() * .9 : 16 + Math.random() * 12, v = kind === "halo" ? "" : "2";
     i.style.setProperty("--tg-p" + v, p.toFixed(2) + "s");
     i.style.setProperty("--tg-d" + v, (-Math.random() * p).toFixed(2) + "s");
     return i;
-  });
+  }));
+  return box;
 }
 function fillCell(cell, sym) {
   const def = SYM[sym.name] || { label: sym.name, sub: "", cls: "low" };
@@ -3295,7 +3306,7 @@ function fillCell(cell, sym) {
     el.append(m);
     return;
   }
-  if (cell.ico && TIER[sym.name] && (rig || def.img)) el.append(...tierGlow(sym.name));   // behind the icon
+  if (cell.ico && TIER[sym.name] && (rig || def.img)) el.append(tierGlow(sym.name));   // behind the icon
   if (rig) {
     el.append(rig);
   } else if (def.img) {
@@ -3626,12 +3637,19 @@ function rigPlay(cell, clip, { loop = false, speed = 1 } = {}) {
     anims.push(a);
   });
   el._anims = anims; el._clip = clip;
-  if (anims[0]) anims[0].onfinish = () => { if (el._anims === anims) { el._anims = null; el._clip = null; } };
+  // a win takes the symbol well off the outline its neon glow pictures: the glow steps aside
+  // while it plays (.perf) and the win's own glow, drawn round the moving parts, stands in
+  if (clip === "win" && anims.length) cell.classList.add("perf");
+  if (anims[0]) anims[0].onfinish = () => {
+    if (el._anims !== anims) return;
+    el._anims = null; el._clip = null;
+    if (rigOf(cell) === el) cell.classList.remove("perf");
+  };
   return anims[0] || null;
 }
 function rigStop(el) {
   if (el && el._anims) el._anims.forEach(a => a.cancel());
-  if (el) { el._anims = null; el._clip = null; }
+  if (el) { el._anims = null; el._clip = null; const cell = el.closest(".cell"); if (cell) cell.classList.remove("perf"); }
 }
 // A tile starts performing the moment it lands - its own move (the lowrider's hydraulics, the
 // spray cloud, the marker's line...) plays out of the landing; in the air it is a blur. Every
@@ -3643,8 +3661,27 @@ const rigQueue = new Set();
 let rigQueueRaf = 0;
 function rigDrop(cell) {
   if (REDUCED_MOTION || !cell) return;
+  tierLand(cell);
   rigQueue.add(cell);
   if (!rigQueueRaf) rigQueueRaf = requestAnimationFrame(rigDrain);
+}
+// A neon symbol lands with a little more than the rest (owner, 2026-10-30: "glow more on special
+// icons ... and when they land"): it rocks on its base, glow and all (.ico carries both, so the glow
+// stays on its outline), and its halo blooms out and back. Web Animations on the box and on the
+// halo's own `rotate` and `scale`, which leave what runs on their `transform` going underneath
+// (the box's idle wander, the halo's breathing).
+const TIER_ROCK = [
+  { rotate: "0deg", easing: "ease-out" }, { rotate: "-3deg", offset: .16, easing: "ease-in-out" },
+  { rotate: "2.2deg", offset: .36, easing: "ease-in-out" }, { rotate: "-1.2deg", offset: .56, easing: "ease-in-out" },
+  { rotate: ".5deg", offset: .76, easing: "ease-in-out" }, { rotate: "0deg" },
+];
+const HALO_BLOOM = [{ scale: "1", easing: "ease-out" }, { scale: "1.2", offset: .22, easing: "ease-in-out" }, { scale: "1" }];
+function tierLand(cell) {
+  if (!cell.ico || !(cell.classList.contains("t1") || cell.classList.contains("t2"))) return;
+  const t = tempo();
+  cell.ico.animate(TIER_ROCK, { duration: 700 * t });
+  const halo = cell.ico.querySelector(".tglow.halo");
+  if (halo) halo.animate(HALO_BLOOM, { duration: 800 * t });
 }
 function rigDrain() {
   rigQueueRaf = 0;
@@ -5183,7 +5220,7 @@ const REEL_RATE = { min: .55, max: 1.5 };
 
 let actx = null, sfxBus = null, musicBus = null;
 // Player's mix, 0-100 each, remembered per browser. The music bar is musicBus's gain, over
-// both loops (see the music section below).
+// every cue (see the music section below).
 const vol = { music: 70, sfx: 80 };
 try { Object.assign(vol, JSON.parse(localStorage.getItem("smukiez.vol") || "{}")); } catch (e) { /* storage blocked */ }
 // The old build carried a separate "mute everything" switch. Dragging a bar to zero is the
@@ -5202,76 +5239,121 @@ function applyVolumes() {
   if (musicBus) musicBus.gain.value = vol.music / 100;
 }
 /* ---------- music ---------- */
-// Two loops, the base game's (16 bars at 150 bpm) and the bonus's (6 bars at 97.5 bpm). Each
-// was cut to its bars with the notes that ring over the loop point folded back onto its start,
-// so it goes round with no seam. Opus in Ogg first - small, and trimmed to the sample by any
-// decoder that reads it - and AAC for a browser that can't: that file carries 4800 frames of
-// the loop's end in front of the loop (aacStart), less whatever a decoder trims off the front
-// by itself, which shows as the file coming back that much shorter than aacFrames.
-// level: each loop's own gain under the music bar - the bonus is mastered ~3 dB hotter, and
-// both sit well under the effects.
+// Five cues, each cut from a Lyria take by tools/music/build.py (which prints these entries): the
+// base game, the bonus buy menu, the YOU WON n FREE SPINS screen, the free spins and the bonus's
+// TOTAL WIN. Every loop was cut on a beat where its end runs on like its start - lined up to the
+// sample, its first 1/16 note crossfaded in from what followed its end in the take - so it goes
+// round with no seam. The intro and the total open with a head that plays once (the impact and
+// build, the celebration hit): the loop starts `head` frames in, while the head's last
+// `headLen - head` frames ring out under it. Opus in Ogg first - small, and trimmed to the sample by
+// any decoder that reads it - and AAC for a browser that can't: that file carries 4800 frames in
+// front of the cue (the loop's end, or silence before a head) after the encoder's own 1024
+// (aacStart), less whatever a decoder trims off the front by itself, which shows as the file coming
+// back that much shorter than aacFrames.
+// level: each cue's gain under the music bar. Every master reads -14 LUFS; the levels sit the base
+// game where the old loop sat, the menu under it and the bonus and its screens a little over it,
+// all well under the effects. bpm and bars give the cue's beat, so the free spins can start on one.
 const MUSIC = {
-  base:  { ogg: "assets/music_base.ogg",  aac: "assets/music_base.aac",  frames: 1228800, aacStart: 4800, aacFrames: 1239040, level: .25 },
-  bonus: { ogg: "assets/music_bonus.ogg", aac: "assets/music_bonus.aac", frames: 708923,  aacStart: 4800, aacFrames: 718848,  level: .18 },
+  base:  { ogg: "assets/music_base.ogg",  aac: "assets/music_base.aac",  frames: 2949081, aacStart: 5824, aacFrames: 2955264, bpm: 124.998, bars: 32, level: .3 },
+  menu:  { ogg: "assets/music_menu.ogg",  aac: "assets/music_menu.aac",  frames: 1536012, aacStart: 5824, aacFrames: 1542144, bpm: 120.003, bars: 16, level: .224 },
+  intro: { ogg: "assets/music_intro.ogg", aac: "assets/music_intro.aac", frames: 529664,  head: 268153, headLen: 296953, aacStart: 5824, aacFrames: 832512,  bpm: 174.005, bars: 8,  level: .335 },
+  bonus: { ogg: "assets/music_bonus.ogg", aac: "assets/music_bonus.aac", frames: 2118613, aacStart: 5824, aacFrames: 2124800, bpm: 173.996, bars: 32, level: .398 },
+  total: { ogg: "assets/music_total.ogg", aac: "assets/music_total.aac", frames: 768000,  head: 414889, headLen: 472489, aacStart: 5824, aacFrames: 1247232, bpm: 120,     bars: 8,  level: .376 },
 };
 const MUSIC_RATE = 48000;
 const OPUS_OK = (() => { try { return !!new Audio().canPlayType('audio/ogg; codecs="opus"'); } catch (e) { return false; } })();
-const musicRaw = {};   // the bytes come down with the page; only the decode waits for the context
-for (const [name, m] of Object.entries(MUSIC)) musicRaw[name] = fetch(OPUS_OK ? m.ogg : m.aac).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
-const musicTrack = {};   // name -> Promise<{ buf, start, end } | null>, loop points in seconds
+// the bytes come down with the page - the base game's first, the others once it is in; only the
+// decode waits for the context
+const musicRaw = {};
+const fetchMusic = name => musicRaw[name] || (musicRaw[name] =
+  fetch(OPUS_OK ? MUSIC[name].ogg : MUSIC[name].aac).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
+fetchMusic("base").then(() => Object.keys(MUSIC).forEach(name => fetchMusic(name)));
+const musicTrack = {};   // name -> Promise<{ buf, at } | null>; at: where the cue's first frame sits in buf, in seconds
 function loadTrack(name) {
   if (musicTrack[name]) return musicTrack[name];
-  const m = MUSIC[name], len = m.frames / MUSIC_RATE;
-  const fromOgg = () => musicRaw[name].then(b => actx.decodeAudioData(b))
-    .then(buf => ({ buf, start: 0, end: Math.min(buf.duration, len) }));
-  const fromAac = () => (OPUS_OK ? fetch(m.aac).then(r => r.arrayBuffer()) : musicRaw[name]).then(b => actx.decodeAudioData(b))
-    .then(buf => {
-      const start = Math.max(0, (m.aacStart - Math.max(0, m.aacFrames - buf.duration * MUSIC_RATE)) / MUSIC_RATE);
-      return { buf, start, end: Math.min(buf.duration, start + len) };
-    });
+  const m = MUSIC[name];
+  const fromOgg = () => fetchMusic(name).then(b => actx.decodeAudioData(b)).then(buf => ({ buf, at: 0 }));
+  const fromAac = () => (OPUS_OK ? fetch(m.aac).then(r => r.arrayBuffer()) : fetchMusic(name)).then(b => actx.decodeAudioData(b))
+    .then(buf => ({ buf, at: Math.max(0, (m.aacStart - Math.max(0, m.aacFrames - buf.duration * MUSIC_RATE)) / MUSIC_RATE) }));
   musicTrack[name] = (OPUS_OK ? fromOgg().catch(fromAac) : fromAac()).catch(() => null);   // silence, never a broken round
   return musicTrack[name];
 }
-// want: the loop that should be playing; playing: every loop still sounding, fading out ones
-// included; resume: where the base loop left off, so it picks up there after a bonus
-const music = { on: false, want: "base", playing: {}, resume: null };
-// Fade the wanted loop up and every other one down, over `fade` seconds. Before the first
-// touch it only records the choice: the browser keeps the sound shut until then.
+// want: the cue that should be playing; playing: every cue still sounding, fading ones included;
+// resume: where the base game's and the menu's loops left off, so each picks up there again
+const music = { on: false, want: "base", playing: {}, resume: {} };
+const LOOP_RESUMES = ["base", "menu"];
+// Decoded, the five cues would hold ~70 MB of samples - a lot for a phone. The base game's loop and
+// the intro (which has to hit the moment a bonus lands) stay decoded; each other cue is decoded
+// while the one before it plays (NEXT) or as it is asked for, and let go once it has faded out.
+const MUSIC_KEEP = ["base", "intro"], MUSIC_NEXT = { intro: "bonus", bonus: "total" };
+// Fade the wanted cue up and every other one down, over `fade` seconds. Before the first touch it
+// only records the choice: the browser keeps the sound shut until then. A cue with a head starts
+// from its top, hit first; a cue on the beat of the one it takes over from (the free spins after
+// their intro) drops in on that one's next beat.
 function musicTo(name, fade = 1.6) {
   music.want = name;
   if (!music.on || !actx) return;
-  for (const other of Object.keys(music.playing)) if (other !== name) musicFadeOut(other, fade);
   const live = music.playing[name];
-  if (live && !live.leaving) return;   // already the one playing
+  if (live && !live.leaving) {   // already the one playing
+    for (const other of Object.keys(music.playing)) if (other !== name) musicFadeOut(other, fade);
+    return;
+  }
   loadTrack(name).then(t => {
     const again = music.playing[name];
     if (!t || music.want !== name || (again && !again.leaving)) return;
-    const now = actx.currentTime, lvl = MUSIC[name].level;
+    const m = MUSIC[name], R = MUSIC_RATE, now = actx.currentTime;
+    let when = now, fadeIn = m.head ? .02 : fade;
+    const lead = Object.entries(music.playing).find(([n, p]) => n !== name && !p.leaving && Math.abs(MUSIC[n].bpm / m.bpm - 1) < .01);
+    if (lead && !m.head) {
+      const p = lead[1], beat = p.len / (MUSIC[lead[0]].bars * 4);
+      when = p.zero + Math.ceil((now + .03 - p.zero) / beat) * beat;
+      fadeIn = .03;
+    }
+    for (const other of Object.keys(music.playing)) if (other !== name) musicFadeOut(other, fade, when);
     const g = actx.createGain();
     g.gain.value = 0;   // silent from the first sample, and a fade-out read straight away starts from 0
-    g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(lvl, now + fade);
+    g.gain.setValueAtTime(0, when);
+    g.gain.linearRampToValueAtTime(m.level, when + fadeIn);
     g.connect(musicBus);
-    const src = actx.createBufferSource();
-    src.buffer = t.buf; src.loop = true; src.loopStart = t.start; src.loopEnd = t.end;
-    src.connect(g);
-    // the base loop picks up where it was; a bonus always starts from its top
-    const from = name === "base" && music.resume != null ? music.resume : t.start;
-    src.start(now, from);
-    music.playing[name] = { src, g, t0: now, from, start: t.start, end: t.end };
+    const len = m.frames / R, loopStart = t.at + (m.headLen || 0) / R;
+    const loop = actx.createBufferSource();
+    loop.buffer = t.buf; loop.loop = true; loop.loopStart = loopStart; loop.loopEnd = loopStart + len;
+    loop.connect(g);
+    const srcs = [loop];
+    let zero;   // when the loop's first frame plays (or would have): its beats count from there
+    if (m.head) {
+      const head = actx.createBufferSource();
+      head.buffer = t.buf; head.connect(g);
+      head.start(when, t.at, m.headLen / R);   // once, its last stretch ringing on under the loop
+      zero = when + m.head / R;
+      loop.start(zero, loopStart);
+      srcs.push(head);
+    } else {
+      const from = music.resume[name] || 0;   // seconds into the loop
+      loop.start(when, loopStart + from);
+      zero = when - from;
+    }
+    music.playing[name] = { srcs, g, zero, len };
+    if (MUSIC_NEXT[name]) loadTrack(MUSIC_NEXT[name]);
   });
 }
-function musicFadeOut(name, fade) {
+// Fade a cue out over `fade` seconds from `when` (now, or the beat a new cue drops in on).
+function musicFadeOut(name, fade, when) {
   const p = music.playing[name];
   if (!p || p.leaving) return;
   p.leaving = true;
-  const now = actx.currentTime, gone = now + fade;
+  const now = actx.currentTime, from = Math.max(now, when || now), gone = from + fade;
   p.g.gain.cancelScheduledValues(now);
   p.g.gain.setValueAtTime(p.g.gain.value, now);
+  p.g.gain.setValueAtTime(p.g.gain.value, from);
   p.g.gain.linearRampToValueAtTime(0, gone);
-  if (name === "base") music.resume = p.start + ((p.from - p.start) + (gone - p.t0)) % (p.end - p.start);
-  p.src.onended = () => { if (music.playing[name] === p) delete music.playing[name]; p.g.disconnect(); };
-  p.src.stop(gone + .05);
+  if (LOOP_RESUMES.includes(name)) music.resume[name] = (((gone - p.zero) % p.len) + p.len) % p.len;
+  p.srcs[0].onended = () => {
+    if (music.playing[name] === p) delete music.playing[name];
+    p.g.disconnect();
+    if (!MUSIC_KEEP.includes(name) && music.want !== name && !music.playing[name]) delete musicTrack[name];   // the bytes stay
+  };
+  for (const src of p.srcs) src.stop(gone + .05);
 }
 // the first touch opens the sound: the wanted loop fades up slowly under the game
 function startMusic() {
@@ -5357,7 +5439,7 @@ function audio() {
   return actx;
 }
 // browsers only allow audio once the player has interacted — first gesture opens the context
-addEventListener("pointerdown", () => { audio(); startMusic(); if (actx) loadTrack("bonus"); }, { once: true });   // the bonus loop is decoded ahead of the first bonus
+addEventListener("pointerdown", () => { audio(); startMusic(); if (actx) loadTrack("intro"); }, { once: true });   // the intro is decoded ahead of the first bonus
 
 function sfx(name, rate = 1) {
   if (vol.sfx <= 0) return;   // the bar is at the bottom: don't even open the context
@@ -5783,8 +5865,9 @@ const handlers = {
     paintFsWin();
     // the Total Win popup takes it from here: it counts the payout up over the board, lands
     // on TOTAL WIN, waits to be dismissed and clears the counter itself
+    musicTo("total", .8);   // the free spins give way to the win's own hit
     await totalWinScreen(cents(ev.amount), { total: true });
-    musicTo("base", 2.2);   // the bonus loop carries the total; the base game's comes back after it
+    musicTo("base", 2.2);   // and the base game's loop comes back, where it left off
   },
 
   async finalWin() { /* credited by playRound */ },
@@ -6072,6 +6155,7 @@ function paintBonus() {
 }
 function closeBonus() {
   if (!$("bonusWrap").hidden) sfx("menuClose");
+  if (music.want === "menu") musicTo("base", 1.2);   // the base game's loop picks up where it left off
   showMenu($("bonusWrap"), false);
   $("bonusBtn").classList.remove("open");
 }
@@ -6082,6 +6166,7 @@ function openBonus() {
   showMenu($("bonusWrap"), true);
   $("bonusBtn").classList.add("open");
   sfx("menuOpen");
+  musicTo("menu", .8);
   paintBonus();
   fitBonus();
   $("bonusGo").focus();
@@ -7973,7 +8058,7 @@ function bonusIntroHow(extreme) {
     `<p>${T(`Walls drop in lines of <b>3</b> or <b>4</b> far more often in here, and every winning cluster drops a small multiplier under itself - all of it stays for the rest of the bonus.`)}</p>`;
 }
 function bonusIntro(spins, extreme) {
-  musicTo("bonus", 1.4);   // the base loop fades out with the game as the bonus's comes up
+  musicTo("intro", .6);   // the base game's loop gives way to the intro's impact and build
   return new Promise(resolve => {
     const wrap = document.createElement("div");
     wrap.className = "bonusintro" + (extreme ? " x" : "");   // .x: the Extreme Bonus's violet
@@ -8019,6 +8104,7 @@ function bonusIntro(spins, extreme) {
       phase = 2;
       clearTimeout(holdTimer);
       sfx("bet", 1.1);
+      musicTo("bonus", .6);   // the free spins drop in on the intro's next beat
       document.removeEventListener("keydown", onKey, true);
       removeEventListener("resize", fit);
       wrap.classList.remove("up");             // the wall and the words fade to black

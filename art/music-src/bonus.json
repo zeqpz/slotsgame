@@ -1,0 +1,29 @@
+{
+ "cue": "bonus",
+ "model": "google/lyria-3-pro-preview",
+ "prompt": "Instrumental only. A high-energy 90s jungle and drum and bass rave anthem for a slot bonus round. 174 BPM, G minor. Fast chopped breakbeats with a rolling two-step kick and snare, a deep growling reese bassline over a clean sub, euphoric rave piano stabs over Gm - Eb - Cm - D, a hoover-style rave lead hook, shimmering pads, rides and crashes. Euphoric, exciting and relentless, like the getaway in a heist. Full energy from the first bar: [Drop] -> [Main section] -> [Main section with variations] -> [Main section]. No intro, no breakdown, no fade-out.",
+ "text": "[[A0]]\n[[B1]]\n[[C2]]\n[[B3]]",
+ "usage": {
+  "prompt_tokens": 139,
+  "completion_tokens": 8,
+  "total_tokens": 147,
+  "cost": 0.08,
+  "is_byok": false,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "cache_write_tokens": 0,
+   "audio_tokens": 0,
+   "video_tokens": 0
+  },
+  "cost_details": {
+   "upstream_inference_cost": 0.08,
+   "upstream_inference_prompt_cost": 0,
+   "upstream_inference_completions_cost": 0.08
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 0,
+   "image_tokens": 0,
+   "audio_tokens": 8
+  }
+ }
+}

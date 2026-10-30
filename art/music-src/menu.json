@@ -1,0 +1,29 @@
+{
+ "cue": "menu",
+ "model": "google/lyria-3-pro-preview",
+ "prompt": "Instrumental only. Key: G minor (G, B-flat, D). Tempo: 125 BPM. Mellow, filtered deep house: the same early-90s piano house world, heard quietly while a heist is being planned. 125 BPM, G minor, 4/4. Soft muffled kick, gentle shaker and rimshots, warm round sub bass, dreamy Rhodes electric piano chords over Gm9 - Ebmaj7 - Cm9 - D7, airy pads, a little vinyl warmth. Calm, suspenseful and classy, low energy but still grooving. The same relaxed groove from start to finish: no build-ups, no drops, no fade-out.",
+ "text": "[[A0]]\n[[B1]]\n[[C2]]\n[[D3]]\n[[C4]]\n[[E5]]\n[[F6]]",
+ "usage": {
+  "prompt_tokens": 128,
+  "completion_tokens": 14,
+  "total_tokens": 142,
+  "cost": 0.08,
+  "is_byok": false,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "cache_write_tokens": 0,
+   "audio_tokens": 0,
+   "video_tokens": 0
+  },
+  "cost_details": {
+   "upstream_inference_cost": 0.08,
+   "upstream_inference_prompt_cost": 0,
+   "upstream_inference_completions_cost": 0.08
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 0,
+   "image_tokens": 0,
+   "audio_tokens": 14
+  }
+ }
+}

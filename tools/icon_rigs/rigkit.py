@@ -41,6 +41,7 @@ class Canvas:
         self.W, self.H = src.size
         self.rgba = np.asarray(src).astype(np.float32) / 255.0
         self.alpha = self.rgba[..., 3]
+        self.art = None                                 # the new art's own Canvas when the masks are read off an older drawing
 
     def poly(self, pts, ss=4):
         big = Image.new("L", (self.W * ss, self.H * ss), 0)
@@ -57,7 +58,8 @@ class Canvas:
     def eval(self, m):
         """m is a mask expression: ("poly", pts) ("disc", cx, cy, r) ("ellipse", cx, cy, rx, ry, deg)
         ("rect", x0, y0, x1, y1) ("color", "#rrggbb", tol) ("ink",) ("opaque",) ("or", *m) ("and", *m)
-        ("minus", a, b) ("grow", m, px) ("shrink", m, px) ("blur", m, px) ("cc", m, x, y)"""
+        ("minus", a, b) ("grow", m, px) ("shrink", m, px) ("blur", m, px) ("cc", m, x, y)
+        ("art", m) ("fill", m) ("near", m, px) ("hard", m, level)"""
         if isinstance(m, np.ndarray):
             return m
         k = m[0]
@@ -101,6 +103,18 @@ class Canvas:
         if k == "blur":
             img = Image.fromarray((self.eval(m[1]) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(m[2]))
             return np.asarray(img).astype(np.float32) / 255.0
+        if k == "art":             # ("art", m): m read off the new art instead of the drawing the recipe was measured on
+            return (self.art or self).eval(m[1])
+        if k == "fill":            # ("fill", m): m with every hole it rings filled - an outline becomes its shape
+            from scipy import ndimage
+            return ndimage.binary_fill_holes(self.eval(m[1]) > .5).astype(np.float32)
+        if k == "near":            # ("near", m, px): everything within px of m by true distance (grow is a square
+            #                        filter: on a slanted edge it reaches up to 1.4x further), hard-edged
+            from scipy import ndimage
+            return (ndimage.distance_transform_edt(self.eval(m[1]) <= .5) <= m[2]).astype(np.float32)
+        if k == "hard":            # ("hard", m, level=.5): m made binary - two parts split along a soft edge both
+            #                        draw it half see-through, which leaves a hairline where they meet
+            return (self.eval(m[1]) > (m[2] if len(m) > 2 else .5)).astype(np.float32)
         if k == "along":           # ("along", mask, [(x,y)...], t0, t1): the part of a mask whose
             #                        nearest point on a polyline lies between t0 and t1 of its length
             #                        - slices a painted stroke in drawing order, hard-edged, so the
@@ -338,6 +352,8 @@ class Rig:
         self.cv = Canvas(Image.open(geom).convert("RGBA") if os.path.exists(geom) else self.src)   # the drawing the masks are read off
         if (self.cv.W, self.cv.H) != self.src.size:
             raise ValueError(f"{self.id}: {name} is {self.src.size}, its measured drawing {(self.cv.W, self.cv.H)}")
+        if self.cv.src is not self.src:
+            self.cv.art = Canvas(self.src)
         self.ppu = max(self.cv.W, self.cv.H) / 100.0          # source px per skeleton unit
         self.parts = {}                                        # name -> dict(img=PIL, box=(x0,y0,x1,y1) src px)
         self.slots = []                                        # draw order: dicts(name, bone, region, ...)

@@ -57,6 +57,10 @@ def main():
             far = np.exp(-out / HALO_FALL) * (d > 0) * t["halo_a"]
             a = np.clip(spill + far * (1 - spill), 0, 1)
             hcol = (t["spill"][None, None] * spill[..., None] + t["halo"][None, None] * (far * (1 - spill))[..., None]) / np.maximum(a, 1e-4)[..., None]
+            # the blur spreads the halo's alpha in under the sticker, where it has no colour of its own:
+            # give it the tube's light there, or the halo carries a black inner rim that shows the moment
+            # it is drawn larger than the sticker (its win flare, its landing bloom, the burst's strain)
+            hcol[d <= 0] = t["spill"]
             a = ndimage.gaussian_filter(a, 8 * n / 1000)
             halo_im = Image.fromarray((np.dstack([hcol, a]) * 255).clip(0, 255).round().astype(np.uint8), "RGBA")
             for name, im in (("tube", tube_im), ("halo", halo_im)):

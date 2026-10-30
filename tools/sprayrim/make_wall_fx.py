@@ -387,10 +387,12 @@ def wall():
 
 
 # ------------------------------------------------------------------ the drips off the tag's letters
-# Besides the drips painted into the tag (found below), a few runs start straight off a letter's lower
-# edge where the tag shows beside the board on a desktop screen: (x, y) a point inside the letter's face
-# (fractions of the tag), the run starts at the face's lower edge straight below it.
-EDGE_TIPS = [(.10, .53), (.905, .235)]
+# Besides the drips painted into the tag (found below), runs could start straight off a letter's lower
+# edge: (x, y) a point inside the letter's face (fractions of the tag), the run starting at the face's
+# lower edge straight below it. None now: the S's and the Z's arrow points had one each, and paint
+# coming out of a point with no drip painted there looked wrong (owner, 2026-10-30: only where the
+# art has drips).
+EDGE_TIPS = []
 
 
 def tag_tips(im, green):

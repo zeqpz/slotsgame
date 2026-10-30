@@ -1,14 +1,14 @@
 // The live wall (assets/wallfx, tools/sprayrim/make_wall_fx.py):
-// - wet paint oozes out of the wall. Out of each hole's pool (blob_<i>.webp, cut from the wall art)
-//   and off the ends of the drips painted into the SMUKIEZ tag, a fresh run of thick, glossy paint
-//   now and then: a bead gathers at the end of a drip (the pool swelling as it fills), runs down
-//   the bricks slowing as it leaves paint behind, hangs, fattens, pinches off a drop that falls to
-//   the pavement and splats with a little crown of droplets, and the run it leaves springs back,
-//   stays wet, thins and is gone. Every tip keeps its own clock, so a few runs are on the go at once,
-//   each at its own stage.
-// - the paint is shaded live as a liquid. Every piece of it (a run's segments, its bead, a drop, a
-//   splat) is a rounded height field, all of them melted into one shape (a smooth union), so a bead
-//   swells out of its run and a drop pinches off it; the light is the scene's (art/STYLE.md): a key
+// - the paint is still wet. Now and then a drip painted into the wall (the drips of each hole's
+//   pool, blob_<i>.webp, cut from the wall art) or into the SMUKIEZ tag slowly creeps a little further
+//   down, its end filling out into a bead that necks off and falls - in the wall's own space, so off
+//   the tag it leaves the tag's movement behind - and lands on the pavement in a splash; the drip draws
+//   slowly back up into itself. Only drips the art has ever move. Every tip keeps its own clock, so a
+//   few are on the go at once, each at its own stage.
+// - the paint is shaded live as a liquid. Every piece of it (a run, its bead, a drop, a splat and its
+//   droplets) is a rounded height field, the pieces melted into one shape (a smooth union), so a bead
+//   swells out of its run in the width and the outline of the painted drip it lengthens, and necks off
+//   it; the light is the scene's (art/STYLE.md): a key
 //   light from the upper left that puts a sharp wet highlight down the left of every run and a hot
 //   spot on every bead, the shadow side in the paint's own deep colour, a thin cool rim on the lower
 //   right, the dark ink edge the painted paint has, and a soft shadow thrown down and to the right on
@@ -50,7 +50,7 @@
   // is; how much light gets into a joint; how much the wet paint shines
   const WALL_LIGHT = { z: 58, reach: 330, flat: .45, gain: 6, ref: 2627, relief: 3.5, joint: .22, shine: 7 };
   let ART = [3840, 2160], FLOOR = .8755, TAG = [3303, 1674];
-  let regions = [], layer = null, tagLayer = null, meta = null, raf = 0, wake = 0, last = 0;
+  let regions = [], falls = [], layer = null, tagLayer = null, meta = null, raf = 0, wake = 0, last = 0;
   let checked = 0, aimed = 0, placedTag = "", started = false, frozen = false;
   let dimA = [.5, .62], tint = [20, 18, 24];   // read off #bgwall's gradient in place()
   let lit = null;                               // the light on the wall: { cv, ctx, tex, map, ... } (bake())
@@ -112,13 +112,15 @@
   // ------------------------------------------------------------------ the sign's flicker
   // One clock for everything the sign lights: the tube (#tagglow, and each stretch of it), its light on
   // the bricks (#walllight), the wet paint here and both figures. A sign that stays on, with a faint
-  // hum, and every 6-15 s an event: most often a stutter (two to four quick blinks inside a second),
+  // hum, and every 22-50 s an event: most often a stutter (two to four quick blinks inside a second),
   // now and then a longer sputter, rarely one stretch of the tube dropping out for a moment; a surge
   // (surge()) flares it and makes it buzz on a big win. The schedule is seeded, made a little ahead,
   // and played as Web Animations on opacity, 20 s at a time - the compositor runs the page's part of
   // it - and neon() reads the very same curve for the paint and the figures on the same frame. It runs
   // on its own clock (virtual ms) so a test can slow it down. Reduced motion: a steady sign.
-  const FLK = { WIN: 20000, STEP: 200, EDGE: 6, GAP: [6000, 15000], MAX: 1.42 };
+  // GAP: ms between the sign's events - long, so it reads as an old sign acting up now and then rather
+  // than a light that blinks every spin (owner, 2026-10-30; it was 6-15 s)
+  const FLK = { WIN: 20000, STEP: 200, EDGE: 6, GAP: [22000, 50000], MAX: 1.42 };
   let fl = null, flEls = null, nSeg = 0;
   const tl = () => document.timeline.currentTime ?? performance.now();
   const vnow = () => (fl ? fl.vt0 + (tl() - fl.rt0) * fl.rate : tl());
@@ -276,7 +278,7 @@
     const r = rng32(seed);
     fl = { seed, rng: r, rate: 1, vt0: tl(), rt0: tl(), events: [], surges: [], anims: [], win: null,
            seg: new Float32Array(nSeg), ph: [r() * 6.28, r() * 6.28] };
-    fl.nextAt = fl.vt0 + 2500 + r() * 6000;     // the first event a few seconds in
+    fl.nextAt = fl.vt0 + 12000 + r() * 14000;   // the first event a while in
     playWin(buildWin(fl.vt0, fl.vt0 + FLK.WIN));
   }
   // A surge: the sign flares and buzzes for `ms`, as hard as `strength` (1 a big win), then settles.
@@ -428,7 +430,7 @@ void main() {
     float a = clamp(ex.x, -1., 1.), r = max(ex.y, .5);
     // the shadow side: the lower right of every shape, the outline turned that way (0 on a flat top)
     float side = smoothstep(-.5, .5, dot(nx, vec2(.7071)) * smoothstep(.02, .3, 1. - n.z) + .5 * a);
-    float bandW = r * mix(uCel.z, uCel.w, side), inkW = max(uCel.y, r * uCel.x);
+    float inkW = max(uCel.y, r * uCel.x), bandW = inkW + max(r - inkW, 0.) * mix(uCel.z, uCel.w, side);
     // the body, a shade lighter toward the lit side, with the spray grain of the art's paint
     vec3 alb = mix(uBase, mix(uBase, uHi, .14), smoothstep(.2, -.8, a));
     alb *= 1. + uMix.w * ((vnoise(p / 5.3) - .5) * 1.3 + (vnoise(p / 1.7 + 19.7) - .5) * .7);
@@ -536,7 +538,7 @@ void main() {
     initGL();
     // a context the GPU takes away (a reset, a phone backgrounded short of memory) is asked back
     // (preventDefault), and everything on it is made again when it comes back
-    glc.addEventListener("webglcontextlost", e => { e.preventDefault(); gl = null; for (const R of regions) R.cv.style.display = "none"; });
+    glc.addEventListener("webglcontextlost", e => { e.preventDefault(); gl = null; for (const R of [...regions, ...falls]) R.cv.style.display = "none"; });
     glc.addEventListener("webglcontextrestored", restoreGL);
     return true;
   }
@@ -545,7 +547,7 @@ void main() {
     if (!gl || gl.isContextLost()) return;
     try { initGL(); } catch (e) { gl = null; console.warn("wall paint:", e.message); return; }
     const made = im => (im && im.complete && im.naturalWidth ? texture(im) : null);
-    for (const R of regions) {
+    for (const R of [...regions, ...falls]) {
       R.tex = made(R.sprite);
       R.prev = null;
       R.ctx.clearRect(0, 0, R.cv.width, R.cv.height);
@@ -677,178 +679,218 @@ void main() {
   }
 
   // ------------------------------------------------------------------ one run's life
-  // Its pieces at any moment come from its age: the root (from inside the painted drop it grows out
-  // of, melting in, so the two are one paint), the run down the bricks in a few tapered segments, the
-  // bead at its end; and the drops it lets go of, handed to the region to fall. Nothing of it ever
-  // fades: once the first drop has gone, the rest of the run drains off the wall - the root pulls back
-  // up into the painted drip and the run parts from it, its tail slides down the bricks narrowing from
-  // the top, the paint gathers in the bead at the end, and that falls too (now and then with a small
-  // bead after it). The run is gone when its last drop has left.
-  // Its width is the painted drip's (make_wall_fx.py measures the bright paint at the drip's end; the
-  // art's dark band and ink line round it come to about half as much again).
-  const WIDE = .64;
+  // A run is the painted drip it comes from, growing longer. At rest it lies exactly over the drip's
+  // painted end - as wide as the drip and in the same outline (R.ink, measured off the art) - so it
+  // comes and goes unseen. Paint gathers at the end (a wall pool swells a little behind it), the drip
+  // creeps down a short way, slowing as it goes, its end filling out into a heavy bead; the bead necks
+  // and lets go and falls as a drop (letGo); the end springs back up a little as the weight goes, and
+  // the drip draws slowly back up into the painted drip and is gone. Nothing else ever comes away from
+  // it (owner, 2026-10-30: slower, shorter, nothing floating off on its own, only where the art has
+  // drips - and drops that land and splash for real).
+  // A tip (makeRegion): x, y the drip's painted end (the bottom of its paint, region px), pr its
+  // paint's half-width, r the drip's whole half-width, outline included.
   function newDrip(R, tip) {
-    const r0 = tip.w * WIDE * rnd(.95, 1.03);
-    const room = R.floor - tip.y - r0 * 4;
-    const T = { gather: rnd(1, 1.7), run: rnd(2.6, 4.6), hang: rnd(.7, 1.4), pinch: rnd(.26, .38),
-                recoil: .45, sever: rnd(.45, .65), slide: rnd(2.7, 3.7), last: rnd(.8, 1.1), sat: Math.random() < .45 ? rnd(.45, .7) : 0 };
+    const T = { gather: rnd(1.6, 2.4), run: rnd(4.5, 6.5), hang: rnd(1.4, 2.4), pinch: rnd(.3, .45), recoil: .6, recede: rnd(3, 4.4) };
     let acc = 0; const at = {};
     for (const [n, d] of Object.entries(T)) { at[n] = acc; acc += d; }
-    const seed = rnd(0, 6.3), wob = r0 * rnd(.08, .16), lam = r0 * rnd(2.2, 3.4), drift = rnd(-.035, .035);
     return {
-      tip, r0, T, at, end: acc, t: 0, seed, dropped: 0, lastDone: 0, satDone: 0,
-      len: clamp(r0 * rnd(3.5, 8.5), r0 * 2, Math.max(r0 * 2, room)),
-      xAt: (x0, y) => x0 + wob * Math.sin(y / lam + seed) - wob * Math.sin(seed) + drift * y,
-      bulge: y => 1 + .07 * Math.sin(y / (r0 * 1.9) + seed * 1.7),
+      tip, T, at, end: acc, t: 0, dropped: 0,
+      len: tip.pr * rnd(1.8, 3.2),                  // how far past its painted end it creeps
+      bulb: rnd(1.2, 1.32),                         // how full its end's bead gets before it lets go (1: the drip's width)
+      lean: tip.pr * rnd(-.05, .05),                // a run never comes down quite plumb
     };
   }
-
-  // the run's state now: where its top, end and bead are, how thick it is, and whether the root still
-  // holds it to the painted drip (root: 1 whole, 0 gone)
+  // the run now: how far past the painted end it reaches (px), how full its end is (1: the drip's own
+  // width), the bead necking off it (sag: how far below the end it hangs; neck: 1 whole .. 0 parted),
+  // the pool's swell behind it (0-1), and how much of it shows (it fades in and out over the painted end)
   function dripState(d) {
-    const { r0, T, at } = d, t = d.t, ph = n => clamp((t - at[n]) / T[n], 0, 1);
-    const s = { topY: r0 * .2, topR: 0, endY: 0, bead: 0, trailR: r0, endR: r0 * .93, neck: 1, sag: 0, swell: 0, root: 1 };
-    const y1 = r0 * .55;                          // where the bead sits when it has just come out
-    const e2 = y1 + d.len + r0 * .3;              // the run's end once it has hung
-    if (t < at.run) {                             // a bead gathers at the drop's end, the pool filling
-      const e = smooth(ph("gather"));
-      s.endY = -r0 * .25 + (y1 + r0 * .25) * e; s.bead = r0 * (.7 + .38 * e); s.swell = e;
-    } else if (t < at.hang) {                     // ... and runs down, slowing as it leaves paint behind
-      const u = ph("run"), p = ease(u);
-      s.endY = y1 + d.len * p; s.bead = r0 * (1.1 - .08 * p + .04 * Math.sin(u * Math.PI)); s.swell = 1 - .4 * p;
-      s.endR = r0 * (.93 - .15 * p);
-    } else if (t < at.pinch) {                    // it hangs and fattens
-      const e = smooth(ph("hang"));
-      s.endY = y1 + d.len + r0 * .3 * e; s.bead = r0 * (.96 + .3 * e); s.swell = .6 - .2 * e;
-    } else if (t < at.recoil) {                   // a neck forms and the drop lets go
+    const { T, at } = d, t = d.t, ph = n => clamp((t - at[n]) / T[n], 0, 1), b = d.bulb - 1;
+    if (t < at.run) { const e = smooth(ph("gather")); return { ext: d.len * .06 * e, bulb: 1 + b * .25 * e, sag: 0, neck: 1, swell: e, a: smooth(t / .9) }; }
+    if (t < at.hang) { const p = ease(ph("run")); return { ext: d.len * (.06 + .94 * p), bulb: 1 + b * (.25 + .3 * p), sag: 0, neck: 1, swell: 1 - .5 * p, a: 1 }; }
+    if (t < at.pinch) { const e = smooth(ph("hang")); return { ext: d.len * (1 + .04 * e), bulb: 1 + b * (.55 + .45 * e), sag: 0, neck: 1, swell: .5 - .2 * e, a: 1 }; }
+    if (t < at.recoil) {                            // the bead sags on a narrowing neck, and lets go
       const e = ph("pinch");
-      s.endY = e2; s.bead = r0 * 1.26; s.sag = r0 * 1.1 * e * e; s.neck = 1 - smooth(e); s.swell = .4 * (1 - e);
-    } else {                                      // the rest drains off the wall
-      const u = t - at.recoil;
-      // the end springs back up as the drop's weight goes, and settles
-      const back = r0 * (.9 * (1 - Math.exp(-u * 7)) - .5 * Math.sin(u * 15) * Math.exp(-u * 5));
-      const eR = e2 - back;
-      s.endR = r0 * .8; s.trailR = r0 * .92;
-      // the root pulls back up into the painted drip and the run parts from it, its top a tapered tail
-      const sv = ph("sever"), cut = smooth(sv);
-      s.root = 1 - cut;
-      const topS = r0 * (.45 + .55 * cut);        // where the tail's tip is as it parts
-      // ... which then slides down the bricks, slowly at first, until all of it has gathered at the end
-      const v = ph("slide"), slide = v * v * (1.6 - .6 * v);
-      const gap = Math.max(0, eR - topS);
-      s.topY = topS + gap * slide;
-      s.topR = r0 * (.08 + .25 * cut) * (1 - .5 * v);
-      s.trailR = r0 * (.92 - .22 * slide); s.endR = r0 * (.8 - .2 * slide);
-      // the bead at the end fills with what slides into it (its volume grows as the run's shortens)
-      const b0 = r0 * .55, slid = gap * slide;
-      s.bead = Math.min(r0 * 1.25, Math.cbrt(b0 * b0 * b0 + .55 * s.trailR * s.trailR * slid));
-      s.endY = eR + r0 * .45 * slide;
-      if (t >= at.last) {                         // the last bead hangs, necks and goes
-        const e = ph("last");
-        s.topY = s.endY; s.trailR = s.endR = s.bead * .5;
-        s.sag = s.bead * .9 * smooth((e - .45) / .55) ** 2; s.neck = 1 - smooth((e - .4) / .6);
-        if (d.lastDone) { s.bead = 0; s.neck = 1; s.sag = 0; }
-      }
-      if (t >= at.sat && T.sat) {                 // a small bead left on the wall where the last one parted, after it
-        const e = ph("sat");
-        s.topY = s.endY = eR + r0 * .45 + r0 * .5 * e; s.trailR = s.endR = 0;
-        s.bead = d.satDone ? 0 : r0 * .34; s.sag = s.bead * .7 * smooth((e - .5) / .5) ** 2; s.neck = 1;
-      }
+      return { ext: d.len * 1.04, bulb: d.bulb, sag: d.tip.r * .9 * e * e, neck: 1 - smooth(e), swell: .3, a: 1 };
     }
-    return s;
+    // the drop has gone: the end springs back up as its weight goes, and the drip draws back in
+    const u = t - at.recoil, back = d.tip.r * (.45 * (1 - Math.exp(-u * 7)) - .25 * Math.sin(u * 14) * Math.exp(-u * 5));
+    const e = smooth(ph("recede"));
+    return { ext: Math.max(0, (d.len * 1.04 - back) * (1 - e)), bulb: 1, sag: 0, neck: 0, swell: .3 * (1 - e), a: 1 - smooth((ph("recede") - .78) / .22) };
   }
-
-  // the run's pieces into the list (region px), at its tip as the pool's swell carries it
+  // where the run's end and its bead are (region px): the end's middle, the bead's middle and radius
+  function beadAt(d, s) {
+    const { pr, r } = d.tip, ex = d.tx + d.lean * s.ext / d.len, ey = d.ty - pr + s.ext;
+    return { ex, ey, x: ex, y: ey + r * s.bulb * .3 + s.sag, r: r * s.bulb };
+  }
+  // its pieces into the list (region px): the drip's body, from well up inside the painted drip (fading
+  // in, so its top never shows against the painted paint) down to its end; the bead at the end, melted
+  // in; and as it lets go, the neck it hangs by
   function dripPieces(R, d, s, L) {
-    const r0 = d.r0, tx = d.tx, ty = d.ty;     // the tip where the pool's swell has carried it this frame
-    // the root: from inside the painted drop down to the tip, melting in, so the run grows out of it;
-    // as the run parts, it pulls back up into the drop and narrows away
-    if (s.root > 0) {
-      const ry = ty + r0 * (.2 - .9 * (1 - s.root)), rr = Math.max(.3, s.trailR * d.bulge(r0 * .2) * s.root);
-      L.push([tx, ty - r0 * 1.2, r0 * .78, 10, d.xAt(tx, r0 * .2), ry, rr, 1]);
+    const { r } = d.tip, B = beadAt(d, s);
+    L.push([d.tx, d.ty - d.tip.pr - r * 2.2, r, 10, B.ex, B.ey, s.neck < 1 ? r : r * (1 + (s.bulb - 1) * .5), s.a]);
+    if (s.bulb <= 1.001 || d.dropped) return;
+    if (s.neck < 1) {
+      const nr = Math.max(.3, r * .55 * s.neck);
+      L.push([B.ex, B.ey, nr, 2, B.x, B.y - B.r * .6, nr * .8 + B.r * .1 * s.neck, s.a]);
     }
-    const top = s.topY, end = Math.max(top, s.endY);
-    if (end > top + 1 && s.trailR > 0) {
-      const n = clamp(Math.round((end - top) / (r0 * 2.4)), 1, 5);
-      let px = d.xAt(tx, top), py = ty + top;
-      for (let i = 1; i <= n; i++) {
-        const yy = top + (end - top) * i / n;
-        const x = d.xAt(tx, yy), y = ty + yy;
-        const rad = j => (j === 0 && s.root < 1 ? Math.max(s.topR, .3) : (s.trailR + (s.endR - s.trailR) * j / n) * d.bulge(top + (end - top) * j / n));
-        // a tail's top narrows over its first stretch
-        const r1 = rad(i - 1), r2 = i === 1 && s.root < 1 && n > 1 ? Math.min(rad(1), Math.max(s.topR, .3) + (end - top) / n * .35) : rad(i);
-        // (the stretch after a tail's taper melts into it, so the tail rounds out instead of a shoulder)
-        L.push([px, py, r1, i === 2 && s.root < 1 ? 2 : 0, x, y, r2, 1]);
-        px = x; py = y;
-      }
-    }
-    if (s.bead > .5) {                          // the bead, hanging off the end (and thinning to a neck as it lets go)
-      const bx = d.xAt(tx, end), by = ty + end + s.bead * .55 + s.sag;
-      if (s.neck < 1) {                         // the neck: a thin bridge from the run's end to the drop
-        const nr = Math.max(.2, Math.max(s.endR, s.bead * .5) * s.neck * .9);
-        L.push([bx, ty + end, nr, 2, bx, by - s.bead * .6, nr * .8 + s.bead * .12 * s.neck, 1]);
-      }
-      L.push([bx, by, s.bead, 2, bx, by + .01, s.bead, 1]);
-    }
+    L.push([B.x, B.y, B.r, 2, B.x, B.y + .01, B.r, s.a]);
   }
 
-  // a falling drop, drawn out along its speed; a landed one is a splat
-  function dropPieces(p, L) {
-    const st = clamp(p.v * .02, 0, p.r * 3.2);
-    L.push([p.x, p.y - st, p.r * (st > 1 ? .62 : 1), 2, p.x, p.y, p.r * (1 - .08 * st / (p.r * 3.2 + 1e-3)), 1]);
+  // ------------------------------------------------------------------ the drops: off the drips, onto the pavement
+  // A drop that lets go of a run falls in the wall's own space - a canvas of its own in #wallpaint for
+  // each pool and each of the tag's drips - so a drop off the tag leaves the tag's wander, hop and pop
+  // behind the moment it lets go: it falls straight down and lands where it lands (owner, 2026-10-30).
+  // It falls under gravity, drawn out a little by its speed, and hits the pavement in a splash: it slaps
+  // flat into a splat that spreads in a blink, pulls back a touch and soaks slowly into the stone; it
+  // throws a crown of droplets up and out that arc back down and land as specks; and a heavy drop kicks
+  // a small jet straight up out of its middle that falls back in. Off the tag a drop keeps the tag's
+  // paint as the tag shows it (its see-through, none of the wall's darkening), so it never changes as it
+  // leaves.
+  function makeFall(R) {
+    const cv = document.createElement("canvas");
+    Object.assign(cv.style, { position: "absolute", display: "block", pointerEvents: "none" });
+    const tag = R.kind === "tag";
+    return {
+      kind: "fall", src: R, cv, ctx: cv.getContext("2d"), drops: [], splats: [], paint: R.paint, prev: null, vis: false,
+      alloc: false, k: 1, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], box: null, swell: 0, light: null, floor: 0, litMap: null, alpha: 1,
+      // a drop wears the outline of the drip it came off (the tag's heavy ink, as a share of its width);
+      // a splat flattened on the pavement, a thin one
+      cel: tag ? [.44, 3, .06, .22] : [.14, 3, .12, .3], grain: tag ? .18 : .3, relief: .5, shadow: [6, 8, 6, .42],
+    };
   }
-  // A flat piece (a puddle, a landed droplet) is never thinner than a fifth of its width: the shader's
-  // distance off a flatter ellipse falls to half the true one, so its paint and shadow spread sideways
-  // past the box redrawn round it (and were left behind on the pavement).
-  const flat = (L, x, y, rx, ry) => { if (rx > .5) L.push([x, y, rx, 1, 0, 0, Math.max(ry, rx * .2, .6), 1]); };
-  function splatPieces(s, L) {
-    // the drop lands as a squashed blob, spreads into a puddle, and soaks into the pavement: it draws in
-    // to nothing, thinning as it goes (the splash's droplets shrink away the same)
-    const u = s.t, spread = ease(u / .16), soak = smooth((u - .3) / (s.life - .3));
-    flat(L, s.x, s.y + s.r * .05, s.r * (1 + 1.7 * spread) * (1 - soak), s.r * (.78 - .44 * spread) * (1 - soak) * (1 - .5 * soak));
-    for (const c of s.crown) {
-      if (c.landed) { const k = 1 - smooth((u - c.landed) / 1.2); flat(L, c.x, c.y, c.r * 1.35 * k, c.r * .6 * k); }
-      else { const st = clamp(Math.hypot(c.vx, c.vy) * .012, 0, c.r * 2.5); const k = st / (Math.hypot(c.vx, c.vy) || 1); L.push([c.x - c.vx * k, c.y - c.vy * k, c.r * .55, 2, c.x, c.y, c.r, 1]); }
+  // the bead lets go: it falls from where it hangs this very frame, in the wall's px
+  function letGo(R, B) {
+    const F = R.fall;
+    if (!F || !layer || F.y1 <= F.y0) return;
+    let x = B.x, y = B.y, k = 1;
+    if (R.kind === "tag") {   // the tag's px -> the wall art's, through where both are on the page now (the tag's wander, hop and pop included)
+      const a = R.cv.getBoundingClientRect(), w = layer.getBoundingClientRect();
+      if (!a.width || !w.width) return;
+      const sx = a.width / (R.x1 - R.x0), sy = a.height / (R.y1 - R.y0), ax = w.width / ART[0], ay = w.height / ART[1];
+      x = (a.left + (B.x - R.x0) * sx - w.left) / ax; y = (a.top + (B.y - R.y0) * sy - w.top) / ay; k = sx / ax;
     }
+    F.drops.push({ x, y, r: B.r * k * .94, v: 30, land: F.floor + rnd(4, 18) });
+    if (!F.alloc) alloc(F);
+    F.vis = true;
+    go();
+  }
+  function splash(p) {
+    const r = p.r, v = p.v, y = p.land, n = 8 + Math.floor(Math.random() * 4), crown = [], lobes = [];
+    // the crown: droplets thrown up and out round the rim, the steepest highest, a few low and wide
+    for (let k = 0; k < n; k++) {
+      const side = k % 2 ? 1 : -1, ang = side * rnd(.15, 1.3), sp = clamp(v * rnd(.22, .42), 180, 800);
+      crown.push({ x: p.x + Math.sin(ang) * r * .5, y: y - r * .2, vx: Math.sin(ang) * sp * 1.25, vy: -Math.cos(ang) * sp,
+                   r: r * rnd(.13, .3), land: y + rnd(-.2, .7) * r, landed: 0 });
+    }
+    // the splat is never a clean ellipse: lobes round its rim, and a finger or two flung out sideways
+    for (let k = 0, m = 4 + Math.floor(Math.random() * 3); k < m; k++) {
+      const a = k / m * Math.PI * 2 + rnd(-.4, .4);
+      lobes.push({ ax: Math.cos(a) * rnd(.62, .92), ay: Math.sin(a) * rnd(.5, .9), k: rnd(.22, .42) });
+    }
+    for (const side of [-1, 1]) if (Math.random() < .75) lobes.push({ ax: side * rnd(1.05, 1.35), ay: rnd(-.2, .4), k: rnd(.14, .24) });
+    const jet = r > 9 ? { x: p.x, y: y - r * .2, vy: -clamp(v * .24, 180, 650), r: r * .32, done: 0 } : null;
+    return { x: p.x, y, r, t: 0, life: rnd(2.8, 3.8), crown, lobes, jet };
+  }
+  function fallStep(F, dt) {
+    for (let i = F.drops.length - 1; i >= 0; i--) {
+      const p = F.drops[i];
+      p.v += G * dt; p.y += p.v * dt;
+      if (p.y + p.r * .4 >= p.land) { F.drops.splice(i, 1); F.splats.push(splash(p)); }
+    }
+    for (let i = F.splats.length - 1; i >= 0; i--) {
+      const s = F.splats[i];
+      s.t += dt;
+      for (const c of s.crown) {
+        if (c.landed) continue;
+        c.vy += G * dt; c.x += c.vx * dt; c.y += c.vy * dt;
+        if (c.vy > 0 && c.y >= c.land) { c.y = c.land; c.landed = s.t; }
+      }
+      const j = s.jet;
+      if (j && !j.done && s.t > .04) { j.vy += G * dt; j.y += j.vy * dt; if (j.vy > 0 && j.y >= s.y - s.r * .1) j.done = 1; }
+      if (s.t > s.life) F.splats.splice(i, 1);
+    }
+  }
+  // A flat piece (a splat, a speck) is never thinner than a fifth of its width: the shader's distance off
+  // a flatter ellipse falls to half the true one, so its paint and shadow spread past the box redrawn round it.
+  const flat = (L, x, y, rx, ry, a) => { if (rx > .5 && a > .01) L.push([x, y, rx, 1, 0, 0, Math.max(ry, rx * .2, .6), a]); };
+  function fallPieces(F) {
+    const L = [], A = F.alpha;
+    for (const p of F.drops) {                      // a falling drop, drawn out a little along its speed
+      const st = clamp(p.v * .012, 0, p.r * 2.2);
+      L.push([p.x, p.y - st, p.r * (st > 1 ? .55 : 1), 2, p.x, p.y, p.r, A]);
+    }
+    for (const s of F.splats) {
+      const u = s.t, spread = ease(u / .12), back = smooth((u - .12) / .3), soak = 1 - smooth((u - .7) / (s.life - .7));
+      // the splat: slapped flat at once, spread wide, pulled back a touch, soaking away; its lobes and
+      // fingers spread with it, melted into its rim
+      const rx = s.r * (1 + 1.9 * spread) * (1 - .08 * back), ry = s.r * (.72 - .5 * spread);
+      flat(L, s.x, s.y + s.r * .06, rx, ry, soak * A);
+      for (const b of s.lobes) flat(L, s.x + b.ax * rx, s.y + s.r * .06 + b.ay * ry, rx * b.k, rx * b.k * .26, soak * A);
+      for (const c of s.crown) {
+        if (c.landed) { flat(L, c.x, c.y, c.r * 1.35, c.r * .5, soak * A); continue; }
+        const sp = Math.hypot(c.vx, c.vy), st = clamp(sp * .012, 0, c.r * 2.5), k = st / (sp || 1);
+        L.push([c.x - c.vx * k, c.y - c.vy * k, c.r * .55, 2, c.x, c.y, c.r, A]);
+      }
+      const j = s.jet;
+      if (j && !j.done) {                           // drawn out along its way, up or back down
+        const st = clamp(Math.abs(j.vy) * .012, 0, j.r * 2.4);
+        L.push([j.x, j.y + (j.vy < 0 ? st : -st), j.r * .6, 2, j.x, j.y, j.r, A]);
+      }
+    }
+    return L.length > NP ? L.slice(0, NP) : L;
   }
 
   // ------------------------------------------------------------------ a region: a pool or a tag drip, and its runs
   // kind "wall": a pool in the wall (region px = art px); kind "tag": a tip of the tag (region px = tag px)
+  // A run is as wide as the painted drip it comes from and wears the art's own outline, measured across
+  // the drips (2026-10-30): the wall's have a dark edge 3-7 art px wide (R.ink of it ink, a band inside);
+  // the tag's are ~1.75x the paint make_wall_fx.py measures, inside a black outline ~15.5 tag px thick.
+  const WIDE = .64;                                 // a wall drip's whole half-width, of the paint measured at its end
   function makeRegion(kind, src, i) {
     const cv = document.createElement("canvas");
     Object.assign(cv.style, { position: "absolute", display: "block", pointerEvents: "none" });
     const R = {
-      kind, src, i, cv, ctx: cv.getContext("2d"), tips: [], drips: [], drops: [], splats: [], due: [],
+      kind, src, i, cv, ctx: cv.getContext("2d"), tips: [], drips: [], due: [],
       paint: src.paint, dirty: null, prev: null, vis: false, k: 1, scale: 1, sprite: null, tex: null, swell: 0,
-      light: null, floor: 0, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], alloc: false,
+      light: null, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], alloc: false,
     };
     if (kind === "wall") {
-      R.tips = src.tips.map(([x, y, w]) => ({ x: x * ART[0], y: y * ART[1], w: clamp(w * ART[0], 14, 46) }));
+      R.ink = 3.5;
+      R.tips = src.tips.map(([x, y, w]) => {
+        const ww = clamp(w * ART[0], 14, 46), r = ww * WIDE;
+        return { x: x * ART[0], y: y * ART[1], w: ww, r, pr: r - R.ink };
+      });
       R.box = [src.x * ART[0], src.y * ART[1], src.w * ART[0], src.h * ART[1]];
       R.sprite = new Image(); R.sprite.src = `assets/wallfx/blob_${i}.webp`;
-      // the art's drips (measured across them): an ink line ~.12 of the radius (2.2 art px at least), a
-      // dark band a fifth of it on the lit side and nearly two fifths on the shadow side, spray grain; the
-      // wall's relief shows through
-      R.cel = [.12, 2.2, .19, .38]; R.grain = .3; R.relief = .9; R.shadow = [6, 8, 6, .48];
+      // the ink line, the dark band inside it on the lit side and the shadow side (of the paint inside
+      // the ink), spray grain; the wall's relief shows through
+      R.cel = [0, R.ink, .12, .3]; R.grain = .3; R.relief = .9; R.shadow = [6, 8, 6, .48];
     } else {
-      R.tips = [{ x: src.x * TAG[0], y: src.y * TAG[1], w: clamp(src.w * TAG[0], 16, 40) }];
-      R.box = null; R.cel = [.14, 2.6, .1, .26]; R.grain = .18; R.relief = 0; R.shadow = [8, 11, 8, .4];   // the tag's heavier ink, smoother airbrushed paint
+      R.ink = 15.5;
+      const w = clamp(src.w * TAG[0], 16, 40), pr = w * .87;
+      R.tips = [{ x: src.x * TAG[0], y: src.y * TAG[1], w, pr, r: pr + R.ink }];
+      R.box = null; R.cel = [0, R.ink, .06, .22]; R.grain = .18; R.relief = 0; R.shadow = [8, 11, 8, .4];   // smoother airbrushed paint
     }
     R.due = R.tips.map(() => performance.now() + rnd(600, 9000));
     return R;
   }
 
-  // the region's extent: its pool and tips, down to the pavement and a splash either side
+  // the region's extent: its pool and its drips, from well up inside each (where a run fades in) down to
+  // the furthest a run can reach and its bead, with room for the shadow down and to the right. Kept
+  // tight round the paint, so the canvas is drawn at the art's own density.
   function extent(R) {
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity;
-    for (const t of R.tips) { x0 = Math.min(x0, t.x - t.w * 4); x1 = Math.max(x1, t.x + t.w * 4); y0 = Math.min(y0, t.y - t.w * 1.6); }
-    if (R.box) { const [bx, by, bw, bh] = R.box; x0 = Math.min(x0, bx - bw * .06); x1 = Math.max(x1, bx + bw * 1.06); y0 = Math.min(y0, by - bh * .05); }
-    const splash = R.kind === "wall" ? 110 : 110 * R.unit;
-    x0 = Math.min(x0, ...R.tips.map(t => t.x - splash)); x1 = Math.max(x1, ...R.tips.map(t => t.x + splash));
-    R.x0 = x0; R.x1 = x1; R.y0 = y0; R.y1 = R.floor + (R.kind === "wall" ? 60 : 60 * R.unit);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const t of R.tips) {
+      x0 = Math.min(x0, t.x - t.r * 2); x1 = Math.max(x1, t.x + t.r * 2);
+      y0 = Math.min(y0, t.y - t.pr - t.r * 3.4);
+      y1 = Math.max(y1, t.y - t.pr + t.pr * 3.2 * 1.04 + t.r * 1.3);
+    }
+    if (R.box) { const [bx, by, bw, bh] = R.box; x0 = Math.min(x0, bx - bw * .03); x1 = Math.max(x1, bx + bw * 1.03); y0 = Math.min(y0, by - bh * .02); y1 = Math.max(y1, by + bh * 1.05); }
+    const m = R.shadow[2] + 4;
+    R.x0 = x0 - m; R.x1 = x1 + R.shadow[0] + m; R.y0 = y0 - m; R.y1 = y1 + R.shadow[1] + m;
   }
 
-  function active(R) { return R.drips.length || R.drops.length || R.splats.length; }
+  function active(R) { return R.drips.length; }
 
   function step(R, dt, now) {
     // a tip whose time has come starts a run, if there is room for one
@@ -863,7 +905,7 @@ void main() {
       R.drips.push(newDrip(R, R.tips[j]));
       R.due[j] = Infinity;                     // set again when this run is done
     }
-    // the pool swells as paint gathers for a run, and settles back when the drop has gone
+    // the pool swells as paint gathers for a run, and settles back as it draws in again
     let sw = 0;
     for (const d of R.drips) sw = Math.max(sw, dripState(d).swell);
     R.swell += (sw - R.swell) * Math.min(1, dt * 2.5);
@@ -873,64 +915,27 @@ void main() {
       const d = R.drips[i];
       d.t += dt;
       d.tx = ax + (d.tip.x - ax) * sx; d.ty = ay + (d.tip.y - ay) * sy;
-      const s = dripState(d);
-      if (!d.dropped && d.t >= d.at.recoil) {  // the bead lets go
+      if (!d.dropped && d.t >= d.at.recoil) {   // the bead lets go: it falls from where it hung a moment ago
         d.dropped = 1;
-        const by = d.ty + d.r0 * .55 + d.len + d.r0 * .3 + d.r0 * 1.26 * .55 + d.r0 * 1.1;
-        R.drops.push({ x: d.xAt(d.tx, d.r0 * .55 + d.len + d.r0 * .3), y: by, r: d.r0 * 1.16, v: 90 });
-      }
-      // the last of the run, gathered in the bead at its end, lets go; and the small bead after it
-      if (!d.lastDone && d.t >= d.at.last + d.T.last) {
-        d.lastDone = 1;
-        R.drops.push({ x: d.xAt(d.tx, s.endY), y: d.ty + s.endY + s.bead * .55 + s.sag, r: s.bead, v: 80 });
-      }
-      if (d.T.sat && !d.satDone && d.t >= d.at.sat + d.T.sat) {
-        d.satDone = 1;
-        R.drops.push({ x: d.xAt(d.tx, s.endY), y: d.ty + s.endY + d.r0 * .34 * .55 + s.sag, r: d.r0 * .34, v: 60 });
+        letGo(R, beadAt(d, dripState(Object.assign({}, d, { t: d.at.recoil - 1e-3 }))));
       }
       if (d.t >= d.end) {
         R.drips.splice(i, 1);
-        R.due[R.tips.indexOf(d.tip)] = now + rnd(2600, 8500);
+        R.due[R.tips.indexOf(d.tip)] = now + rnd(4000, 11000);
       }
-    }
-    const g = G * R.unit;
-    for (let i = R.drops.length - 1; i >= 0; i--) {
-      const p = R.drops[i];
-      p.v += g * dt; p.y += p.v * dt;
-      if (p.y + p.r * .3 >= R.floor) {         // the pavement: a splat and its crown of droplets
-        R.drops.splice(i, 1);
-        const n = 4 + Math.floor(Math.random() * 3), crown = [];
-        for (let k = 0; k < n; k++) {
-          const sgn = k % 2 ? 1 : -1, sp = rnd(.5, 1);
-          crown.push({ x: p.x + sgn * p.r * .6, y: R.floor - p.r * .2, vx: sgn * rnd(120, 360) * sp * R.unit, vy: -rnd(220, 520) * sp * R.unit,
-                       r: p.r * rnd(.18, .36), land: R.floor + rnd(-.1, .5) * p.r, landed: 0 });
-        }
-        R.splats.push({ x: p.x, y: R.floor, r: p.r, t: 0, life: rnd(2, 3), crown });
-      }
-    }
-    for (let i = R.splats.length - 1; i >= 0; i--) {
-      const s = R.splats[i];
-      s.t += dt;
-      for (const c of s.crown) {
-        if (c.landed) continue;
-        c.vy += g * dt; c.x += c.vx * dt; c.y += c.vy * dt;
-        if (c.vy > 0 && c.y >= c.land) { c.y = c.land; c.landed = s.t; }
-      }
-      if (s.t > s.life) R.splats.splice(i, 1);
     }
   }
   // the pool's swell: the point it swells about (its top middle) and how far, x and y
   function swellAt(R) {
     if (!R.box) return [0, 0, 1, 1];
     const [bx, by, bw] = R.box, s = R.swell;
-    return [bx + bw / 2, by + R.box[3] * .12, 1 + .022 * s, 1 + .055 * s];
+    return [bx + bw / 2, by + R.box[3] * .12, 1 + .012 * s, 1 + .03 * s];
   }
 
   function pieces(R) {
+    if (R.kind === "fall") return fallPieces(R);
     const L = [];
     for (const d of R.drips) dripPieces(R, d, dripState(d), L);
-    for (const p of R.drops) dropPieces(p, L);
-    for (const s of R.splats) splatPieces(s, L);
     return L.length > NP ? L.slice(0, NP) : L;
   }
   // the box round the pieces (region px), with room for the shadow and the edge
@@ -993,10 +998,10 @@ void main() {
     // wall's light under it (#walllight, as strong as that layer is showing on this frame)
     const Lt = R.light, glint = Lt ? Math.min(1.2, Lt.k) * neon(Lt.seg) * NEON_PAINT : 0;
     gl.uniform4f(U.uNeon, Lt ? Lt.dx : 0, Lt ? Lt.dy : 0, glint, 0);
-    const onLit = R.kind === "wall" && lit && lit.rect && R.litMap;
+    const onLit = R.kind !== "tag" && lit && lit.rect && R.litMap;
     if (onLit) { gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, lit.tex); gl.activeTexture(gl.TEXTURE0); gl.uniform4fv(U.uLitMap, R.litMap); }
     // the wall's relief under the paint on the wall (the tag's paint is on the tag)
-    const rel = R.kind === "wall" && R.relief > 0 && lit && lit.hT;
+    const rel = R.kind !== "tag" && R.relief > 0 && lit && lit.hT;
     if (rel) { gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, lit.hT); gl.activeTexture(gl.TEXTURE0); }
     gl.uniform2f(U.uRelMap, rel ? 1 / ART[0] : 0, rel ? 1 / ART[1] : 0);
     gl.uniform4f(U.uLitK, onLit ? 1 : 0, onLit ? (flEls ? flEls.base.wall : 1) * wallLevel() : 0, 14, rel ? R.relief : 0);
@@ -1083,6 +1088,7 @@ void main() {
       const dx = L.x - x, dy = L.y - y, dd = Math.hypot(dx, dy) || 1;
       R.light = { dx: dx / dd, dy: dy / dd, k: L.k, seg: L.seg };
     }
+    for (const F of falls) F.light = F.src.light;
   }
 
   // ------------------------------------------------------------------ the clock
@@ -1104,6 +1110,12 @@ void main() {
       if (!R.vis) continue;
       if (!frozen) step(R, dt, now);
       if (active(R) || R.prev) { draw(R, now); busy = true; }
+    }
+    for (const F of falls) {
+      if (!F.vis) continue;
+      if (!frozen) fallStep(F, dt);
+      if (F.drops.length || F.splats.length || F.prev) { draw(F, now); busy = true; }
+      else F.vis = false;                      // all landed and soaked in: it waits for the next drop
     }
     const ms = performance.now() - t0;
     stats.frames++; stats.ms += ms; stats.max = Math.max(stats.max, ms);
@@ -1145,24 +1157,23 @@ void main() {
     const w = ART[0] * s, h = ART[1] * s, left = (W - w) / 2, top = (H - h) / 2;
     Object.assign(layer.style, { left: left + "px", top: top + "px", width: w + "px", height: h + "px" });
     const dpr = Math.min(devicePixelRatio || 1, 2);
-    const floorBg = top + FLOOR * h;            // the pavement line in #bgwall's box
     // the tag's box as laid out (its wander, hop and pop are on top, and carry the layer with it)
     let tag = null;
     if (tagLayer && tagLayer.offsetWidth) {
       const tw = tagLayer.offsetWidth, th = tagLayer.offsetHeight;
       tag = { left: tagLayer.offsetLeft - tw / 2, top: tagLayer.offsetTop - th / 2, w: tw, h: th };
       const im = document.getElementById("walltag");
-      // the fresh paint a touch more solid than the dry tag it runs out of
-      tagLayer.style.opacity = String(Math.min(1, (im ? parseFloat(getComputedStyle(im).opacity) || 1 : 1) + .15));
+      // the runs exactly as see-through as the tag they run out of, or they read as stickers on it
+      tagLayer.style.opacity = String(im ? parseFloat(getComputedStyle(im).opacity) || 1 : 1);
       placedTag = [tag.left, tag.top, tw, th].map(Math.round).join();
     }
     for (const R of regions) {
       let sc, ox, oy, size;
-      if (R.kind === "wall") { sc = s; R.unit = 1; R.floor = FLOOR * ART[1]; size = ART; }
+      if (R.kind === "wall") { sc = s; R.unit = 1; size = ART; }
       else {
         if (!tag) { R.vis = false; R.cv.width = R.cv.height = 1; continue; }
         sc = tag.w / TAG[0]; R.unit = (tag.w / TAG[0]) > 0 ? s / sc : 1;   // tag px per art px
-        R.floor = (floorBg - tag.top) / sc; size = TAG;
+        size = TAG;
       }
       extent(R);
       R.k = Math.min(sc * dpr, 2048 / Math.max(1, R.y1 - R.y0), 2048 / Math.max(1, R.x1 - R.x0));
@@ -1175,9 +1186,33 @@ void main() {
       Object.assign(R.cv.style, { left: pc(R.x0, size[0]), top: pc(R.y0, size[1]), width: pc(R.x1 - R.x0, size[0]), height: pc(R.y1 - R.y0, size[1]) });
       // the wall's gradient runs down #bgwall's own box: its strength at this canvas's top and bottom
       R.dim = R.kind === "wall" ? [R.y0, R.y1].map(y => dimA[0] + (dimA[1] - dimA[0]) * clamp((top + y * s) / H, 0, 1)) : [0, 0];
-      if (R.alloc) { R.alloc = false; R.drips.length = R.drops.length = R.splats.length = 0; R.swell = 0; }
+      if (R.alloc) { R.alloc = false; R.drips.length = 0; R.swell = 0; }
       R.ctx.clearRect(0, 0, R.cv.width, R.cv.height);
       R.vis = R.spawn = R.under = false; R.prev = null;
+    }
+    // each region's drops fall in the wall's own space (art px): from its drips (a tag's tip where the
+    // tag hangs at rest, with room for its wander either side) down to the pavement, and a splash's
+    // droplets either side
+    const floorArt = FLOOR * ART[1], pcA = (v, of) => (v / of * 100).toFixed(4) + "%";
+    for (const F of falls) {
+      const R = F.src;
+      let xs, ytop, room = 0;
+      if (R.kind === "wall") { xs = R.tips.map(t => t.x); ytop = Math.min(...R.tips.map(t => t.y)); F.alpha = 1; }
+      else if (tag) {
+        const tsc = tag.w / TAG[0];
+        xs = R.tips.map(t => (tag.left + t.x * tsc - left) / s); ytop = Math.min(...R.tips.map(t => (tag.top + t.y * tsc - top) / s));
+        room = 70;                               // the tag's wander, ~1vw either way, in art px
+        F.alpha = parseFloat(tagLayer.style.opacity) || 1;
+      } else { F.vis = false; F.y0 = F.y1 = 0; F.cv.width = F.cv.height = 1; continue; }
+      F.floor = floorArt;
+      F.x0 = Math.min(...xs) - 150 - room; F.x1 = Math.max(...xs) + 150 + room; F.y0 = ytop - 40 - room; F.y1 = floorArt + 80;
+      if (F.y1 <= F.y0) { F.vis = false; continue; }   // a drip below the pavement line has nothing to fall to
+      F.k = Math.min(s * dpr, 2048 / Math.max(1, F.y1 - F.y0), 2048 / Math.max(1, F.x1 - F.x0));
+      Object.assign(F.cv.style, { left: pcA(F.x0, ART[0]), top: pcA(F.y0, ART[1]), width: pcA(F.x1 - F.x0, ART[0]), height: pcA(F.y1 - F.y0, ART[1]) });
+      F.dim = R.kind === "wall" ? [F.y0, F.y1].map(y => dimA[0] + (dimA[1] - dimA[0]) * clamp((top + y * s) / H, 0, 1)) : [0, 0];
+      F.alloc = false; F.drops.length = F.splats.length = 0;
+      F.ctx.clearRect(0, 0, F.cv.width, F.cv.height);
+      F.vis = false; F.prev = null;
     }
     lay = { s, left, top };
     // the sign's light on the wall, from where the tag hangs at rest (#walltag's own box: its wander,
@@ -1198,9 +1233,9 @@ void main() {
   // each pool's place in the wall's light: region (art) px -> the light's uv (its bottom row first)
   let lay = null;
   function mapLit() {
-    for (const R of regions) {
+    for (const R of [...regions, ...falls]) {
       R.litMap = null;
-      if (R.kind !== "wall" || !lit || !lit.rect || !lay) continue;
+      if (R.kind === "tag" || !lit || !lit.rect || !lay) continue;
       const [x0, y0, lw, lh] = lit.rect, { s, left, top } = lay;
       R.litMap = new Float32Array([s / lw, -s / lh, (left - x0) / lw, 1 - (top - y0) / lh]);
     }
@@ -1249,6 +1284,8 @@ void main() {
       regions = meta.blobs.map((b, i) => makeRegion("wall", b, i));
       for (const R of regions) layer.appendChild(R.cv);
       if (tagLayer && meta.tag) for (const [i, t] of meta.tag.tips.entries()) { const R = makeRegion("tag", t, i); regions.push(R); tagLayer.appendChild(R.cv); }
+      falls = regions.map(R => (R.fall = makeFall(R)));
+      for (const F of falls) layer.appendChild(F.cv);
       // the tag's layer must ride the tag's wander: index.html hands the wander to every .tagfx it
       // found when it started; if this layer came too late for that, it joins at the next stretch
       const wt = document.getElementById("walltag");
@@ -1275,19 +1312,23 @@ void main() {
                     _pose: (ri, tj, age, seed = 7) => {
                       const R = regions[ri]; if (!R || !R.tips[tj]) return null;
                       const keep = Math.random; let q = seed; Math.random = () => (q = (q * 16807) % 2147483647) / 2147483647;
-                      R.drips.length = R.drops.length = R.splats.length = 0;
+                      R.drips.length = 0;
                       const d = newDrip(R, R.tips[tj]); Math.random = keep;
                       if (typeof age === "string") { const [ph, f] = age.split(":"); age = d.at[ph] + d.T[ph] * +f; }
-                      d.t = age; d.tx = d.tip.x; d.ty = d.tip.y; d.dropped = +(age >= d.at.recoil); d.lastDone = +(age >= d.at.last + d.T.last);
+                      d.t = age; d.tx = d.tip.x; d.ty = d.tip.y; d.dropped = +(age >= d.at.recoil);
                       R.drips.push(d); R.swell = dripState(d).swell; frozen = true; go();
-                      return { r0: d.r0, len: d.len, at: d.at, T: d.T, end: d.end };
+                      return { r: d.tip.r, pr: d.tip.pr, len: d.len, at: d.at, T: d.T, end: d.end };
                     },
                     _state: (ri, i = 0) => { const R = regions[ri], d = R && R.drips[i]; return d ? Object.assign({ t: d.t }, dripState(d)) : null; },
                     // tests: the held paint moved on by sec, 30 steps a second, and drawn (a film frame by frame)
                     _step: sec => {
                       const n = Math.max(1, Math.round(sec * 30)), now = performance.now();
-                      for (let i = 0; i < n; i++) for (const R of regions) if (R.vis) step(R, 1 / 30, now);
+                      for (let i = 0; i < n; i++) {
+                        for (const R of regions) if (R.vis) step(R, 1 / 30, now);
+                        for (const F of falls) if (F.vis) fallStep(F, 1 / 30);
+                      }
                       for (const R of regions) if (R.vis && (active(R) || R.prev)) draw(R, now);
-                      return regions.reduce((c, R) => c + R.drips.length + R.drops.length + R.splats.length, 0);
+                      for (const F of falls) if (F.vis && (F.drops.length || F.splats.length || F.prev)) draw(F, now);
+                      return regions.reduce((c, R) => c + R.drips.length, 0) + falls.reduce((c, F) => c + F.drops.length + F.splats.length, 0);
                     }, _clock: () => fl && { now: vnow(), rate: fl.rate, seed: fl.seed, win: fl.win && [fl.win.t0, fl.win.t1] } };
 })();

@@ -1,0 +1,29 @@
+{
+ "cue": "total",
+ "model": "google/lyria-3-pro-preview",
+ "prompt": "Instrumental only. A triumphant early-90s piano house anthem celebrating a huge win. 125 BPM, B-flat major, 4/4. It opens with a big celebratory hit - a crash cymbal, a rave stab chord and a fast piano glissando - then a joyful groove: four-on-the-floor kick, claps, open hats, a bouncing organ bassline, big gospel-house piano chords over Bb - F/A - Gm7 - Eb, lush string pads and sparkling bells. Uplifting, euphoric and victorious. Structure: [Celebration hit] -> [Joyful groove, steady and repeating]. No breakdown, no fade-out.",
+ "text": "[[A0]]\n[[B1]]",
+ "usage": {
+  "prompt_tokens": 133,
+  "completion_tokens": 4,
+  "total_tokens": 137,
+  "cost": 0.08,
+  "is_byok": false,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "cache_write_tokens": 0,
+   "audio_tokens": 0,
+   "video_tokens": 0
+  },
+  "cost_details": {
+   "upstream_inference_cost": 0.08,
+   "upstream_inference_prompt_cost": 0,
+   "upstream_inference_completions_cost": 0.08
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 0,
+   "image_tokens": 0,
+   "audio_tokens": 4
+  }
+ }
+}

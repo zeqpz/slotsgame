@@ -1,0 +1,29 @@
+{
+ "cue": "intro",
+ "model": "google/lyria-3-pro-preview",
+ "prompt": "Instrumental only. Key: G minor. Tempo: 174 BPM. A 90s rave announcement for a bonus round: 174 BPM drum and bass in G minor. It opens instantly with a huge impact - a crash, a deep sub boom and a bright rave stab chord - then settles into a tense half-time anticipation groove that holds steady: a rolling breakbeat at low intensity, a reese bass drone on G, rave piano stabs, a fast sparkling synth arpeggio and atmospheric pads. Exciting, like the moment before a heist kicks off. Structure: [Impact] -> [Tense half-time groove, steady and repeating]. No big drop, no fade-out.",
+ "text": "[[A0]]\n[[B1]]",
+ "usage": {
+  "prompt_tokens": 145,
+  "completion_tokens": 4,
+  "total_tokens": 149,
+  "cost": 0.08,
+  "is_byok": false,
+  "prompt_tokens_details": {
+   "cached_tokens": 0,
+   "cache_write_tokens": 0,
+   "audio_tokens": 0,
+   "video_tokens": 0
+  },
+  "cost_details": {
+   "upstream_inference_cost": 0.08,
+   "upstream_inference_prompt_cost": 0,
+   "upstream_inference_completions_cost": 0.08
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 0,
+   "image_tokens": 0,
+   "audio_tokens": 4
+  }
+ }
+}
