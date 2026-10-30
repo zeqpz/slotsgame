@@ -2812,6 +2812,16 @@
     #walltag, .tagfx { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
     .main { justify-content: flex-end; }
     .bottom { padding-bottom: calc(12vh / max(var(--fit, 1), .2)); }   /* bounded: a tiny scale must never blow it up */
+    /* The Bonus button stands in the band between the bar and the foot of the screen, a little
+       above its middle, rather than on the very edge (owner, 2026-10-30: cut off on a 425x812
+       phone). viewport-fit=cover lays the page under a phone's home bar and rounded corners, so
+       the band starts above the home bar, and the button sits in from the corner far enough that
+       its glow stays on screen. In screen px over --fit, like the bar's lift above; 37px * --hs is
+       half the button's own height. */
+    .hud .bonusbtn {
+      bottom: calc((7vh + env(safe-area-inset-bottom, 0px) * .4) / max(var(--fit, 1), .2) - 37px * var(--hs, 1));
+      left: calc((14px + env(safe-area-inset-left, 0px)) / max(var(--fit, 1), .2));
+    }
   }
 </style>
 </head>
