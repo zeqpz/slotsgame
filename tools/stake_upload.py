@@ -1,7 +1,7 @@
 """Upload changed frontend/ and math files to the Stake Engine (engine.io) scratch bucket.
 
 There is no API key. engine.io only trusts the logged-in browser session, so the minting happens
-in a logged-in tab on https://studio.engine.io/teams/smukiez/games/smukiezs-mural/files and the
+in a logged-in tab on https://studio.engine.io/teams/smukiez/games/smukiezs-city/files and the
 bytes go up from this machine. Two ways:
 
   Whole game, only what changed (the usual one):
@@ -37,7 +37,7 @@ import urllib.parse
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONT = os.path.join(ROOT, "frontend")
 PUBLISH = os.path.join(ROOT, "math-sdk", "games", "smukiez_tag_run", "library", "publish_files")
-TEAM, GAME = "smukiez", "smukiezs-mural"
+TEAM, GAME = "smukiez", "smukiezs-city"
 SKIP_DIRS, SKIP_FILES = {"__pycache__"}, {"mock_rgs.py"}   # the local dev server is not part of the bundle
 
 # target -> (local base dir, remote prefix). `front` files live in frontend/,

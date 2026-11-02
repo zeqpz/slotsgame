@@ -1,6 +1,6 @@
 # How the game goes up to engine.io (Stake Engine)
 
-This is how Smukiezs Mural is uploaded to engine.io, and the code that does it.
+This is how Smukiez's City (formerly Smukiezs Mural) is uploaded to engine.io, and the code that does it.
 
 | File | What it is |
 |---|---|
@@ -18,8 +18,8 @@ engine.io keeps two **bundles** per game, each in a *scratch* area:
 
 * **Uploading** puts files into scratch. Nothing changes for players.
 * **Publishing** turns scratch into a new version (front vN, math vN) that the game launcher serves.
-* Team `smukiez`, game `smukiezs-mural`. Files page:
-  https://studio.engine.io/teams/smukiez/games/smukiezs-mural/files
+* Team `smukiez`, game `smukiezs-city`. Files page:
+  https://studio.engine.io/teams/smukiez/games/smukiezs-city/files
 
 ## There is no API key
 
@@ -102,7 +102,7 @@ Press **Publish Game** on the dashboard, or run this in the tab:
 
 ```js
 const pub = kind => fetch(`/api/file/publish/${kind}`, { method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ team: "smukiez", game: "smukiezs-mural" }) }).then(r => r.json());
+  body: JSON.stringify({ team: "smukiez", game: "smukiezs-city" }) }).then(r => r.json());
 await pub("front");   // and/or await pub("math")
 ```
 
@@ -111,7 +111,7 @@ It answers `{ version, changed }`. `changed: false` means scratch had nothing ne
 Check what is live (the list is newest first):
 
 ```js
-await (await fetch("/api/teams/smukiez/games/smukiezs-mural/versions")).json()
+await (await fetch("/api/teams/smukiez/games/smukiezs-city/versions")).json()
 ```
 
 The first request to a freshly published version can answer **404** for assets the CDN edge has not

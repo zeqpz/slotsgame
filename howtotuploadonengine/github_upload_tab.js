@@ -20,7 +20,7 @@
 (() => {
   const CFG = {
     team: "smukiez",
-    game: "smukiezs-mural",
+    game: "smukiezs-city",
     repo: "zeqpz/slotsgame",              // public repo: the tab reads it without a token
     commit: "PASTE_THE_PUSHED_COMMIT_SHA_HERE",
     parts: {                               // engine.io bundle -> where it lives in the repo
