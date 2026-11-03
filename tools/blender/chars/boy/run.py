@@ -88,18 +88,39 @@ def to_shoe_alpha(path):
     bpy.data.images.remove(img)
 
 
+REMAP = {k: (int(v[0]), int(v[1])) for k, v in arm["remap"].items()} if "remap" in arm.keys() else {}
+
+
+def rendered_times(name):
+    """keyed (timeline) time of each rendered frame of a clip: slowed with Blender's Time Remapping (render
+    frame F shows the timeline at F * old / new) - a loop sampled evenly round its whole cycle, a one-shot from
+    its first key to its last"""
+    a, b = clips[name]
+    old, new = REMAP.get(name, (1, 1))
+    n_out = new if name in loops else new + 1
+    return [a + j * old / new for j in range(n_out)]
+
+
 def render_clip(name, a, b, out_dir, unlit=False):
     os.makedirs(out_dir, exist_ok=True)
     for f in glob.glob(os.path.join(out_dir, "*.png")):
         os.remove(f)
     tmp = os.path.join(out_dir, "_raw")
     os.makedirs(tmp, exist_ok=True)
-    sc.frame_start, sc.frame_end, sc.frame_step = a, b, every
+    old, new = REMAP.get(name, (1, 1))
+    n_out = len(rendered_times(name))
+    F0 = a * new // old                                 # a is a multiple of old (anim_boy.place_next)
+    assert F0 * old == a * new, (name, a, old, new)
+    sc.render.frame_map_old, sc.render.frame_map_new = old, new
+    sc.frame_start, sc.frame_end, sc.frame_step = F0, F0 + n_out - 1, every
     sc.render.filepath = tmp + os.sep
-    bpy.ops.render.render(animation=True, scene=sc.name)
-    for f in range(a, b + 1, every):
-        src = os.path.join(tmp, f"{f:04d}.png")
-        dst = os.path.join(out_dir, f"{f - a + 1:04d}.png")
+    try:
+        bpy.ops.render.render(animation=True, scene=sc.name)
+    finally:
+        sc.render.frame_map_old = sc.render.frame_map_new = 100
+    for F in range(F0, F0 + n_out, every):
+        src = os.path.join(tmp, f"{F:04d}.png")
+        dst = os.path.join(out_dir, f"{F - F0 + 1:04d}.png")
         os.replace(src, dst)
         if unlit:
             to_shoe_alpha(dst)
@@ -191,8 +212,8 @@ if "meta" in steps:
     report = {}
     for name, (a, b) in clips.items():
         track, dist, joints = [], [], []
-        for f in range(a, b + 1):
-            sc.frame_set(f)
+        for t in rendered_times(name):
+            sc.frame_set(int(math.floor(t + 1e-9)), subframe=t - math.floor(t + 1e-9))
             jrow = {}
             for jn, (bn, end, rel) in JOINTS.items():
                 pb = arm.pose.bones[bn]
@@ -208,9 +229,9 @@ if "meta" in steps:
             track.append({"shoes": row})
             now = [to_screen(v) for v in bone_points()]
             dist.append(max(math.hypot(p[0] - q[0], p[1] - q[1]) for p, q in zip(now, rest_s)))
-        entry = {"frames": b - a + 1, "loop": name in loops}
+        entry = {"frames": len(track), "loop": name in loops}
         if name in loops:
-            entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.0]
+            entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.5]      # within 1.5 screen px of rest
         meta["clips"][name] = entry
         meta["track"][name] = track
         report[name] = {"first_vs_rest_px": round(dist[0], 3), "last_vs_rest_px": round(dist[-1], 3),

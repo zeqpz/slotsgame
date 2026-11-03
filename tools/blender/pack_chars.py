@@ -6,6 +6,9 @@ both figures at once would be over a gigabyte. Each clip is one file of its fram
 small WebP cropped to the clip's box; the game keeps the files as they are and decodes only the frames about to show.
   <dd>/<clip>.bin         the beauty frames at density dd (d5 = half the master's size, d7, d10 = full)
   unlit/<clip>.bin        the unlit mask's frames, at half density (a soft rim light needs no more)
+  <dd>/smoke.bin          a figure's own looping smoke (meta "smoke": the skull's cigar), packed apart from the clips
+                          so it never restarts when a clip changes: the game lays its emitter (origin) on the
+                          ember each frame (track[clip][i].ember)
   manifest.json           sizes, rest height, ground, each clip's frames / loop / cues / box, each file's frame
                           offsets, and the per-frame shoe spans the foot shadows follow
 usage: python tools/blender/pack_chars.py <char,char..|all> [densities, default .5,.7,1]"""
@@ -64,7 +67,7 @@ def pack_clip(args):
     char, clip, densities = args
     ren = os.path.join(SRC, char, "renders")
     files = sorted(glob.glob(os.path.join(ren, clip, "*.png")))
-    unlit = sorted(glob.glob(os.path.join(ren, clip + "_unlit", "*.png")))
+    unlit = [] if clip == "smoke" else sorted(glob.glob(os.path.join(ren, clip + "_unlit", "*.png")))
     box = box_of(files)
     out = {"box": [int(v) for v in box], "files": {}}
     for d in densities:
@@ -83,7 +86,7 @@ if __name__ == "__main__":
     chars = sorted(os.listdir(SRC)) if sys.argv[1] == "all" else sys.argv[1].split(",")
     densities = [float(v) for v in (sys.argv[2].split(",") if len(sys.argv) > 2 else (".5", ".7", "1"))]
     metas = {c: json.load(open(os.path.join(SRC, c, "renders", "meta.json"))) for c in chars}
-    jobs = [(c, clip, densities) for c in chars for clip in metas[c]["clips"]]
+    jobs = [(c, clip, densities) for c in chars for clip in list(metas[c]["clips"]) + (["smoke"] if "smoke" in metas[c] else [])]
     packed = {}
     with ProcessPoolExecutor(max_workers=min(8, len(jobs))) as ex:
         for char, clip, out in ex.map(pack_clip, jobs):
@@ -99,7 +102,10 @@ if __name__ == "__main__":
                            "box": p["box"], "files": p["files"], **({"unlit": p["unlit"]} if "unlit" in p else {})}
         man = {"fps": m["fps"], "size": m["size"], "rest_height": m["rest_height_px"], "ground_y": m["ground_y"],
                "densities": [f"d{round(d * 10)}" for d in densities], "clips": clips, "track": m.get("track", {})}
+        if "smoke" in m:
+            p = packed[char]["smoke"]
+            man["smoke"] = {"frames": m["smoke"]["frames"], "origin": m["smoke"]["origin"], "box": p["box"], "files": p["files"]}
         path = os.path.join(OUT, char, "manifest.json")
         json.dump(man, open(path, "w"), separators=(",", ":"))
-        total = sum(v["bytes"] for c in clips.values() for v in c["files"].values())
+        total = sum(v["bytes"] for c in list(clips.values()) + ([man["smoke"]] if "smoke" in man else []) for v in c["files"].values())
         print("->", path, f"| {len(clips)} clips | {total / 1e6:.1f} MB all densities")

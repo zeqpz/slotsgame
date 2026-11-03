@@ -7,7 +7,8 @@ steps (comma separated, default build,anim,fx,save,render,meta):
   anim    the clips keyed on the rig (anim.py)
   fx      the smoke, the ember's glow, the ash (fx.py, Grease Pencil)
   save    art/blender/chars/skull/skull.blend
-  render  art/blender/chars/skull/renders/<clip>/####.png (beauty) and <clip>_unlit/####.png (the unlit mask)
+  render  art/blender/chars/skull/renders/<clip>/####.png (beauty: the figure + the ember glow, no smoke), <clip>_unlit/
+          (the unlit mask) and smoke/####.png (the standalone smoke loop; clips arg "smoke" renders only it)
   meta    art/blender/chars/skull/renders/meta.json (frames, loops, the idle's cues, the shoes' spans per frame)
 clips: comma separated (default all) - render only these
 Then: python tools/blender/chars/skull/qa.py (sheets, zooms, holes, seams, rest checks)."""
@@ -48,8 +49,10 @@ if "save" in steps:
 CLIPS = G.get("CLIPS") or {k: (v[0], v[1] - v[0] + 1, k == "idle") for k, v in bpy.data.objects["SKULL_rig"]["clips"].items()}
 
 
-def set_mode(unlit):
-    """beauty or the unlit mask: the parts' materials, the ash's colours, which view layers render, the compositor"""
+def set_mode(mode):
+    """beauty, the unlit mask or the smoke loop: the parts' materials, the ash's colours, which view layers render,
+    the compositor"""
+    unlit = mode == "unlit"
     for m in bpy.data.materials:
         if m.node_tree and m.name.startswith("SKULL_") and "mode" in m.node_tree.nodes:
             m.node_tree.nodes["mode"].outputs[0].default_value = 1.0 if unlit else 0.0
@@ -61,9 +64,11 @@ def set_mode(unlit):
             c = (1, 1, 1, 1) if unlit else tuple(m["orig"])
             m.grease_pencil.color = c
             m.grease_pencil.fill_color = (1, 1, 1, 1) if unlit else tuple(m["orig_fill"])
+    # the clips: the art (+ the ember's glow in beauty); the smoke loop: its own layer alone
+    use = {"beauty": ("art", "fx"), "unlit": ("art",), "smoke": ("smoke",)}[mode]
     for vl in sc.view_layers:
-        vl.use = (vl.name == "art") or not unlit
-    sc.compositing_node_group = bpy.data.node_groups["SKULL_comp_" + ("unlit" if unlit else "beauty")]
+        vl.use = vl.name in use
+    sc.compositing_node_group = bpy.data.node_groups["SKULL_comp_" + mode]
     sc.render.use_compositing = True
 
 
@@ -82,15 +87,31 @@ def render_clip(name, unlit):
 
 if "render" in steps:
     sc.render.resolution_percentage = 100
-    for unlit in (False, True):
-        set_mode(unlit)
+    for mode in ("beauty", "unlit"):
+        set_mode(mode)
         for name in CLIPS:
             if only and name not in only:
                 continue
             t0 = time.time()
-            render_clip(name, unlit)
-            print(f"rendered {name}{' unlit' if unlit else ''}: {CLIPS[name][1]} frames, {time.time() - t0:.0f} s", flush=True)
-    set_mode(False)
+            render_clip(name, mode == "unlit")
+            print(f"rendered {name}{' unlit' if mode == 'unlit' else ''}: {CLIPS[name][1]} frames, {time.time() - t0:.0f} s", flush=True)
+    if not only or "smoke" in only:
+        # the smoke loop, on its own clock (fx.py: SMOKE_F0 .. + SMOKE_N)
+        set_mode("smoke")
+        f0 = int(bpy.data.objects["SKULL_rig"].get("smoke", [1001, 210])[0])
+        n = int(bpy.data.objects["SKULL_rig"].get("smoke", [1001, 210])[1])
+        d = os.path.join(OUT, "renders", "smoke")
+        os.makedirs(d, exist_ok=True)
+        for f in os.listdir(d):
+            if f.endswith(".png"):
+                os.remove(os.path.join(d, f))
+        t0 = time.time()
+        for i in range(n):
+            sc.frame_set(f0 + i)
+            sc.render.filepath = os.path.join(d, f"{i + 1:04d}.png")
+            bpy.ops.render.render(write_still=True)
+        print(f"rendered smoke loop: {n} frames, {time.time() - t0:.0f} s", flush=True)
+    set_mode("beauty")
 
 if "meta" in steps:
     R = G["RESULT"]
@@ -113,10 +134,9 @@ if "meta" in steps:
                 pts = [to_out(G["app"](D, np.array([(x - 512) / 100, (768 - y) / 100]))) for x, y in hull[f"shoe_{s}"]]
                 xs, ys = [q[0] for q in pts], [q[1] for q in pts]
                 row.append([round(min(xs), 1), round(max(xs), 1), round(max(ys), 1)])
-            rows.append({"shoes": row})
+            ember = to_out(G["app"](r["mats"][f]["cigar"], G["HEAD"]["ember"]))
+            rows.append({"shoes": row, "ember": [round(ember[0], 1), round(ember[1], 1)]})
         track[name] = rows
-    # the idle's cues: frames where the whole figure is within a hair of its rest pose (every bone's head and every
-    # chain's tip within 1.25 px of where it is on frame 1), the best one near each beat
     idle = R["idle"]
     heads = G["HEAD"]
     chain_tips = {p["name"]: p["chain"][-1] for p in spec["parts"] if p.get("chain")}
@@ -137,21 +157,30 @@ if "meta" in steps:
         rest = sample(idle["mats"][0], which)
         devs[which] = np.array([np.abs(sample(m, which) - rest).max() for m in idle["mats"]])
     dev = devs["body"]
-    # a cue: the body (every rigid bone) within 1.5 px of rest, and what hangs off it (beanie tip, strings, laces)
-    # within 5 px - the best frame near each beat (every 20 frames)
-    cues = []
-    for beat in range(0, idle["n"], 20):
-        win = [f for f in range(max(0, beat - 3), min(idle["n"], beat + 4))]
-        best = min(win, key=lambda f: dev[f] + .3 * devs["hang"][f])
-        if dev[best] <= 1.5 and devs["hang"][best] <= 5:
-            cues.append(int(best))
-    # the hips' height per clip (world z of the pelvis bone, units; rest = its rest height): the body never bobs
+    # cues: frames within a hair of rest - the body (every rigid bone) within 1.5 px, what hangs off it (beanie tip,
+    # strings, laces) within 5 px - one every ~0.4-0.75 s where the pose allows (the groove passes rest on each beat,
+    # the chill sits at it)
+    ok = (dev <= 1.5) & (devs["hang"] <= 5)
+    cues = [0]
+    while True:
+        last = cues[-1]
+        win = [f for f in range(last + 12, min(idle["n"] - 6, last + 23)) if ok[f]]
+        if not win:
+            later = [f for f in range(last + 23, idle["n"] - 6) if ok[f]]
+            if not later:
+                break
+            win = later[:1]
+        cues.append(int(min(win, key=lambda f: dev[f] + .3 * devs["hang"][f])))
+    # the hips' height per clip (world z of the pelvis bone vs its rest height): the body never bobs
     pel = {}
     for name, r in R.items():
         zs = [float(G["app"](m["pelvis"], heads["pelvis"])[1]) for m in r["mats"]]
         pel[name] = [round(min(zs) - float(heads["pelvis"][1]), 4), round(max(zs) - float(heads["pelvis"][1]), 4)]
         print(f"pelvis z vs rest ({name}): {pel[name][0] * 100 * k:+.2f} .. {pel[name][1] * 100 * k:+.2f} frame px", flush=True)
+    sm = G["SMOKE_EMIT"]
+    org = to_out(((sm[0] - 512) / 100, (768 - sm[1]) / 100))
     meta = {"fps": 30, "size": [W_, H_], "rest_height_px": cam["rest_height_px"], "ground_y": cam["ground_y"],
+            "smoke": {"frames": G["SMOKE_N"], "loop": True, "origin": [round(org[0], 1), round(org[1], 1)]},
             "clips": {}, "track": track,
             "notes": {"pelvis_z_vs_rest_units": pel, "cue_rule": "body within 1.5 px of rest, hanging parts within 5 px",
                       "idle_body_dev_px": [round(float(v), 2) for v in dev],
@@ -163,5 +192,5 @@ if "meta" in steps:
         meta["clips"][name] = e
     os.makedirs(os.path.join(OUT, "renders"), exist_ok=True)
     json.dump(meta, open(os.path.join(OUT, "renders", "meta.json"), "w"), indent=1)
-    print("meta: cues", cues, "| at beats body/hang px:", [(b_, round(float(dev[b_]), 2), round(float(devs["hang"][b_]), 2)) for b_ in range(0, idle["n"], 20)], flush=True)
+    print("meta: cues", cues, "| at cues body/hang px:", [(b_, round(float(dev[b_]), 2), round(float(devs["hang"][b_]), 2)) for b_ in cues], "| smoke", meta["smoke"], flush=True)
 print(f"skull done: {','.join(steps)} | {time.time() - t_all:.0f} s", flush=True)

@@ -1,0 +1,200 @@
+{
+ "spray_short": [
+  "1_0.wav",
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "paint_drip": [
+  "1_0.wav",
+  "2_0.wav",
+  "3_1.wav",
+  "4_0.wav"
+ ],
+ "count_tick": [
+  "2_0.wav",
+  "3_0.wav",
+  "6_0.wav"
+ ],
+ "mult_slam": [
+  "5_1.wav",
+  "4_0.wav",
+  "3_0.wav"
+ ],
+ "spray_long": [
+  "4_0.wav",
+  "3_0.wav"
+ ],
+ "glow_pulse": [
+  "2_0.wav",
+  "4_0.wav"
+ ],
+ "shine": [
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "sparkle": [
+  "3_0.wav",
+  "6_0.wav",
+  "2_0.wav"
+ ],
+ "count_end": [
+  "2_1.wav"
+ ],
+ "count_whoosh": [
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "float_away": [
+  "5_0.wav",
+  "2_0.wav"
+ ],
+ "paint_burst": [
+  "4_0.wav",
+  "6_1.wav",
+  "3_0.wav"
+ ],
+ "land_soft": [
+  "1_0.wav",
+  "5_0.wav",
+  "6_0.wav"
+ ],
+ "land_bag": [
+  "4_2.wav",
+  "5_0.wav",
+  "2_1.wav"
+ ],
+ "land_can": [
+  "1_0.wav",
+  "2_0.wav",
+  "6_0.wav"
+ ],
+ "land_chain": [
+  "3_0.wav",
+  "6_0.wav",
+  "2_0.wav"
+ ],
+ "land_coin": [
+  "4_0.wav",
+  "5_0.wav"
+ ],
+ "land_dice": [
+  "2_0.wav",
+  "3_0.wav",
+  "6_0.wav"
+ ],
+ "land_baggie": [
+  "2_2.wav",
+  "5_2.wav",
+  "4_4.wav"
+ ],
+ "land_fabric": [
+  "4_0.wav",
+  "4_1.wav"
+ ],
+ "land_hoodie": [
+  "5_1.wav",
+  "3_1.wav"
+ ],
+ "land_marker": [
+  "1_0.wav",
+  "5_0.wav",
+  "1_1.wav"
+ ],
+ "land_brick": [
+  "1_0.wav",
+  "3_0.wav",
+  "5_1.wav"
+ ],
+ "land_board": [
+  "2_0.wav",
+  "4_5.wav"
+ ],
+ "land_box": [
+  "5_0.wav",
+  "1_0.wav"
+ ],
+ "land_boombox": [
+  "4_0.wav",
+  "1_1.wav"
+ ],
+ "land_metal": [
+  "5_2.wav",
+  "5_0.wav",
+  "1_0.wav"
+ ],
+ "land_card": [
+  "5_1.wav",
+  "5_0.wav"
+ ],
+ "land_toy": [
+  "4_0.wav",
+  "4_1.wav"
+ ],
+ "cascade": [
+  "5_0.wav",
+  "5_1.wav"
+ ],
+ "reel_stop": [
+  "5_3.wav",
+  "2_0.wav",
+  "4_0.wav"
+ ],
+ "can_shake": [
+  "4_2.wav",
+  "2_0.wav"
+ ],
+ "ui_click": [
+  "3_1.wav",
+  "6_1.wav",
+  "6_4.wav"
+ ],
+ "ui_hover": [
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "slider_tick": [
+  "4_1.wav",
+  "3_2.wav"
+ ],
+ "swish_in": [
+  "1_0.wav",
+  "5_0.wav"
+ ],
+ "swish_out": [
+  "6_0.wav",
+  "1_0.wav"
+ ],
+ "cap_pop": [
+  "1_1.wav",
+  "3_0.wav"
+ ],
+ "buy_confirm": [
+  "3_0.wav"
+ ],
+ "fs_tick": [
+  "3_0.wav",
+  "4_1.wav"
+ ],
+ "sneaker_scuff": [
+  "3_0.wav",
+  "6_0.wav"
+ ],
+ "cigar_puff": [
+  "5_0.wav"
+ ],
+ "lighter": [
+  "1_1.wav"
+ ],
+ "cash_riffle": [
+  "1_2.wav",
+  "1_1.wav"
+ ],
+ "cash_flick": [
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "land_shoe": [
+  "1_1.wav",
+  "2_1.wav"
+ ]
+}

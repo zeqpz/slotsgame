@@ -132,5 +132,47 @@ for clip in clips:
     tr = meta["track"].get(clip)
     if tr:
         rep.append(f"   shoes frame 0: {tr[0]['shoes']}   min bottom over clip: {min(min(s[2] for s in r['shoes']) for r in tr):.1f}")
+# the smoke loop (its own clock): the seam, nothing touching the frame's edges, a sheet; and the ember track: a dot on
+# the ember in a few frames of every clip (the game puts the smoke's origin there)
+sf = sorted(glob.glob(os.path.join(REN, "smoke", "*.png")))
+if sf and (len(sys.argv) < 2 or "smoke" in sys.argv[1].split(",")):
+    fr = [load(f) for f in sf]
+    st = [float(np.abs(fr[i] - fr[i - 1]).mean() * 255) for i in range(1, len(fr))]
+    seam = float(np.abs(fr[0] - fr[-1]).mean() * 255)
+    edge = max(float(max(a[0, :, 3].max(), a[-1, :, 3].max(), a[:, 0, 3].max(), a[:, -1, 3].max())) for a in fr)
+    rep.append(f"== smoke loop: {len(fr)} frames, origin {meta['smoke']['origin']}")
+    rep.append(f"   loop seam (last -> first): {seam:.3f}/255 vs frame steps median {np.median(st):.3f}, max {max(st):.3f}")
+    rep.append(f"   max alpha on the frame's edges: {edge:.3f}")
+    ys_, xs_ = np.nonzero(np.max([a[..., 3] for a in fr], 0) > .02)
+    rep.append(f"   plume extent over the loop (px): x {xs_.min()}..{xs_.max()}, y {ys_.min()}..{ys_.max()}")
+    T = (144, 240)
+    sheet = Image.new("RGB", (12 * T[0], ((len(fr) + 11) // 12) * T[1]))
+    for i, a in enumerate(fr):
+        t = on_wall(a).resize(T, Image.LANCZOS)
+        ImageDraw.Draw(t).text((3, 2), f"{i:03d}", fill=(255, 220, 0))
+        sheet.paste(t, ((i % 12) * T[0], (i // 12) * T[1]))
+    sheet.save(os.path.join(OUT, "smoke_sheet.jpg"), quality=86)
+    seq = [on_wall(a).resize((360, 600), Image.LANCZOS) for a in fr] * 2
+    seq[0].save(os.path.join(OUT, "smoke.webp"), save_all=True, append_images=seq[1:], duration=33, loop=0, quality=80)
+tiles = []
+for clip in clips:
+    tr = meta["track"].get(clip)
+    if not tr or "ember" not in tr[0]:
+        continue
+    for i in (0, len(tr) // 3, 2 * len(tr) // 3):
+        im = on_wall(load(os.path.join(REN, clip, f"{i + 1:04d}.png")))
+        x, y = tr[i]["ember"]
+        d = ImageDraw.Draw(im)
+        d.ellipse([x - 6, y - 6, x + 6, y + 6], outline=(255, 0, 255), width=3)
+        d.text((8, 8), f"{clip} {i}", fill=(255, 220, 0))
+        x0, y0 = int(min(max(0, x - 120), 420)), int(min(max(0, y - 160), 900))
+        t = im.crop((x0, y0, x0 + 300, y0 + 300))
+        ImageDraw.Draw(t).text((4, 4), f"{clip} {i}", fill=(255, 220, 0))
+        tiles.append(t)
+if tiles:
+    S = Image.new("RGB", (300 * 6, 300 * ((len(tiles) + 5) // 6)))
+    for j, t in enumerate(tiles):
+        S.paste(t, ((j % 6) * 300, (j // 6) * 300))
+    S.save(os.path.join(OUT, "ember_track.jpg"), quality=86)
 open(os.path.join(OUT, "report.txt"), "w").write("\n".join(rep) + "\n")
 print("\n".join(rep))

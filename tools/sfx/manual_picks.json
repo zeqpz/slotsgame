@@ -1,0 +1,25 @@
+{
+ "count_end": [
+  "2_1.wav"
+ ],
+ "spray_short": [
+  "1_0.wav",
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "cigar_puff": [
+  "5_0.wav"
+ ],
+ "sneaker_scuff": [
+  "3_0.wav",
+  "6_0.wav"
+ ],
+ "ui_hover": [
+  "2_0.wav",
+  "3_0.wav"
+ ],
+ "land_fabric": [
+  "4_0.wav",
+  "4_1.wav"
+ ]
+}

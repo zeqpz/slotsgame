@@ -1,13 +1,12 @@
 # SMOKE SKULL - the effects, drawn INSIDE Blender in Grease Pencil, frame by frame (run after anim.py, same Blender).
-#   smoke   the cigar's smoke (its own view layer "smoke", laid over the figure at 80 %): a thin thread off the ember
-#           that wavers, swells into billows and leans over his beanie (away from the board), drawn in the characters'
-#           cartoon paint like the game's old smoke (frontend/smoke.js): an ink line, a cool grey shade, a pale fill set up
-#           and to the left, a soft haze round the spent puffs. Worked out here as a stream of particles off the ember
-#           wherever the ember goes (the rig's own pose, frame by frame), each one living ~10 s, in a draft and a slow
-#           swirl. The idle's smoke loops: everything that drives it repeats every 4 s and the ember's path loops, so
-#           after a few laps the smoke at frame 121 is the smoke at frame 1. The one-shots carry on from the idle's
-#           frame-1 smoke and, over their last 14 frames, morph back into it (each bit of smoke into the bit of the
-#           same age), so they hand back to the idle without a jump. The exit's smoke thins away to nothing.
+#   smoke   the cigar's smoke is its OWN seamless loop, never cut (owner, 2026-11-03: every clip change messed with the
+#           smoke): renders/smoke/####.png, a thin thread off a fixed emitter that wavers, swells into billows and leans
+#           up and right (over where his beanie is), in the characters' cartoon paint like the game's old smoke
+#           (frontend/smoke.js): an ink line, a cool grey shade, a pale fill set up and to the left, a soft haze round the
+#           spent puffs; laid at 80 %. Worked out as a stream of particles (each ~13 s, in a draft and a slow swirl);
+#           everything that drives it repeats every loop, so after a few laps the last frame runs into the first. The
+#           game draws it on its own clock with its origin on the ember (meta.json track[clip][i].ember). No clip has
+#           smoke in it.
 #   ember   the glow on the cigar's tip (view layer "fx", drawn soft in stacked discs): it breathes and flickers in every
 #           clip, flaring on a drag
 #   ash     ash_break: the ash grows on the tip, breaks off at the flick, falls in three chunks that crumble on the ground
@@ -17,9 +16,11 @@ import numpy as np
 SID = "SKULL"
 sc = bpy.context.scene
 FPS = 30
-PACE = .35                       # the smoke's own time runs at 35 % (smoke.js: a lazy curl)
-T_LOOP = 120                     # the idle's frames: everything that drives the smoke repeats every 4 s
-OM = 2 * math.pi / (T_LOOP / FPS * PACE)      # one cycle per loop, in the smoke's time (rad / smoke-second)
+PACE = .35 / 1.35                # the smoke's own time: smoke.js's lazy 35 %, and 1.35x slower again (owner, 2026-11-03)
+SMOKE_N = 210                    # the smoke loop's frames (7 s): everything that drives it repeats every loop
+SMOKE_F0 = 1001                  # where the loop sits on the timeline (clear of the clips)
+SMOKE_EMIT = (258.0, 960.0)      # the emitter (master px): low enough in the frame that the whole plume fits in it
+OM = 2 * math.pi / (SMOKE_N / FPS * PACE)     # one cycle per loop, in the smoke's time (rad / smoke-second)
 
 
 def srgb(h):
@@ -80,56 +81,38 @@ def ss(v):
 SUB = 2                           # particles per frame (and sim steps per frame)
 
 
-def simulate(clip):
-    """the smoke of a clip: {frame: arrays (x, y, r, rh, u, age_index)} for f in 0..n-1. Particles born before the
-    clip's frame 0 come off the idle's (looping) ember path, so frame 0 is the idle's frame 0."""
-    R = RESULT[clip]
-    n = R["n"]
-    life_max = 4.2 / PACE * FPS                      # frames
-    first = -int(life_max) - (3 * T_LOOP if clip == "idle" else T_LOOP)
-    first = -int(math.ceil((-first) / T_LOOP)) * T_LOOP     # a whole number of loops back: births line up with the idle
-    if clip == "enter":
-        first = -1                                   # he comes up from below the frame: no smoke yet (none born before 0)
-    idle_n = RESULT["idle"]["n"]
-    drag = RESULT["idle"]["drag"]
+def drag_at(fr):
+    """two pulls on the cigar a loop (fatter puffs), by frame - periodic"""
+    p = (fr % SMOKE_N) / SMOKE_N
+    return float(sum(math.exp(-((((p - c + .5) % 1) - .5) / .05) ** 2) for c in (.12, .58)))
 
-    def ember_at(fr):                                # fractional frame -> px, and how hard he is drawing on it
-        fi = math.floor(fr)
-        a = fr - fi
 
-        def at(k):
-            if clip != "idle" and k >= 0:
-                k = min(k, n - 1)
-                return ember_px(clip, k), float(R["drag"][k])
-            k = k % idle_n
-            return ember_px("idle", k), float(drag[k])
-        (p0, d0), (p1, d1) = at(fi), at(fi + 1)
-        return p0 * (1 - a) + p1 * a, d0 * (1 - a) + d1 * a
-
+def simulate():
+    """the smoke loop: {frame: arrays (x, y, r, rh, u)} for frames 0..SMOKE_N-1, off a fixed emitter. Particles are born
+    from several loops back (longer than any lives), so frame 0 carries on from frame SMOKE_N-1."""
+    n = SMOKE_N
+    life_max = 4.2 / PACE * FPS
+    first = -int(math.ceil((life_max + n) / n)) * n
+    E = np.array(SMOKE_EMIT)
     steps = (n - first) * SUB
-    births = np.arange(steps) / SUB + first           # birth frame of particle i (one per step)
+    births = np.arange(steps) / SUB + first
     N = len(births)
     X = np.zeros(N); Y = np.zeros(N); VX = np.zeros(N); VY = np.zeros(N); AGE = np.zeros(N)
     alive = np.zeros(N, bool)
-    tb = births / FPS * PACE                          # smoke-time of birth
+    tb = births / FPS * PACE
     LIFE = life_at(tb)
     SW = sway_at(tb)
     PF = np.zeros(N)
     out = {}
-    dt = PACE / FPS / SUB                             # smoke-seconds per step
+    dt = PACE / FPS / SUB
     for st in range(steps):
-        fr = first + st / SUB                         # the frame at this step
+        fr = first + st / SUB
         t = fr / FPS * PACE
-        # this step's new particle
         i = st
-        p, dg = ember_at(fr)
-        pprev, _ = ember_at(fr - 1.0 / SUB)
-        ev = (p - pprev) / dt
-        X[i], Y[i] = p[0], p[1] - 4
-        VX[i], VY[i] = ev[0] * .12, ev[1] * .12 - 40
-        PF[i] = max(.55, puff_at(tb[i])) * (1 + .7 * dg)
-        alive[i] = not (clip == "enter" and fr < 0)
-        # every living particle moves
+        X[i], Y[i] = E[0], E[1] - 4
+        VX[i], VY[i] = 0.0, -40
+        PF[i] = max(.55, puff_at(tb[i])) * (1 + .6 * drag_at(fr))
+        alive[i] = True
         idx = np.nonzero(alive)[0]
         AGE[idx] += dt
         u = AGE[idx] / LIFE[idx]
@@ -152,7 +135,7 @@ def simulate(clip):
         VY[idx] += (ty - VY[idx]) * k
         X[idx] += VX[idx] * dt
         Y[idx] += VY[idx] * dt
-        if st % SUB == SUB - 1 and fr + 1.0 / SUB >= 0:
+        if st % SUB == SUB - 1:
             f = int(round(fr + 1.0 / SUB))
             if 0 <= f < n:
                 ii = np.nonzero(alive)[0]
@@ -160,42 +143,10 @@ def simulate(clip):
                 grow = 2.8 + PF[ii] * 30 * ss((uu - .3) / .42)
                 r = grow * (1 - ss((uu - .66) / .26))
                 rh = (grow + 34 * ss((uu - .45) / .55)) * 1.35
-                agei = np.round((fr + 1.0 / SUB - births[ii]) * SUB).astype(int)
                 order = np.argsort(births[ii])
-                ii, uu, r, rh, agei = ii[order], uu[order], r[order], rh[order], agei[order]
-                out[f] = dict(x=X[ii].copy(), y=Y[ii].copy(), r=r, rh=rh, u=uu, age=agei)
+                ii, uu, r, rh = ii[order], uu[order], r[order], rh[order]
+                out[f] = dict(x=X[ii].copy(), y=Y[ii].copy(), r=r, rh=rh, u=uu)
     return out
-
-
-def morph(a, b, w):
-    """smoke a turned into smoke b by weight w (0..1): each bit of smoke into the bit of b of the same age; bits only
-    one of them has fade in / out with the weight"""
-    ia = {int(k): j for j, k in enumerate(a["age"])}
-    ib = {int(k): j for j, k in enumerate(b["age"])}
-    ages = sorted(set(ia) | set(ib))
-    o = {k: [] for k in ("x", "y", "r", "rh", "u", "age", "op")}
-    for g in ages:
-        if g in ia and g in ib:
-            ja, jb = ia[g], ib[g]
-            for k in ("x", "y", "r", "rh", "u"):
-                o[k].append(a[k][ja] * (1 - w) + b[k][jb] * w)
-            o["op"].append(1.0)
-        elif g in ia:
-            ja = ia[g]
-            for k in ("x", "y", "r", "rh", "u"):
-                o[k].append(a[k][ja])
-            o["op"].append(1 - w)
-        else:
-            jb = ib[g]
-            for k in ("x", "y", "r", "rh", "u"):
-                o[k].append(b[k][jb])
-            o["op"].append(w)
-        o["age"].append(g)
-    o = {k: np.array(v) for k, v in o.items()}
-    if w >= .999:                                     # the last frame: exactly b
-        keep = np.array([g in ib for g in ages])
-        o = {k: v[keep] for k, v in o.items()}
-    return o
 
 
 # ------------------------------------------------------------------------------------------------ grease pencil helpers
@@ -298,8 +249,8 @@ for nm, vl in vls.items():
 
 
 def compositor(mode):
-    """beauty: the art, the smoke over it at 80 % (one layer: puffs do not show through each other), the ember's
-    glow over all. unlit: white where the unlit parts show (the art layer rendered in its mask mode)."""
+    """beauty: the art, the ember's glow over it. unlit: white where the unlit parts show (the art layer rendered in
+    its mask mode). smoke: the smoke loop alone at 80 % (one layer: puffs do not show through each other)."""
     name = f"{SID}_comp_{mode}"
     ng = bpy.data.node_groups.get(name) or bpy.data.node_groups.new(name, "CompositorNodeTree")
     ng.use_fake_user = True                           # kept in skull.blend even while not in use (run.py render-only)
@@ -318,21 +269,22 @@ def compositor(mode):
         L.new(sep.outputs[0], sa.inputs["Alpha"])
         L.new(sa.outputs["Image"], out.inputs[0])
         return ng
-    sm_ = N.new("CompositorNodeRLayers"); sm_.scene = sc; sm_.layer = "smoke"
-    fade = N.new("CompositorNodeSetAlpha")
-    fade.inputs["Type"].default_value = "Apply Mask"
-    L.new(sm_.outputs["Image"], fade.inputs["Image"])
-    fade.inputs["Alpha"].default_value = .8
-    o1 = N.new("CompositorNodeAlphaOver")
-    L.new(art.outputs["Image"], o1.inputs["Background"]); L.new(fade.outputs["Image"], o1.inputs["Foreground"])
+    if mode == "smoke":
+        sm_ = N.new("CompositorNodeRLayers"); sm_.scene = sc; sm_.layer = "smoke"
+        fade = N.new("CompositorNodeSetAlpha")
+        fade.inputs["Type"].default_value = "Apply Mask"
+        L.new(sm_.outputs["Image"], fade.inputs["Image"])
+        fade.inputs["Alpha"].default_value = .8
+        L.new(fade.outputs["Image"], out.inputs[0])
+        return ng
     fx = N.new("CompositorNodeRLayers"); fx.scene = sc; fx.layer = "fx"
     o2 = N.new("CompositorNodeAlphaOver")
-    L.new(o1.outputs["Image"], o2.inputs["Background"]); L.new(fx.outputs["Image"], o2.inputs["Foreground"])
+    L.new(art.outputs["Image"], o2.inputs["Background"]); L.new(fx.outputs["Image"], o2.inputs["Foreground"])
     L.new(o2.outputs["Image"], out.inputs[0])
     return ng
 
 
-COMP = {m: compositor(m) for m in ("beauty", "unlit")}
+COMP = {m: compositor(m) for m in ("beauty", "unlit", "smoke")}
 sc.compositing_node_group = COMP["beauty"]
 sc.render.use_compositing = True
 
@@ -340,27 +292,14 @@ sc.render.use_compositing = True
 smoke_ob = gp_object(SMOKE, SID + "_smoke", -5.0)
 M_ = {k: gp_mat(smoke_ob, f"{SID}_smoke_{k}", LOOK[k]) for k in ("haze", "line", "shade", "fill")}
 LY = {k: layer(smoke_ob, k) for k in ("haze", "line", "shade", "fill")}
-SMOKE_STATE = {}
-idle_sim = simulate("idle")
-SMOKE_STATE["idle"] = idle_sim
-MORPH = 14
-for clip in RESULT:
-    sim = idle_sim if clip == "idle" else simulate(clip)
-    n = RESULT[clip]["n"]
-    if clip not in ("idle", "exit"):
-        for f in range(n - MORPH, n):
-            w = (f - (n - MORPH) + 1) / MORPH
-            w = w * w * (3 - 2 * w)
-            sim[f] = morph(sim[f], idle_sim[0], w)
-    SMOKE_STATE[clip] = sim
-for clip, sim in SMOKE_STATE.items():
-    f0, n = RESULT[clip]["f0"], RESULT[clip]["n"]
+smoke_sim = simulate()
+bpy.data.objects[SID + "_rig"]["smoke"] = [SMOKE_F0, SMOKE_N]
+f0, n = SMOKE_F0, SMOKE_N
+if True:
     for f in range(n):
-        s = sim[f]
+        s = smoke_sim[f]
         x, y, r, rh, u = s["x"], s["y"], s["r"], s["rh"], s["u"]
-        op = s.get("op", np.ones(len(x)))
-        if clip == "exit":                            # the smoke thins away as he goes
-            op = op * (1 - ss((f - 2) / (n - 3)))
+        op = np.ones(len(x))
         ink = ss(u / .12) * (1 - ss((u - .5) / .35))
         o = (3.6 + .08 * r) * ink
         hz = ss((u - .25) / .3) * (1 - ss((u - .72) / .28))
@@ -422,9 +361,10 @@ for clip, R in RESULT.items():
         p, ax = cigar_axis(clip, f)
         tt = f / FPS
         if clip == "idle":
-            fl = .12 * math.sin(2 * math.pi * 7 * tt / 4) + .08 * math.sin(2 * math.pi * 17 * tt / 4 + 1) + .05 * math.sin(2 * math.pi * 31 * tt / 4 + 2)
+            Ts = n / FPS                               # whole cycles a loop: it joins
+            fl = .12 * math.sin(2 * math.pi * 9 * tt / Ts) + .08 * math.sin(2 * math.pi * 21 * tt / Ts + 1) + .05 * math.sin(2 * math.pi * 39 * tt / Ts + 2)
         else:
-            fl = .12 * math.sin(2 * math.pi * 1.8 * tt) + .08 * math.sin(2 * math.pi * 4.3 * tt + 1) + .05 * math.sin(2 * math.pi * 7.7 * tt + 2)
+            fl = .12 * math.sin(2 * math.pi * 1.35 * tt) + .08 * math.sin(2 * math.pi * 3.2 * tt + 1) + .05 * math.sin(2 * math.pi * 5.7 * tt + 2)
         e = float(R["ember"][f]) * (1 + fl)
         if clip != "idle":                             # a one-shot starts and ends on the idle's frame-1 glow
             w = min(ss(f / 6), ss((n - 1 - f) / 10))
@@ -447,7 +387,7 @@ A_ = {"ash": gp_mat(ash_ob, f"{SID}_ash_body", srgb(0x8d8a86), fill=srgb(0x8d8a8
       "dust": gp_mat(ash_ob, f"{SID}_ash_dust", srgb(0xa9a6a1), fill=srgb(0xa9a6a1))}
 AL = layer(ash_ob, "ash")
 R = RESULT["ash_break"]
-F_BREAK = ASH_BREAK
+F_BREAK = int(round(ASH_BREAK * SLOW))            # (design frame -> output frame)
 GROUND = 1462.0
 
 
@@ -538,4 +478,4 @@ for f in range(R["n"]):
         put(AL, R["f0"] + f + 1, [])
         break
 ASH_MATS = list(A_.values())
-print(SID, "fx drawn: smoke", {k: len(v) for k, v in SMOKE_STATE.items()}, flush=True)
+print(SID, "fx drawn: smoke loop", SMOKE_N, "frames from", SMOKE_F0, flush=True)

@@ -1,7 +1,7 @@
 # SMOKE SKULL - the clips, keyed INSIDE Blender on the rig build.py made (run after it, in the same Blender; run.py).
 # Every clip is an Action on the rig, laid on its NLA track "clips" at its own frames:
-#   idle 1-120 (loop, 4 s)   anticipation 201-248   win 301-372   lose 401-460   ash_break 501-572   enter 601-636
-#   exit 701-721
+#   (output frames, 1.35x slower than designed) idle 1-150 (loop, 5 s)   anticipation 201-265   win 301-397   lose 401-481
+#   ash_break 501-597   enter 601-649   exit 701-728
 # How the motion is made (all of it ends up as F-curve keys on the bones; nothing is drawn in the game):
 #   * the body's poses are laid down as keyed curves per channel (pelvis, torso, chest, neck, head, jaw, cigar, arms)
 #   * the legs are worked out per frame from where the hips are and where each shoe is meant to be (planted, tapping,
@@ -27,8 +27,13 @@ arm = bpy.data.objects[SID + "_rig"]
 spec = json.load(open(os.path.join(REPO, "art", "blender", "chars", "skull", "parts", "parts.json")))
 JN = spec["joints"]
 FPS = 30
-CLIPS = {"idle": (1, 120, True), "anticipation": (201, 48, False), "win": (301, 72, False), "lose": (401, 60, False),
-         "ash_break": (501, 72, False), "enter": (601, 36, False), "exit": (701, 21, False)}
+# Every clip plays 1.35x slower than it is designed (owner, 2026-11-03: the clips ran too quickly): the curves below are
+# written in design frames (c.t) and laid down on every OUTPUT frame at t = frame / SLOW - the same as Blender's Time
+# Remapping (render.frame_map_old 100 / new 135) but keyed, so the Grease Pencil drawn per frame (the ember, the ash)
+# runs smooth with it. The springs run in real time (1/30 s per output frame). Lengths here are output frames.
+SLOW = 1.35
+CLIPS = {"idle": (1, 150, True), "anticipation": (201, 65, False), "win": (301, 97, False), "lose": (401, 81, False),
+         "ash_break": (501, 97, False), "enter": (601, 49, False), "exit": (701, 28, False)}
 FACE_OF = {}                     # clip -> [(frame, face)]
 
 
@@ -71,7 +76,9 @@ class Clip:
     def __init__(self, name):
         self.name = name
         self.f0, self.n, self.loop = CLIPS[name]
-        self.t = np.arange(self.n, dtype=float)          # frames from the clip's start
+        self.t = np.arange(self.n, dtype=float) / SLOW   # design frames from the clip's start (curves are written in these)
+        self.i = np.arange(self.n, dtype=float)          # output frames
+        self.nk = self.n / SLOW                          # the clip's length in design frames
         self.ch = {}
 
     def get(self, b, c):
@@ -160,7 +167,7 @@ def settle_end(c, v, frames=10, target=0.0):
     """ease a series onto `target` over the clip's last frames (a one-shot ends exactly at rest)"""
     if c.loop:
         return v
-    w = sm(c.n - 1 - frames, c.n - 1, c.t)
+    w = sm(c.n - 1 - frames, c.n - 1, c.i)
     return v * (1 - w) + target * w
 
 
@@ -371,25 +378,29 @@ def hang_all(c, gain=1.0, forces=None):
 # ============================================================================ the clips
 def take(c, at, amp=1.0):
     """a face swap's 'take': the skull squashes a hair and springs back (the new face lands)"""
-    k = min(1.0, (c.n - 3 - at) / 14.0)              # over before the clip ends (it must end exactly at rest)
+    k = min(1.0, (c.nk - 3 - at) / 14.0)              # over before the clip ends (it must end exactly at rest)
     sy = 1 - .035 * amp * bump(c.t, at, at + 2 * k, at + 7 * k) + .015 * amp * bump(c.t, at + 5 * k, at + 9 * k, at + 14 * k)
     c.mul("head", "sy", sy)
     c.mul("head", "sx", 2 - sy)
 
 
 def idle():
-    """a laid-back groove at 90 bpm (a beat every 20 frames, six a loop), smoking: on each beat he nods into it and
-    comes back up through the rest pose; the hips sway across two beats; a drag on the cigar on the fourth beat
-    (the ember flares, the cigar tips up), a chew on the second; the right toe taps on beats 1 and 3, the left on 5."""
+    """move, then chill (owner, 2026-11-03: the loop was busy back to back with no time in between). First a short
+    groove - four beats (16 design frames each, 0.72 s played): on each he nods into it and comes back up through the
+    rest pose, the hips sway across two beats, the right toe taps on beats 1 and 3, a chew on beat 2, a drag on the
+    cigar on beat 4 (the ember flares, the cigar tips up) - then ~2 s at the rest pose where he only breathes, slow,
+    while the laces and the beanie settle. Never a bob up or down. Loops seamlessly on rest."""
     c = Clip("idle")
     t = c.t
-    beat = 20
-    k = (t // beat).astype(int)
+    beat = 16
+    ACTIVE = 4 * beat                                                   # design frames of groove, then the chill
+    k = np.minimum((t // beat).astype(int), 4)
     u = (t % beat) / beat
-    nod_amp = np.array([1.0, .6, .9, .45, 1.0, .55])[k]
+    nod_amp = np.array([1.0, .6, .9, .45, 0.0])[k]
     nod = np.sin(np.pi * u ** .75) ** 2 * nod_amp                       # quick down after the beat, slower up
-    sway = np.sin(np.pi * t / beat) * (1 + .25 * np.cos(2 * np.pi * t / c.n))   # lean one way, then the other
-    breath = np.sin(np.pi * u) ** 2 * (.6 + .4 * nod_amp)
+    sway = np.sin(np.pi * t / beat) * sm(0, 6, t) * (1 - sm(36, ACTIVE, t))   # lean one way, then the other; fades out
+    breath = np.where(t < ACTIVE, np.sin(np.pi * u) ** 2 * (.6 + .4 * nod_amp) * .7,
+                      .45 * np.sin(np.pi * np.clip((t - ACTIVE) / (c.nk - ACTIVE), 0, 1)) ** 2)   # one slow, small breath in the chill
     c.set("pelvis", "x", .05 * sway)
     c.set("pelvis", "r", -.5 * sway)
     c.set("flex_l", "v", 2.0 * np.clip(sway, 0, None))
@@ -401,19 +412,16 @@ def idle():
     c.set("neck", "r", .8 * nod)
     c.set("head", "r", 2.4 * nod + .6 * sway)
     c.set("hood", "r", 0)
-    # the drag (beat 4: frames 60-80): the cigar tips up between his teeth, the jaw clamps; beat 2: a chew
-    drag = bump(t, 61, 67, 79)
-    c.set("cigar", "r", -5.5 * drag + 1.5 * bump(t, 22, 27, 36))
-    c.set("jaw", "r", 2.2 * bump(t, 22, 26, 31) + 1.6 * bump(t, 29, 32, 38) - .8 * drag)
-    # shoulders: the arms ride the chest, the elbows give a touch on the nod
+    # the drag (beat 4): the cigar tips up between his teeth, the jaw clamps; beat 2: a chew
+    drag = bump(t, 49, 54, 63)
+    c.set("cigar", "r", -5.5 * drag + 1.5 * bump(t, 18, 22, 29))
+    c.set("jaw", "r", 2.2 * bump(t, 18, 21, 25) + 1.6 * bump(t, 23, 26, 31) - .8 * drag)
     for s, sg in (("l", 1), ("r", -1)):
         c.set(f"arm_{s}_upper", "r", sg * .8 * nod)
         c.set(f"arm_{s}_fore", "r", -sg * .6 * nod)
-    # toe taps (the shoe rocks on its heel)
-    tap_r = bump(t, 2, 6, 14, 7.0) + bump(t, 42, 46, 54, 6.0)
+    # toe taps (the shoe rocks on its heel), beats 1 and 3
+    tap_r = bump(t, 2, 5, 11, 7.0) + bump(t, 34, 37, 43, 6.0)
     foot_about(c, "r", HEEL["r"], tap_r)
-    tap_l = bump(t, 82, 86, 95, -6.0)
-    foot_about(c, "l", HEEL["l"], tap_l)
     c.ember = .55 + .45 * drag                     # how hot the ember burns (fx.py)
     c.ember_drag = drag
     follow(c, .35)
@@ -658,9 +666,9 @@ for p in spec["parts"]:
     ob.hide_render = p["face"] != "idle"
     ob.keyframe_insert("hide_render", frame=0)
     for name, (f0, n, loop) in CLIPS.items():
-        for fr, face in FACE_OF[name]:
+        for fr, face in FACE_OF[name]:                 # (design frames -> output frames)
             ob.hide_render = face != p["face"]
-            ob.keyframe_insert("hide_render", frame=f0 + fr)
+            ob.keyframe_insert("hide_render", frame=f0 + int(round(fr * SLOW)))
         ob.hide_render = p["face"] != "idle"
         ob.keyframe_insert("hide_render", frame=f0 + n)
     for fc in fxkit.fcurves(ob.animation_data.action):

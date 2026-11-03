@@ -53,7 +53,7 @@ LIMBS = [("thigh_l", "shin_l", "foot_l", "body"), ("thigh_r", "shin_r", "foot_r"
          ("arm_l_upper", "arm_l_fore", "hand_l", "chest"), ("arm_r_upper", "arm_r_fore", "hand_r", "chest")]
 
 CLIP_LIST = [  # name, frames, loop
-    ("idle", 96, True), ("anticipation", 36, False), ("win", 72, False), ("big_win", 96, False),
+    ("idle", 140, True), ("anticipation", 36, False), ("win", 72, False), ("big_win", 96, False),
     ("lose", 66, False), ("cash_show", 78, False), ("cash_count", 192, False), ("enter", 36, False),
     ("exit", 21, False)]
 
@@ -182,6 +182,17 @@ def idle():
     fan(s + 10, extra=[1.0, 1.4, 1.6, 1.2, .5, -.8])
     fan(s + 16, 0)
     pose(96, hips=dict(x=0, y=0, r=0), torso=dict(r=0), chest=dict(r=0), head=dict(r=0, y=0), grip=dict(x=0, y=0, r=0))
+    # the chill (keyed 96-140, ~2 s on screen): he stands easy at the rest pose and just breathes - two slow
+    # breaths (shoulders and money lift a touch, the head rides up), the second with a hair of weight onto the
+    # left leg - with a beat of stillness at rest before, between and after them (the cut points)
+    CALM = dict(hips=dict(x=0, y=0, r=0), torso=dict(r=0), chest=dict(r=0), head=dict(r=0, y=0),
+                grip=dict(x=0, y=0, r=0))
+    pose(101, **CALM)
+    pose(108, chest=dict(r=.25), head=dict(y=1.3, r=-.3), grip=dict(y=1.8), hips=dict(y=.6))
+    pose(115, **CALM)
+    pose(120, **CALM)
+    pose(127, chest=dict(r=-.2), head=dict(y=1.2, r=.35), grip=dict(y=1.6, x=-.6), hips=dict(y=.5, x=-1.4))
+    pose(134, **CALM)
 
 
 def anticipation():
@@ -524,7 +535,7 @@ def pin_to_cues(vals, cues):
     return out
 
 
-IDLE_CUES = [0, 16, 32, 48, 64, 80]
+IDLE_CUES = [0, 16, 32, 48, 64, 80, 96, 101, 115, 120, 134]
 
 
 def springs():
@@ -635,6 +646,28 @@ def toss(f0):
         STATS.setdefault("toss", []).append(gone - f0)
 
 
+# ================================================================== the slow-down (time remapping at render)
+SLOW = 1.35                                       # every clip plays this many times slower than keyed (the owner:
+                                                  # "moving very quickly"): rendered with Blender's Time Remapping
+
+
+def remap(n, loop):
+    """(old, new) for a clip of n keyed frames: a loop's cycle (n frames) becomes round(n * SLOW) rendered frames;
+    a one-shot's span (n - 1 frames, first to last key) becomes round((n - 1) * SLOW) - its first and last
+    rendered frames land exactly on its first and last keys (the rest pose)"""
+    old = n if loop else n - 1
+    return old, int(round(old * SLOW))
+
+
+def place_next(f, clip):
+    """the first frame >= f where this clip may start: a multiple of its remap's 'old', so its rendered frames
+    fall on whole frames of the remapped timeline"""
+    if clip is None:
+        return f
+    old, _ = remap(clip[1], clip[2])
+    return int(math.ceil(f / old) * old)
+
+
 # ================================================================== build every clip
 def build():
     fxkit.ICON[0], fxkit.ICON[1] = 1024, 1536
@@ -642,7 +675,7 @@ def build():
         if o.animation_data:
             o.animation_data_clear()
     arm.animation_data_create()
-    clips, f0 = {}, 1
+    clips, f0 = {}, place_next(1, CLIP_LIST[0])
     for name, n, loop in CLIP_LIST:
         C.name, C.f0, C.n, C.loop = name, f0, n, loop
         C.act = fxkit.begin_action(arm, f"{SID}_{name}")
@@ -660,7 +693,7 @@ def build():
         faces(name, f0)
         clips[name] = [f0, f0 + n - 1]
         print(f"  {name}: frames {f0}-{f0 + n - 1} ({n}), {STATS.get(name)}", flush=True)
-        f0 += n + 24
+        f0 = place_next(f0 + n + 24, CLIP_LIST[[c[0] for c in CLIP_LIST].index(name) + 1] if name != CLIP_LIST[-1][0] else None)
     # the loose bills: their own Action on their own NLA track (they are no part of any clip's pose)
     C.f0 = clips["big_win"][0]
     act = fxkit.begin_action(arm, f"{SID}_toss")
@@ -686,6 +719,7 @@ def build():
     arm["clips"] = clips
     arm["loops"] = [n for n, _, lp in CLIP_LIST if lp]
     arm["idle_cues_keyed"] = IDLE_CUES
+    arm["remap"] = {nm: list(remap(n, lp)) for nm, n, lp in CLIP_LIST}
     sc.frame_start, sc.frame_end = 1, max(b for a, b in clips.values())
     return clips
 

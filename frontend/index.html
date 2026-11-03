@@ -249,7 +249,7 @@
   /* --char-shift centres each character's own column on the union of its clips' content:
      char 1 reaches out to 40% of the frame width, char 2 stays around 49.7% */
   #charfx  { right: var(--char-inset); --char-shift: 40%; --char-lift: 5%; --char-depth: calc(1 - sin(var(--scene-yaw)) * .3); }   /* the skull stands 5% lower than the boy */
-  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); }
+  #charfx2 { left: var(--char-inset);  --char-shift: 49.7%; --char-lift: 7%; --char-depth: calc(1 + sin(var(--scene-yaw)) * .3); }   /* the boy a little lower (owner, 2026-11-03) */
   /* same beat as the wall's bounce — they hop and shake it off on every spin */
   .charfx.bounce { animation: charbounce .7s cubic-bezier(.22,.9,.32,1.25); }
   /* on translate/scale/rotate (transform carries the scene's lean): the lift and the depth
@@ -290,10 +290,10 @@
   @media (max-width: 1080px) and (orientation: landscape) and (min-height: 501px) and (max-aspect-ratio: 3/2) {
     :root { --char-drop: -12vh; }
   }
-  /* Wider screens: the boy stands a little in and up, so the Bonus button in the corner is clear
-     of his sneakers (2026-11-03 QA, 1920x1080) */
+  /* Wider screens: the boy stands a little in, so the Bonus button in the corner is clear of his
+     sneakers (2026-11-03 QA, 1920x1080) */
   @media (min-width: 1101px), (min-width: 1081px) and (orientation: landscape) {
-    #charfx2 { left: calc(var(--char-inset) + 4vw); --char-lift: 14%; }
+    #charfx2 { left: calc(var(--char-inset) + 6vw); --char-lift: 10%; }   /* lower (owner, 2026-11-03), so 2vw further in to keep clear of Bonus */
   }
   /* Portrait phone: the scenery takes the top of the screen and the game the bottom. The pair
      stands BEHIND the board - head, body and hands above its top edge, legs behind it, cut off
@@ -991,17 +991,18 @@
      from JS (placePop) like the auto play picker. Zero on a slider is that bus's mute; the speaker
      tab shows the muted speaker only when both are at zero. */
   .vpop[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
-  #volPop { width: 300px; padding: 12px 18px 10px; display: grid; gap: 2px; }
+  /* small, rising out of the bar between it and the board (owner, 2026-11-03: not out to the side) */
+  #volPop { width: 220px; padding: 7px 13px 6px; display: grid; gap: 0; }
   #volPop[hidden] { display: none; }
   #volPop.leaving[hidden] { display: grid; }
-  .vrow { display: grid; grid-template-columns: 62px minmax(0, 1fr) 34px; align-items: center; gap: 12px; }
+  .vrow { display: grid; grid-template-columns: 50px minmax(0, 1fr) 26px; align-items: center; gap: 9px; }
   .vpop .vlbl {
     margin: 0; text-align: left; white-space: nowrap; text-shadow: none;
-    font-family: var(--hud-font); font-weight: 600; font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--hud-soft);
+    font-family: var(--hud-font); font-weight: 600; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--hud-soft);
   }
-  .vnum { font-family: var(--hud-font); font-weight: 700; font-size: 16px; color: #fff; text-align: right; font-variant-numeric: tabular-nums; }
+  .vnum { font-family: var(--hud-font); font-weight: 700; font-size: 13px; color: #fff; text-align: right; font-variant-numeric: tabular-nums; }
   /* the slider's box is the hit area and the box the drag measures; the track runs its full width */
-  .vbar { position: relative; height: 36px; cursor: pointer; touch-action: none; }
+  .vbar { position: relative; height: 28px; cursor: pointer; touch-action: none; }
   .vbar:focus-visible { outline: none; }
   .vwell {
     position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px;
@@ -1012,7 +1013,7 @@
     background: var(--hud-on); border-radius: inherit; pointer-events: none; transition: width .14s ease-out;
   }
   .vknob {
-    position: absolute; top: 50%; left: var(--v, 0%); width: 20px; height: 20px; margin: -10px 0 0 -10px;
+    position: absolute; top: 50%; left: var(--v, 0%); width: 16px; height: 16px; margin: -8px 0 0 -8px;
     border-radius: 50%; background: #fff; border: 2px solid var(--hud-line); box-shadow: 0 2px 6px rgba(0, 0, 0, .45);
     pointer-events: none; transition: left .14s ease-out, transform .12s ease;
   }
@@ -1590,41 +1591,26 @@
   /* the burst layer (burstIcon()): one canvas over the board, hanging past its edges so the
      pieces can fly over the frame; above the tiles, below nothing that matters */
   .shardlayer { position: absolute; z-index: 4; pointer-events: none; }   /* the icon's pieces fly over everything */
-  /* the win line: puffs of spray paint in the theme's colours (tools/sprayrim/make_line_dabs.py)
-     laid along the cluster, overlapping into one sprayed stroke, each puffing on a beat after the
-     last so the stroke is drawn on as the player watches; a few runs of paint drip off it. Every
-     puff is two sprites in two layers: its violet overspray and glow (.mist, with the runs) under
-     every lime core (.core), so no puff's overspray lands on the stroke already drawn */
+  /* The win line (owner, 2026-11-03): a stroke of WHITE spray paint swept across the cluster like a
+     can - a dense core with a speckled overspray edge, thinner than the old puffs, a soft dark
+     under-glow so it reads over the white stickers - drawn on along a smoothed path (drawWinLine
+     stamps it onto two canvases sized to the cluster, a little more each frame), then a few small
+     white runs of paint drip off it. Two sheets take turns, so one line fades out with its
+     cluster's moment while the next one draws. */
   .lineLayer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-  .lineLayer > div { position: absolute; inset: 0; }
-  .lineLayer .mist i { background-image: url("assets/fx/line_mist_0.webp"); }
-  .lineLayer .mist i.v1 { background-image: url("assets/fx/line_mist_1.webp"); }
-  .lineLayer .mist i.v2 { background-image: url("assets/fx/line_mist_2.webp"); }
-  .lineLayer .mist i.v3 { background-image: url("assets/fx/line_mist_3.webp"); }
-  .lineLayer i {
-    position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px;
-    background: url("assets/fx/line_dab_0.webp") center / contain no-repeat;
-    opacity: 0; transform: rotate(var(--r, 0deg)) scale(var(--s, 1));
-    animation: dotIn calc(.3s * var(--tempo, 1)) ease-out both;
-    animation-delay: calc(var(--d, 0ms) * var(--tempo, 1));
-  }
-  .lineLayer i.v1 { background-image: url("assets/fx/line_dab_1.webp"); }
-  .lineLayer i.v2 { background-image: url("assets/fx/line_dab_2.webp"); }
-  .lineLayer i.v3 { background-image: url("assets/fx/line_dab_3.webp"); }
+  .lineLayer .lsheet { position: absolute; display: none; }
+  .lineLayer .lsheet.on, .lineLayer .lsheet.out { display: block; }
+  .lineLayer .lsheet.out { opacity: 0; transition: opacity calc(.42s * var(--tempo, 1)) ease-in; }
+  .lineLayer canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
   .lineLayer b {
-    position: absolute; width: 9px; height: var(--len, 24px); margin: -4px 0 0 -4.5px;
-    background: url("assets/fx/line_drip.webp") center top / 100% 100% no-repeat;
+    position: absolute; width: 4px; height: var(--len, 16px); margin: -1px 0 0 -2px;
+    background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 40' preserveAspectRatio='none'><path d='M1 0h6c-.4 9-1.2 20-1.3 28a3.4 3.4 0 1 1-3.4 0C2.2 20 1.4 9 1 0z' fill='%23fff'/></svg>") center top / 100% 100% no-repeat;
+    filter: drop-shadow(0 0 1.5px rgba(10, 6, 16, .55));
     transform-origin: 50% 0; transform: scaleY(0);
-    animation: lineDrip calc(1.1s * var(--tempo, 1)) cubic-bezier(.5, 0, .8, .6) both;
-    animation-delay: calc(var(--d, 0ms) * var(--tempo, 1));
+    animation: lineDrip calc(1.1s * var(--tempo, 1)) cubic-bezier(.3, .6, .5, 1) forwards;
   }
   @keyframes lineDrip { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
-  @keyframes dotIn {
-    0%   { opacity: 0; transform: rotate(var(--r, 0deg)) scale(.25); }
-    55%  { opacity: 1; transform: rotate(var(--r, 0deg)) scale(calc(var(--s, 1) * 1.15)); }
-    100% { opacity: 1; transform: rotate(var(--r, 0deg)) scale(var(--s, 1)); }
-  }
-  @media (prefers-reduced-motion: reduce) { .lineLayer i { animation: none; opacity: 1; } .lineLayer b { animation: none; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .lineLayer b { animation: none; transform: none; } .lineLayer .lsheet.out { transition: none; } }
   .multlayer .gmult[hidden] { display: none; }
   /* No z-index on .reel: the icons already paint above the numbers because #multLayer
      (z-index 0) comes before the reels in the DOM. Giving each reel its own stacking context
@@ -1787,6 +1773,50 @@
   @media (prefers-reduced-motion: reduce) {
     .cell.winhit, .cell.winhit.boom, .cell.winhit.hit, .cell.winhit .rigin, .cell.winhit .ico > img { animation: none; }
   }
+  /* The winning tile's light show (owner, 2026-11-03): a bloom of light in the tile's tier colour
+     pushed out from behind it with a ring of light, a sweep of light across the icon, a few
+     sparkle glints, then the glow breathing for as long as it is lit. Built once per cell
+     (winFx) and drawn only while .winhit; transform and opacity only, around and over the
+     symbol's own frames, never on them. */
+  .cell { --fxc: 255, 236, 190; }
+  .cell.t1 { --fxc: 140, 252, 84; }
+  .cell.t2 { --fxc: 199, 125, 255; }
+  .cell .wfxb, .cell .wfx { position: absolute; inset: 0; pointer-events: none; display: none; }
+  .cell.winhit .wfxb, .cell.winhit .wfx { display: block; }
+  .wfxb .bloom {
+    position: absolute; left: 50%; top: 50%; width: 108%; aspect-ratio: 1; translate: -50% -50%;
+    background: radial-gradient(circle, rgba(var(--fxc), .46) 0%, rgba(var(--fxc), .24) 26%, rgba(var(--fxc), .08) 46%, rgba(var(--fxc), 0) 66%);
+    opacity: 0;
+    animation: wfxBloom calc(.7s * var(--tempo, 1)) cubic-bezier(.2, .8, .3, 1) both,
+               wfxBreathe calc(1.4s * var(--tempo, 1)) ease-in-out calc(.7s * var(--tempo, 1)) infinite;
+  }
+  .wfxb .ring {
+    position: absolute; left: 50%; top: 50%; width: 70%; aspect-ratio: 1; translate: -50% -50%;
+    border-radius: 50%; border: 2px solid rgba(var(--fxc), .85);
+    opacity: 0; animation: wfxRing calc(.5s * var(--tempo, 1)) cubic-bezier(.15, .7, .3, 1) both;
+  }
+  .wfx .shine { position: absolute; inset: 7% 9%; overflow: hidden; border-radius: 20%; }
+  .wfx .shine::before {
+    content: ""; position: absolute; top: -30%; bottom: -30%; left: 0; width: 42%;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .6) 50%, rgba(255, 255, 255, 0));
+    transform: translateX(-130%) skewX(-16deg); opacity: 0;
+    animation: wfxShine calc(.62s * var(--tempo, 1)) cubic-bezier(.4, 0, .3, 1) calc(.1s * var(--tempo, 1)) both;
+  }
+  .wfx .spark {
+    position: absolute; left: var(--sx, 50%); top: var(--sy, 50%); width: 22px; height: 22px; margin: -11px 0 0 -11px;
+    background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='7' fill='%23fff' fill-opacity='.14'/><circle cx='12' cy='12' r='4.5' fill='%23fff' fill-opacity='.3'/><path d='M12 0l1.6 10.4L24 12l-10.4 1.6L12 24l-1.6-10.4L0 12l10.4-1.6z' fill='%23fff'/></svg>") center / contain no-repeat;
+    opacity: 0; transform: scale(0);
+    animation: wfxSpark calc(.7s * var(--tempo, 1)) ease-out calc(var(--sd, 0s) * var(--tempo, 1)) both;
+  }
+  @keyframes wfxBloom  { 0% { opacity: 0; transform: scale(.35); } 30% { opacity: 1; transform: scale(1.06); } 100% { opacity: .6; transform: scale(.92); } }
+  @keyframes wfxBreathe { 0%, 100% { opacity: .6; transform: scale(.92); } 50% { opacity: .95; transform: scale(1.03); } }
+  @keyframes wfxRing   { 0% { opacity: 0; transform: scale(.4); } 15% { opacity: 1; } 70% { opacity: .25; } 100% { opacity: 0; transform: scale(1.8); } }
+  @keyframes wfxShine  { 0% { opacity: 1; transform: translateX(-130%) skewX(-16deg); } 100% { opacity: 1; transform: translateX(330%) skewX(-16deg); } }
+  @keyframes wfxSpark  { 0% { opacity: 0; transform: scale(0) rotate(0deg); } 35% { opacity: 1; transform: scale(var(--ss, 1)) rotate(45deg); } 100% { opacity: 0; transform: scale(0) rotate(100deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .wfxb .bloom { animation: none; opacity: .6; }
+    .wfxb .ring, .wfx .shine::before, .wfx .spark { animation: none; opacity: 0; }
+  }
   /* the win chip - the cluster's amount (and its multiplier, when it has one) punched over
      the cluster's middle tile while the cluster is lit. placeWinChip() sets left/top from the
      cells' layout, the same offset walk placeMultLayer() does, never from a rect. */
@@ -1801,45 +1831,53 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.6), 0 0 18px rgba(245,197,24,.3);
     text-shadow: 0 2px 0 rgba(0,0,0,.6);
   }
-  /* the popup over the icons: the cluster's amount (and its multiplier, when it has one)
-     punched over the cluster's middle tile while the cluster is lit */
+  /* The win amount (owner, 2026-11-03): no plate, no currency sign - just the cluster's amount in
+     bold, glowing in its own colour, punched in over the cluster's middle tile. It counts up from
+     nothing to what the cluster is worth, its colour running from green to purple as it climbs
+     (placeWinChip writes the colour; the glow follows it, currentColor); when Multis pay into the
+     cluster their total slams onto it ("x5", .wpx) and it counts on up to the multiplied amount;
+     then it floats up slowly and fades away (.off), and removes itself. Transform and opacity
+     only, besides the figure and its colour. */
   .winpop {
-    position: absolute; z-index: 4; pointer-events: none; white-space: nowrap; text-align: center;
-    transform: translate(-50%, -50%);   /* base state, so it stays centred with animation off */
-    transform-origin: center center;
-    font-family: var(--num); font-size: 30px; line-height: 1; color: var(--gold);
-    /* the sprayed charcoal plate: its violet band and the tab on top stay clear
-       of the figure, and the whole thing is stretched to the text it carries */
-    min-width: 170px; padding: 28px 30px 24px;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,.65));
-    text-shadow: 0 2px 0 rgba(0,0,0,.75), 0 0 9px rgba(0,0,0,.55);
-    animation: chippop calc(.72s * var(--tempo, 1)) ease-out both;
+    position: absolute; z-index: 5; pointer-events: none; white-space: nowrap; text-align: center;
+    translate: -50% -50%;
+    display: flex; align-items: center; gap: .18em;
+    font-family: "Fredoka", var(--num); font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: .02em;
+    color: rgb(140, 252, 84); -webkit-text-stroke: 3px rgba(12, 8, 18, .85); paint-order: stroke fill;
+    text-shadow: 0 0 6px currentColor, 0 0 18px currentColor, 0 3px 0 rgba(0, 0, 0, .5);
+    will-change: transform, opacity;
+    animation: winAmtIn calc(.42s * var(--tempo, 1)) both;
   }
-  /* the box is a layer of its own, a touch see-through, so the icons show faintly beneath
-     it while the figure on top stays solid. The box and the figure (.wptext) hover on one
-     random path, the figure a beat behind - see hoverWin and the .twhead rules */
-  .winpop::before {
-    content: ""; position: absolute; inset: 0; z-index: -1;
-    background: url("assets/win_box.webp") center / 100% 100% no-repeat;
-    opacity: .8;
-    translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1);
+  .winpop .wpn { display: inline-block; font-variant-numeric: tabular-nums; }
+  .winpop .wpn.land { animation: winAmtLand calc(.32s * var(--tempo, 1)) cubic-bezier(.2, .9, .3, 1.4); }
+  .winpop .wpn.hit { animation: winAmtHit calc(.36s * var(--tempo, 1)) ease-out; }
+  /* the multiplier slamming onto the figure */
+  .winpop .wpx {
+    display: inline-block; font-size: .72em; color: #fff;
+    text-shadow: 0 0 6px rgba(255, 255, 255, .9), 0 0 16px rgba(180, 84, 228, .9), 0 3px 0 rgba(0, 0, 0, .5);
+    animation: winAmtSlam calc(.34s * var(--tempo, 1)) cubic-bezier(.5, 0, .8, .4) both;
   }
-  .winpop .wptext { display: block; translate: var(--tx, 0) var(--ty, 0); rotate: var(--tr, 0deg); scale: var(--ts, 1); }
-  .winpop small { display: block; font-family: var(--num); font-size: 17px; letter-spacing: .06em; color: var(--fs-green); margin-top: 4px; }
-  /* from nothing: it starts too small to see, bursts out past its size, settles, then
-     shakes itself still. No fade - it is simply not there, and then it is */
-  @keyframes chippop {
-    0%   { transform: translate(-50%, -50%) scale(0) rotate(-14deg); opacity: 1; }
-    8%   { transform: translate(-50%, -50%) scale(.02) rotate(-12deg); }
-    34%  { transform: translate(-50%, -50%) scale(1.24) rotate(2.5deg); opacity: 1; }
-    46%  { transform: translate(-50%, -50%) scale(.93) rotate(-2.5deg); }
-    56%  { transform: translate(-53%, -50%) scale(1.07) rotate(2deg); }
-    66%  { transform: translate(-47%, -50%) scale(1) rotate(-2deg); }
-    76%  { transform: translate(-51.5%, -50%) scale(1.03) rotate(1.2deg); }
-    86%  { transform: translate(-48.8%, -50%) scale(1) rotate(-.8deg); }
-    94%  { transform: translate(-50.5%, -50%) scale(1.01) rotate(.4deg); }
-    100% { transform: translate(-50%, -50%) scale(1) rotate(0); opacity: 1; }
+  .winpop.off { animation: winAmtOff calc(1.7s * var(--tempo, 1)) cubic-bezier(.3, .2, .6, 1) both; }
+  @keyframes winAmtIn {
+    0%   { transform: scale(.2); opacity: 0; animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+    35%  { transform: scale(1.3); opacity: 1; animation-timing-function: ease-in-out; }
+    65%  { transform: scale(.93); }
+    100% { transform: scale(1); opacity: 1; }
   }
+  @keyframes winAmtLand { 0% { transform: scale(1); } 40% { transform: scale(1.22); } 100% { transform: scale(1); } }
+  @keyframes winAmtHit {
+    0% { transform: translate(0, 0) scale(1); } 15% { transform: translate(-4px, 2px) scale(.9); filter: brightness(1.8); }
+    35% { transform: translate(4px, -1px) scale(1.06); } 55% { transform: translate(-2px, 1px) scale(.98); }
+    75% { transform: translate(1px, 0) scale(1.01); } 100% { transform: none; filter: none; }
+  }
+  @keyframes winAmtSlam {
+    0%   { transform: scale(3.2) rotate(-12deg); opacity: 0; }
+    60%  { transform: scale(.82) rotate(3deg); opacity: 1; animation-timing-function: ease-out; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  @keyframes winAmtOff { 0% { transform: translateY(0); opacity: 1; } 45% { opacity: 1; } 100% { transform: translateY(-74px); opacity: 0; } }
+  @media (max-width: 1100px) and (orientation: portrait) { .winpop { font-size: 64px; -webkit-text-stroke-width: 4px; } }
+  @media (prefers-reduced-motion: reduce) { .winpop, .winpop .wpn, .winpop .wpx { animation: none !important; } }
   .cell.flood { animation: flood .5s ease-out; }
   @keyframes flood { 0% { background: var(--panel2); } 40% { background: var(--spray); } 100% { background: var(--spray-deep); } }
   .cell.pulse { animation: pulse calc(.6s * var(--tempo, 1)) ease-in-out; }
@@ -2492,7 +2530,7 @@
      design width here and fitBonus scales it to the window, width and height both. */
   @media (max-height: 680px) and (min-aspect-ratio: 4/3) {
     .bonuspanel {
-      width: 720px; padding: 22px 40px 42px;
+      width: 820px; padding: 30px 64px 68px;   /* inside the frayed rim on every side (owner, 2026-11-03: the cards and PLAY sat on it) */
       display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); column-gap: 24px; align-items: center;
       grid-template-areas: "head head" "cards bet" "cards total" "cards note" "cards go";   /* the note over PLAY, inside the plate */
     }
@@ -2605,7 +2643,7 @@
   :root {
     --hud-fill: rgba(38, 37, 41, .5);   /* a slightly greyish black, half see-through (owner, 2026-11-03) */
     --hud-line: #000;           /* the outline: black */
-    --hud-hi: #57535e;          /* the outline under the pointer, or with its pop-up open */
+    --hud-hi: #fff;             /* the outline under the pointer, or with its pop-up open: white (owner, 2026-11-03) */
     --hud-on: #B8F23A;          /* Rapid / Auto on, the chosen option (the spin's pressed ring is white) */
     --hud-ink: #f4f1f8;
     --hud-soft: #c4bcd2;
@@ -2751,6 +2789,7 @@
     transition: scale .18s cubic-bezier(.3, .9, .4, 1.3), background-color .2s ease;
   }
   .spinbtn:hover:not(:disabled)::after { scale: 1.1; }
+  .spinbtn:hover:not(:disabled)::before { background-image: var(--spin-hex-on); }   /* hover: the white outline */
   .spinbtn.armed { color: #fff; }
   .spinbtn.armed::before { background-image: var(--spin-hex-on); filter: drop-shadow(0 0 7px rgba(255, 255, 255, .7)); }
   .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55, .05, .15, 1); }
@@ -2811,6 +2850,10 @@
     animation: infoRise .3s cubic-bezier(.2, .9, .3, 1.1);
   }
   @keyframes infoRise { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+  /* While the game menu is up the board (with its frame and its numbers) and the two characters fade
+     out, leaving the wall, the HUD and the panel (owner, 2026-11-03) */
+  #board, .framefx, .charfx, .charshadow { transition: opacity .25s ease; }
+  body.menu-open #board, body.menu-open .framefx, body.menu-open .charfx, body.menu-open .charshadow { opacity: 0 !important; pointer-events: none; }
   @media (prefers-reduced-motion: reduce) { #infoWrap .infopanel { animation: none; } }
   /* Portrait phone layout (the characters' own rules are up with the other character rules):
      the tag on the wall moves up to the top quarter so the pair stands in front of it, the
@@ -2910,7 +2953,7 @@
     </div>
     <button class="wordbtn" id="autoYes">Start</button>
   </div>
-  <div class="vpop hudpop" id="volPop" data-side="left" hidden role="group" aria-label="Volume">
+  <div class="vpop hudpop" id="volPop" hidden role="group" aria-label="Volume">
     <div class="vrow">
       <span class="vlbl">Sound</span>
       <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
@@ -3259,7 +3302,6 @@ const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art ha
   { sel: ".bonuspanel", art: "bonus_panel", fit: "stretch", flameK: 1.7, shadow: [18, 40, .6] },
   { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7 },   // stoked under the mouse (runFeatures)
   { sel: ".bonusintro .bhow", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, flameK: 1.9, shadow: [14, 30, .55] },
-  { sel: ".winpop", art: "win_box", fit: "stretch", cls: "winbox", shadow: [5, 8, .35], flameK: 1.2 },
   { sel: "#fsCard .fsplate", art: "hud_bar", fit: "slice", slice: [0, .06, 0, .06], shadow: [4, 8, .5] },   // the free-spin counter wears the bar's slab
   { sel: "#bonusBetUp", art: "hud_plus", fit: "contain", shadow: [2, 3, .5] },
   { sel: "#bonusBetDown", art: "hud_minus", fit: "contain", shadow: [2, 3, .5] },
@@ -4339,6 +4381,7 @@ function placeMultLayer() {
 function eachCell(fn) { for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) fn(cellEls[r][y], r, y); }
 function clearFx() {
   eachCell(el => el.classList.remove("winhit", "unhit", "flood", "pulse", "drop", "scatland"));
+  clearWinChip(true);   // any win figure still drifting off
   $("board").classList.remove("spotlight");
   clearWinChip();
 }
@@ -4699,6 +4742,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
     const land = (y, pace, tt) => {
       const c = cells[y];
       sfx("dripLand", landRate(y, pace));
+      landFoley(shownSym[r] && shownSym[r][y]);   // and what it is made of
       const crew = c.classList.contains("scat");
       if (crew || c.classList.contains("escat")) {
         c.classList.add("scatland");
@@ -4752,7 +4796,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
         settled = Math.max(settled, startAt[y] + ms);
       }
       // the column thuds as its last tile lands, and hands over once the slowest has settled
-      later(lastHit + 30 * tt, () => { boardThud(r); });
+      later(lastHit + 30 * tt, () => { boardThud(r); sfxGap("reelStop", 40, .97 + r * .012); });
       later(settled + 20 * tt, finish);
     });
     later(wait + 8000, finish);   // a hidden tab must never hang the round
@@ -5037,7 +5081,8 @@ function paintFsCount(cur, total, quiet) {
   el.querySelector(".tot").textContent = total;
   if (String(cur).length !== String(was.cur).length || String(total).length !== String(was.total).length) fitFsCard();   // a digit more: it may have outgrown a phone
   if (quiet || REDUCED_MOTION) return;
-  if (cur !== was.cur) { c.classList.remove("tick"); restyle(c); c.classList.add("tick"); }
+  if (cur !== was.cur) { c.classList.remove("tick"); restyle(c); c.classList.add("tick"); sfx("fsTick"); }
+  if (total > was.total) sfx("fsTick", 1.25);   // a retrigger flips the total too, a step higher
   if (total > was.total) {
     const plate = el.closest(".fsplate");
     plate.classList.remove("retrig"); restyle(plate); plate.classList.add("retrig");
@@ -5120,6 +5165,58 @@ const SYM_SFX = {
 const SYM_SFX_VOL = {};
 for (const [id, url] of Object.entries(SYM_SFX)) if (url) { SFX["sym_" + id] = url; SFX_VOL["sym_" + id] = SYM_SFX_VOL[id] ?? .55; }
 const bustMemo = { last: null };
+// The street foley pass (2026-11-03): each name is a set of takes, sfx_<stem>_1..n.wav (+ Opus
+// copies), cleaned and loudness-matched to the set above. sfx(name) plays one of them - never the
+// same take twice running - a hair off pitch, so a run of them never sounds like a loop.
+// [file stem, takes, level]
+const SFX_SETS = {
+  // the win presentation (called from the win code)
+  sprayLineShort: ["sfx_spray_short", 3, .36],  // spray hiss sweep: a short line across a cluster
+  sprayLineLong: ["sfx_spray_long", 2, .32],    // the same, a long line (1.5 s; stop the returned source to cut it)
+  paintDrip: ["sfx_paint_drip", 5, .3],         // one drop of paint falling off the line
+  glowPulse: ["sfx_glow_pulse", 2, .26],        // a winning symbol lighting up: a soft swell
+  shine: ["sfx_shine", 2, .3],                  // a shine sweeping across a symbol, two glints at its end
+  sparkle: ["sfx_sparkle", 3, .28],             // a run of glitter twinkles
+  glint: ["sfx_glint", 4, .24],                 // one bright ting (one per lit symbol; rate it for a scale)
+  countTick: ["sfx_count_tick", 3, .26],        // the win figure counting: one tick
+  countEnd: ["sfx_count_end", 1, .5],           // the figure lands: register ka-chunk and bell
+  multSlam: ["sfx_mult_slam", 3, .62],          // the x<N> slamming onto the figure
+  countWhoosh: ["sfx_count_whoosh", 2, .4],     // the figure counting up again after the slam: a rising whoosh
+  floatAway: ["sfx_float_away", 2, .36],        // the figure floating away
+  paintBurst: ["sfx_paint_burst", 3, .4],       // an icon bursting: a wet paint pop
+  // board foley: what each symbol is made of, as it lands (landFoley)
+  landSoft: ["sfx_land_soft", 3, .26], landBag: ["sfx_land_bag", 3, .28], landCan: ["sfx_land_can", 3, .26],
+  landChain: ["sfx_land_chain", 3, .24], landCoin: ["sfx_land_coin", 2, .24], landDice: ["sfx_land_dice", 3, .24],
+  landBaggie: ["sfx_land_baggie", 3, .24], landFabric: ["sfx_land_fabric", 2, .28], landHoodie: ["sfx_land_hoodie", 2, .28],
+  landMarker: ["sfx_land_marker", 3, .24], landBrick: ["sfx_land_brick", 3, .34], landBoard: ["sfx_land_board", 2, .26],
+  landBox: ["sfx_land_box", 2, .28], landShoe: ["sfx_land_shoe", 2, .28], landBoombox: ["sfx_land_boombox", 2, .26],
+  landMetal: ["sfx_land_metal", 3, .24], landCard: ["sfx_land_card", 2, .24], landToy: ["sfx_land_toy", 2, .26],
+  cascade: ["sfx_cascade", 2, .3],              // a tumble's refill starting to fall
+  reelStop: ["sfx_reel_stop", 3, .3],           // a column's last tile down
+  canShake: ["sfx_can_shake", 2, .34],          // a spin pressed: the can's ball rattling
+  // the HUD
+  uiClick: ["sfx_ui_click", 3, .32],            // any button pressed, under its own note
+  uiHover: ["sfx_ui_hover", 2, .14],            // a mouse pointer arriving on a button
+  sliderTick: ["sfx_slider_tick", 2, .22],      // a volume bar moving a notch
+  swishIn: ["sfx_swish_in", 2, .3],             // with every menuOpen (SFX_WITH)
+  swishOut: ["sfx_swish_out", 2, .28],          // with every menuClose
+  capPop: ["sfx_cap_pop", 2, .38],              // the bonus buy opening
+  buyConfirm: ["sfx_buy_confirm", 1, .5],       // a bonus bought
+  fsTick: ["sfx_fs_tick", 2, .32],              // the free spins counter turning over
+  // the figures (charSfx)
+  sneakerScuff: ["sfx_sneaker_scuff", 2, .2], cigarPuff: ["sfx_cigar_puff", 1, .22], lighter: ["sfx_lighter", 1, .26],
+  cashRiffle: ["sfx_cash_riffle", 2, .28], cashFlick: ["sfx_cash_flick", 2, .28],
+};
+const SFX_VARS = {}, sfxVarMemo = {};
+for (const [name, [stem, n, level]] of Object.entries(SFX_SETS)) {
+  SFX_VARS[name] = [];
+  for (let i = 1; i <= n; i++) {
+    const k = name + "_" + i;
+    SFX[k] = `assets/${stem}_${i}.wav`; SFX_VOL[k] = level;
+    SFX_VARS[name].push(k);
+  }
+}
+const SFX_WITH = { menuOpen: "swishIn", menuClose: "swishOut" };   // a second layer under an existing note
 // Mirrors the keyframe shape in spinReel() — offsets, easings and the fraction of the travel
 // covered at each. Differentiating it gives the reels' velocity, which drives the pitch, so
 // the sound rises and falls exactly with the symbols. Keep in step with spinReel().
@@ -5358,6 +5455,11 @@ addEventListener("pointerdown", () => { audio(); startMusic(); if (actx) loadTra
 
 function sfx(name, rate = 1) {
   if (vol.sfx <= 0) return;   // the bar is at the bottom: don't even open the context
+  if (SFX_VARS[name]) {       // a set of takes: one of them, never the last one again, a hair off pitch
+    const take = pickSfx(SFX_VARS[name], sfxVarMemo[name] || (sfxVarMemo[name] = { last: null }));
+    return sfx(take, rate * (1 + (Math.random() - .5) * .05));
+  }
+  if (!SFX[name]) return;     // a name with no sound behind it is nothing at all, never an error
   const ctx = audio();
   if (!ctx) return;
   if (!sfxBuf[name]) {
@@ -5367,6 +5469,7 @@ function sfx(name, rate = 1) {
     if (pending) pending.then(() => { if (sfxBuf[name] && performance.now() - at < 600) sfx(name, rate); });
     return;
   }
+  if (SFX_WITH[name]) sfx(SFX_WITH[name]);
   const src = ctx.createBufferSource();
   src.buffer = sfxBuf[name];
   src.playbackRate.value = rate;           // resampled, so the pitch shifts with it
@@ -5374,7 +5477,17 @@ function sfx(name, rate = 1) {
   g.gain.value = SFX_VOL[name] ?? .4;
   src.connect(g).connect(sfxBus);
   src.start();
+  src._gain = g;   // so sfxFade can take it out softly
   return src;   // the caller can stop it: some of these clips run for ten seconds
+}
+// stops a playing clip (what sfx() returned) with a short fade rather than a click
+function sfxFade(src, ms = 120) {
+  if (!src) return;
+  try {
+    const ctx = audio();
+    if (ctx && src._gain) { src._gain.gain.setTargetAtTime(0, ctx.currentTime, ms / 3000); src.stop(ctx.currentTime + ms / 1000 + .05); }
+    else src.stop();
+  } catch (e) { /* already stopped */ }
 }
 
 // The same clip can't be allowed to fire seven times in one frame (seven reels landing on a
@@ -5385,6 +5498,57 @@ function sfxGap(name, gapMs, rate = 1) {
   if ((sfxLast[name] || 0) + gapMs > now) return;
   sfxLast[name] = now;
   sfx(name, rate);
+}
+
+// A symbol landing makes the sound of what it is: the bag thuds, the chain clinks, the Multi's
+// brick knocks. Quiet, under the drop note, and thinned out - one every 34 ms at most and the same
+// material not again inside 90 ms - so a board of 49 reads as a patter, never a pile-up.
+const LAND_FOLEY = {
+  H1: "landBag", H2: "landToy", H3: "landChain", H4: "landShoe", H5: "landBoombox", H6: "landBoard", H7: "landBox",
+  L1: "landCan", L2: "landMarker", L3: "landFabric", L4: "landCard", L5: "landDice", L6: "landFabric", L7: "landHoodie",
+  L8: "landBaggie", L9: "landMetal", L10: "landMetal", M: "landBrick",
+};
+let foleyAt = 0;
+function landFoley(sym) {
+  const key = LAND_FOLEY[sym && sym.name];
+  if (!key) return;
+  const now = performance.now();
+  if (now - foleyAt < 34 || (sfxLast[key] || 0) + 90 > now) return;
+  foleyAt = now; sfxLast[key] = now;
+  sfx(key);
+}
+
+// The figures' foley, cued off the frames of each clip (ms from the clip's start): the skull's
+// cigar flick, the boy's bills, their sneakers walking on and off.
+const CHAR_SFX = {
+  skull: { ash_break: [["cigarPuff", 700]], enter: [["sneakerScuff", 230], ["sneakerScuff", 800]], exit: [["sneakerScuff", 100]] },
+  boy: {
+    cash_show: [["cashFlick", 600], ["cashFlick", 1600]],
+    cash_count: [["cashRiffle", 950], ["cashFlick", 1700], ["cashFlick", 2200], ["cashRiffle", 7450]],
+    win: [["cashRiffle", 200], ["sneakerScuff", 1370]], big_win: [["cashRiffle", 450], ["sneakerScuff", 1450]],
+    enter: [["sneakerScuff", 230], ["sneakerScuff", 880]], exit: [["sneakerScuff", 100]],
+  },
+};
+function charSfx(fig, clip) {
+  for (const [name, ms] of (CHAR_SFX[fig] || {})[clip] || []) setTimeout(() => { if (!document.hidden) sfx(name); }, ms);
+}
+
+// The HUD's touch: a soft click under every button's own note, and a faint tick as a mouse
+// pointer arrives on one (only once sound is already up - a hover is no gesture, and must never
+// be what opens the audio context).
+{
+  let over = null;
+  document.addEventListener("pointerover", e => {
+    if (e.pointerType !== "mouse") return;
+    const b = e.target.closest?.("button");
+    if (b === over) return;
+    over = b;
+    if (b && !b.disabled && b.id !== "bonusBtn" && actx && actx.state === "running") sfxGap("uiHover", 60);
+  });
+  document.addEventListener("pointerdown", e => {
+    const b = e.button === 0 && e.target.closest?.("button");
+    if (b && !b.disabled) sfxGap("uiClick", 50, b.id === "spinBtn" ? .85 : 1);
+  }, true);
 }
 
 // An open-ended loop with a soft start; the function it returns fades it out. Used for the
@@ -5492,10 +5656,11 @@ const handlers = {
       clearFxWins();
       for (const p of w.positions) restyle(cellEls[p.reel][p.row - 1]);   // apply the removal so every cluster's tiles pop in fresh,
                                      // including cells carried over from the previous cluster
-      for (const p of w.positions) { const cell = cellEls[p.reel][p.row - 1]; cell.classList.add("winhit"); rigPlay(cell, "win"); }
+      for (const p of w.positions) { const cell = cellEls[p.reel][p.row - 1]; winFx(cell); cell.classList.add("winhit"); rigPlay(cell, "win"); }
+      winFxSound(w.positions.length);   // the light show's sound, once for the cluster
       Cam.cluster(w.positions.map(p => cellEls[p.reel][p.row - 1]), cents(w.win) / Math.max(1, bet()));   // the camera leans in on it
       const drawMs = drawWinLine(w.positions);   // the sprayed stroke draws itself along the cluster
-      placeWinChip(w.positions, cents(w.win), mult);
+      const chipMs = placeWinChip(w.positions, cents(w.win), mult);   // its count, and a Multi's slam, play out in the cluster's moment
       sfx("line");   // one call per cluster as it lights up - skipping does not skip clusters
       if (SYM_SFX[w.symbol]) sfx("sym_" + w.symbol);   // and the symbol's own sound, once it has one
       const parts = [`<b>${(SYM[w.symbol]||{label:w.symbol}).label} x${size}</b>`, "cluster"];
@@ -5505,7 +5670,7 @@ const handlers = {
       // the line finishes drawing, every tile plays its win performance through, and it sits a
       // beat - only then the next cluster (or the pop); skip only quickens
       const lit = w.positions.map(p => cellEls[p.reel][p.row - 1]);
-      await hold(Math.max(600, drawMs + 260, winClipMs(lit) + 80));
+      await hold(Math.max(600, drawMs + 260, winClipMs(lit) + 80, chipMs + 120));
     }
     await hold(180);
     clearFxWins();
@@ -5545,7 +5710,9 @@ const handlers = {
         // every pop its own pitch, drifting up through a run - on the blow, not as the strain starts;
         // the value under it pops forward on the blow too, not while the tile still covers it
         const rate = .8 + Math.random() * .55 + i * .01;
-        setTimeout(() => { sfx("pop", rate); multEls[r][y].classList.add("bare"); }, BURST_AT * tempo());
+        // a wet paint pop layered under every third one, never closer than 140 ms, so a big
+        // cluster's run of pops is not doubled into noise
+        setTimeout(() => { sfx("pop", rate); if (i % 3 === 0) sfxGap("paintBurst", 140, rate * .95); multEls[r][y].classList.add("bare"); }, BURST_AT * tempo());
       };
       timers.push(setTimeout(go, i * gap));
     });
@@ -5595,7 +5762,7 @@ const handlers = {
           const time = setDrop(cell, fall * CELL_STEP, pace);   // the rows it really fell, under the reveal's gravity
           cell.classList.add("tdrop");
           dropIn(cell, 500 * tempo() * time);
-          landers.push({ row: fy, pace, time });
+          landers.push({ row: fy, pace, time, sym: finalSyms[fy] });
         }
       }
     }
@@ -5607,10 +5774,11 @@ const handlers = {
       const t = tempo(), gap = Math.min(18, 260 / landers.length);
       landers.sort((a, b) => a.time - b.time || b.row - a.row);   // in the order they land; bottom row first on a tie
       let next = 0;
+      if (!state.skip) sfx("cascade", .96 + Math.random() * .08);   // the refill tumbling in
       for (const l of landers) {
         const at = Math.max(500 * DROP_CONTACT * t * l.time, next);
         next = at + gap;
-        setTimeout(() => sfx("dripLand", landRate(l.row, l.pace)), at);
+        setTimeout(() => { sfx("dripLand", landRate(l.row, l.pace)); landFoley(l.sym); }, at);
       }
     }
     await delay(500 * slowest);   // until the slowest tile has settled
@@ -5800,23 +5968,85 @@ function clearFxWins() {
   clearWinChip(); clearWinLine();
 }
 
-// The win line: puffs of orange spray paint laid along the cluster, overlapping into one stroke,
-// each puffing on after the last, so the stroke is drawn on as the player watches; now and then
-// a run of paint drips off it. The path starts at the cluster's
-// top-left cell and steps to the nearest cell it has not visited, so it threads through
-// the shape rather than hopping across it. Returns how long the draw takes at tempo 1.
-const LINE_DOT_STEP = 11, LINE_DOT_GAP = 14, LINE_DRAW_MAX = 800;   // px per dot, ms per dot, ms cap on a draw
-let lineLayer = null, lineMist = null, lineCore = null;   // the layer, its overspray under, its cores over
-function clearWinLine() { if (lineLayer) { lineMist.replaceChildren(); lineCore.replaceChildren(); } }
+// The win line (owner, 2026-11-03): a stroke of white spray paint swept across the cluster like a
+// can - a dense core with a speckled overspray edge, a soft dark under-glow so it reads over the
+// white stickers - drawn on along a smooth path through the cluster's cells, eased, a little more
+// every frame; once it is laid a few small runs of white paint drip off it. The path starts at
+// the cluster's top-left cell and steps to the nearest cell it has not visited, so it threads
+// through the shape rather than hopping across it, and is smoothed through those centres on a
+// Catmull-Rom curve. The paint is stamped (pre-made sprites, drawImage only) on two canvases
+// sized to the cluster - the under-glow below, the paint over it - and only the new stretch of
+// stroke is stamped each frame. Two sheets take turns, so a line fades out with its cluster's
+// moment while the next one draws. Returns how long the draw takes at tempo 1.
+const LINE_CORE = 5;      // the paint's core width, px
+const LINE_DRAW_MAX = 800;
+let lineLayer = null, lineSheets = [], lineSheetAt = 0, lineDabs = null;
+function lineSprites() {
+  if (lineDabs) return lineDabs;
+  const S = 2;   // drawn at twice their size, so they stay sharp on a dense screen
+  const make = (px, draw) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = Math.round(px * S);
+    const g = c.getContext("2d");
+    g.scale(S, S); draw(g, px / 2);
+    return c;
+  };
+  const core = make(LINE_CORE + 3, (g, h) => {   // the solid paint, its edge softened
+    const cg = g.createRadialGradient(h, h, 0, h, h, h);
+    cg.addColorStop(0, "rgba(255,255,255,1)"); cg.addColorStop(.6, "rgba(255,255,255,1)"); cg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = cg; g.fillRect(0, 0, h * 2, h * 2);
+  });
+  const specks = [0, 1, 2, 3, 4, 5].map(() => make(22, (g, h) => {   // the overspray: fine dots, fewer further out
+    for (let i = 0; i < 11; i++) {
+      const a = Math.random() * Math.PI * 2, r = LINE_CORE * .4 + Math.pow(Math.random(), 1.4) * 8.5;
+      g.fillStyle = `rgba(255,255,255,${(.22 + Math.random() * .45).toFixed(2)})`;
+      g.beginPath(); g.arc(h + Math.cos(a) * r, h + Math.sin(a) * r, .35 + Math.random() * .55, 0, Math.PI * 2); g.fill();
+    }
+  }));
+  const under = make(30, (g, h) => {   // the soft dark under-glow
+    const ug = g.createRadialGradient(h, h, 0, h, h, h);
+    ug.addColorStop(0, "rgba(10,6,16,.075)"); ug.addColorStop(.5, "rgba(10,6,16,.035)"); ug.addColorStop(1, "rgba(10,6,16,0)");
+    g.fillStyle = ug; g.fillRect(0, 0, h * 2, h * 2);
+  });
+  return lineDabs = { core, specks, under };
+}
+function lineSheet() {
+  if (!lineLayer) {
+    lineLayer = document.createElement("div"); lineLayer.className = "lineLayer";
+    for (let i = 0; i < 2; i++) {
+      const el = document.createElement("div");
+      el.className = "lsheet";
+      const paint = document.createElement("canvas");
+      el.append(paint);
+      lineLayer.appendChild(el);
+      lineSheets.push({ el, paint, raf: 0, tid: 0, land: 0 });
+    }
+    $("board").appendChild(lineLayer);
+  }
+  lineSheetAt = (lineSheetAt + 1) % lineSheets.length;
+  const sh = lineSheets[lineSheetAt];
+  wipeSheet(sh);
+  return sh;
+}
+function wipeSheet(sh) {
+  cancelAnimationFrame(sh.raf); clearTimeout(sh.tid); clearTimeout(sh.land);
+  sh.raf = sh.tid = sh.land = 0;
+  sh.el.classList.remove("on", "out");
+  for (const b of sh.el.querySelectorAll("b")) b.remove();
+  const c = sh.paint, g = c.getContext("2d");
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+}
+function clearWinLine() {   // the line fades out with its cluster's moment
+  for (const sh of lineSheets) {
+    if (!sh.el.classList.contains("on")) continue;
+    sh.el.classList.replace("on", "out");
+    sh.tid = setTimeout(() => wipeSheet(sh), (REDUCED_MOTION ? 0 : 440) * tempo());
+  }
+}
 function drawWinLine(positions) {
   const board = $("board");
   if (!board || !positions || positions.length < 2) return 0;
-  if (!lineLayer) {
-    lineLayer = document.createElement("div"); lineLayer.className = "lineLayer";
-    lineMist = document.createElement("div"); lineMist.className = "mist";
-    lineCore = document.createElement("div"); lineCore.className = "core";
-    lineLayer.append(lineMist, lineCore); board.appendChild(lineLayer);
-  }
+  const dabs = lineSprites();
   const pts = positions.map(p => {
     const c = cellCentre(p.reel, Math.min(Math.max(p.row - 1, 0), ROWS - 1));
     return { x: c.x - BURST_PAD, y: c.y - BURST_PAD, reel: p.reel, row: p.row };
@@ -5829,42 +6059,118 @@ function drawWinLine(positions) {
     left.forEach((q, i) => { const d = Math.abs(q.x - last.x) + Math.abs(q.y - last.y); if (d < bd) { bd = d; bi = i; } });
     path.push(left.splice(bi, 1)[0]);
   }
-  let total = 0;
-  for (let i = 1; i < path.length; i++) total += Math.max(1, Math.round(Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y) / LINE_DOT_STEP));
-  const gap = Math.min(LINE_DOT_GAP, LINE_DRAW_MAX / Math.max(1, total));
-  const frag = document.createDocumentFragment(), mist = document.createDocumentFragment();
-  let n = 0;
-  for (let i = 1; i < path.length; i++) {
-    const a = path[i - 1], b = path[i];
-    const k = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.y - a.y) / LINE_DOT_STEP));
-    for (let j = (i === 1 ? 0 : 1); j <= k; j++) {
-      const u = j / k, d = document.createElement("i");
-      d.style.left = (a.x + (b.x - a.x) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
-      d.style.top = (a.y + (b.y - a.y) * u + (Math.random() - .5) * 3).toFixed(1) + "px";
-      d.style.setProperty("--d", (n * gap).toFixed(1) + "ms");
-      d.style.setProperty("--s", (.85 + Math.random() * .4).toFixed(2));
-      d.style.setProperty("--r", Math.round(Math.random() * 360) + "deg");
-      const v = Math.floor(Math.random() * 4); if (v) d.className = "v" + v;
-      if (Math.random() < .12) {   // a run of paint, drawn down once the puff above it is on; under the stroke
-        const r = document.createElement("b");
-        r.style.left = d.style.left; r.style.top = d.style.top;
-        r.style.setProperty("--d", (n * gap + 120).toFixed(1) + "ms");
-        r.style.setProperty("--len", (18 + Math.random() * 24).toFixed(0) + "px");
-        mist.appendChild(r);
-      }
-      mist.appendChild(d.cloneNode());   // its overspray, the same puff in the layer under the cores
-      frag.appendChild(d);
-      n++;
+  // the smooth path: Catmull-Rom through the cell centres, 14 points a span, and the distance
+  // along it at every point
+  const P = [], SPAN = 14;
+  for (let i = 0; i < path.length - 1; i++) {
+    const p0 = path[Math.max(0, i - 1)], p1 = path[i], p2 = path[i + 1], p3 = path[Math.min(path.length - 1, i + 2)];
+    for (let k = 0; k < SPAN; k++) {
+      const t = k / SPAN, t2 = t * t, t3 = t2 * t;
+      const cr = (a, b, c, d) => .5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (3 * b - a - 3 * c + d) * t3);
+      P.push({ x: cr(p0.x, p1.x, p2.x, p3.x), y: cr(p0.y, p1.y, p2.y, p3.y) });
     }
   }
-  lineMist.appendChild(mist); lineCore.appendChild(frag);
-  return n * gap + 300;
+  P.push({ x: path[path.length - 1].x, y: path[path.length - 1].y });
+  const L = [0];
+  for (let i = 1; i < P.length; i++) L.push(L[i - 1] + Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y));
+  const total = L[L.length - 1];
+  const at = s => {   // the point s px along the path
+    let lo = 0, hi = L.length - 1;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (L[m] <= s) lo = m; else hi = m; }
+    const f = (s - L[lo]) / Math.max(1e-6, L[hi] - L[lo]);
+    return { x: P[lo].x + (P[hi].x - P[lo].x) * f, y: P[lo].y + (P[hi].y - P[lo].y) * f };
+  };
+  // the sheet: the path's box with room for the overspray, the under-glow and the runs below
+  const xs = P.map(p => p.x), ys = P.map(p => p.y), PAD = 18, DROP = 34;
+  const bx = Math.min(...xs) - PAD, by = Math.min(...ys) - PAD;
+  const bw = Math.max(...xs) + PAD - bx, bh = Math.max(...ys) + PAD + DROP - by;
+  const sh = lineSheet();
+  const fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1;
+  const k = Math.max(1, Math.min(2, (devicePixelRatio || 1) * fit));
+  Object.assign(sh.el.style, { left: bx + "px", top: by + "px", width: bw + "px", height: bh + "px" });
+  // one canvas: the under-glow is stamped BEHIND the paint already there (destination-over), so it
+  // never dulls the stroke it runs under
+  const cv = sh.paint;
+  cv.width = Math.round(bw * k); cv.height = Math.round(bh * k);
+  const gp = cv.getContext("2d"); gp.setTransform(k, 0, 0, k, -bx * k, -by * k);
+  sh.el.classList.add("on");
+  // a few runs of paint, each where the stroke has just passed, on its way down the board
+  const drips = [];
+  for (let i = 0, n = 2 + Math.floor(Math.random() * 3); i < n; i++) drips.push(total * (.12 + Math.random() * .8));
+  drips.sort((a, b) => a - b);
+  const runDrip = s => {
+    const q = at(s), b = document.createElement("b");
+    b.style.left = (q.x - bx).toFixed(1) + "px"; b.style.top = (q.y - by).toFixed(1) + "px";
+    b.style.setProperty("--len", (12 + Math.random() * 16).toFixed(0) + "px");
+    sh.el.appendChild(b);
+    if (dripSounds++ < 2 && !REDUCED_MOTION) sfx("paintDrip");   // a drop or two heard, not every run
+  };
+  let dripSounds = 0;
+  const cw = LINE_CORE + 3, sw = 22, uw = 30;
+  let nCore = 0, nSpeck = 0, nUnder = 0, nDrip = 0;
+  const stampTo = s => {
+    gp.globalCompositeOperation = "destination-over";
+    for (; nUnder <= s; nUnder += 3) { const q = at(nUnder); gp.drawImage(dabs.under, q.x - uw / 2, q.y - uw / 2, uw, uw); }
+    gp.globalCompositeOperation = "source-over";
+    for (; nSpeck <= s; nSpeck += 3.2) { const q = at(nSpeck); gp.drawImage(dabs.specks[(Math.random() * 6) | 0], q.x - sw / 2, q.y - sw / 2, sw, sw); }
+    for (; nCore <= s; nCore += 1) {   // a can's line is never quite even: its width and its edge waver a touch
+      const q = at(nCore), w = cw * (.86 + Math.random() * .28);
+      gp.drawImage(dabs.core, q.x - w / 2 + (Math.random() - .5) * .6, q.y - w / 2 + (Math.random() - .5) * .6, w, w);
+    }
+    while (nDrip < drips.length && drips[nDrip] <= s - 6) runDrip(drips[nDrip++]);
+  };
+  const D = Math.min(LINE_DRAW_MAX, 260 + total * .55);   // ms at tempo 1
+  if (REDUCED_MOTION || document.hidden) { stampTo(total); return 0; }
+  const dur = D * tempo(), t0 = performance.now();
+  // the can's hiss rides the stroke: the short take for a short line (a touch quicker when the
+  // stroke is), the long one for a long line, faded out the moment the stroke is down
+  if (dur <= 620) sfx("sprayLineShort", Math.min(1.5, Math.max(.92, 550 / dur)));
+  else { const hiss = sfx("sprayLineLong"); if (hiss) setTimeout(() => sfxFade(hiss, 140), dur); }
+  const ease = t => -(Math.cos(Math.PI * t) - 1) / 2;   // in and out, like a sweep of the arm
+  const frame = now => {
+    const t = Math.min(1, Math.max(0, (now - t0) / dur));
+    stampTo(total * ease(t));
+    sh.raf = t < 1 ? requestAnimationFrame(frame) : 0;
+  };
+  sh.raf = requestAnimationFrame(frame);
+  sh.land = setTimeout(() => { if (sh.el.classList.contains("on")) stampTo(total); }, dur + 120);   // rAF stalls in a hidden tab
+  return D + 200;
 }
 
-function clearWinChip() {
-  const chip = $("board").querySelector(".winpop");
-  if (chip) chip.remove();
+// The light show's sound, once per cluster and never per tile: a soft swell as it lights, the shine
+// sweeping, the glitter of its glints, and one bright ting per lit symbol climbing a major scale
+// along the cluster - six at most, so a big cluster is a phrase, not a pile-up - all on the tempo.
+const GLINT_SCALE = [1, 1.122, 1.26, 1.335, 1.498, 1.682];
+function winFxSound(count) {
+  if (REDUCED_MOTION || !count) return;
+  const T = tempo();
+  sfx("glowPulse");
+  setTimeout(() => sfx("shine"), 110 * T);
+  setTimeout(() => sfx("sparkle"), 280 * T);
+  const n = Math.min(GLINT_SCALE.length, count), step = Math.min(75, 480 / n) * T;
+  for (let i = 0; i < n; i++) setTimeout(() => sfx("glint", GLINT_SCALE[i] * .92), 70 * T + i * step);
 }
+
+// The winning tile's light show (see .wfx): its pieces are made once per cell, and shown while
+// the tile is lit; each lighting gives the glints new places.
+function winFx(cell) {
+  if (!cell) return;
+  if (!cell._wfx) {
+    const back = document.createElement("span"); back.className = "wfxb"; back.setAttribute("aria-hidden", "true");
+    back.innerHTML = `<i class="bloom"></i><i class="ring"></i>`;
+    const front = document.createElement("span"); front.className = "wfx"; front.setAttribute("aria-hidden", "true");
+    front.innerHTML = `<i class="shine"></i><i class="spark"></i><i class="spark"></i><i class="spark"></i>`;
+    cell.prepend(back); cell.appendChild(front);
+    cell._wfx = [...front.querySelectorAll(".spark")];
+  }
+  cell._wfx.forEach((s, i) => {
+    s.style.setProperty("--sx", (14 + Math.random() * 72).toFixed(0) + "%");
+    s.style.setProperty("--sy", (10 + Math.random() * 72).toFixed(0) + "%");
+    s.style.setProperty("--sd", (.12 + i * .13 + Math.random() * .08).toFixed(2) + "s");
+    s.style.setProperty("--ss", (.7 + Math.random() * .6).toFixed(2));
+  });
+}
+
 
 // A win hovers on a random wander that never repeats: one path, which the plate under the
 // win follows now and the words on it follow a beat behind. Each channel - side to side, up
@@ -5911,15 +6217,22 @@ function hoverWin(host, reach, lag, css) {
   requestAnimationFrame(frame);
 }
 
-// The win chip: the cluster's amount (and its multiplier, when it has one) punched over the
-// cluster's middle tile while the cluster is lit. The middle is the cluster cell nearest the
-// mean of its positions, so the chip always sits on a tile that actually paid and never in
-// the hollow of an L or a ring. Placed the way placeMultLayer() places its slots - offsets
-// walked up to the board, never a rect: #app is transform-scaled to fit the window, so a rect
-// is not a layout length and would have to be divided back out first.
+// The win amount (owner, 2026-11-03; see .winpop): the cluster's amount with no plate and no
+// currency sign, punched in over the cluster's middle tile. It counts up from nothing to what the
+// cluster is worth before its Multis, its colour running from green to purple as it climbs; when
+// Multis pay into the cluster their total ("x5") slams onto it and it counts on up to the amount
+// paid; it lands, then floats up slowly, fades away and removes itself - so it can still be drifting
+// off while the next cluster lights. Sound hooks: countTick (throttled), multSlam, countEnd (sfx()
+// plays nothing for a name that has no clip yet). Returns how long it takes to land, at tempo 1.
+// The middle tile is the cluster cell nearest the mean of its positions, so the figure always sits
+// on a tile that actually paid and never in the hollow of an L or a ring; placed by offsets walked
+// up to the board, never a rect (#app is transform-scaled to fit the window).
+function clearWinChip(all) {   // the figures see themselves out; a new round sweeps up any left
+  if (all) for (const c of document.querySelectorAll("#board .winpop")) c.remove();
+}
+const winFigure = (v, exact) => (exact ? fmt(v) : fmtBal(v)).replace(/[^\d.,]/g, "");
 function placeWinChip(positions, amount, mult) {
-  clearWinChip();
-  if (!positions || !positions.length) return;
+  if (!positions || !positions.length) return 0;
   const board = $("board");
   const rowOf = p => Math.min(Math.max(p.row - 1, 0), ROWS - 1);   // padded -> display row
   const mr = positions.reduce((s, p) => s + p.reel, 0) / positions.length;
@@ -5938,20 +6251,81 @@ function placeWinChip(positions, amount, mult) {
   }
   const chip = document.createElement("div");
   chip.className = "winpop";
-  sfx("winText");   // the win amount popping is this note's cue
-  const text = document.createElement("span");   // the figure, which hovers a beat behind its box
-  text.className = "wptext";
-  text.textContent = fmt(amount);
-  if (mult > 1) {   // 1x clusters carry no multiplier, so they get no second line
-    const tag = document.createElement("small");
-    tag.textContent = "x" + fmtMult(mult);
-    text.appendChild(tag);
-  }
-  chip.appendChild(text);
+  const num = document.createElement("span");
+  num.className = "wpn";
+  chip.appendChild(num);
   chip.style.left = (x + cell.offsetWidth / 2) + "px";
   chip.style.top = (top + cell.offsetHeight / 2) + "px";
+  const final = amount, m = mult > 1 ? mult : 1, base = final / m;
+  const paint = (v, exact) => {
+    const t = winFigure(v, exact);
+    if (t === num.textContent) return;   // only a new figure is drawn (and its new colour)
+    num.textContent = t;
+    chip.style.color = `hsl(${(100 + 185 * Math.min(1, v / Math.max(1e-9, final))).toFixed(0)} 90% 64%)`;   // green -> purple
+  };
+  const slamTag = () => {
+    const tag = document.createElement("span");
+    tag.className = "wpx";
+    tag.textContent = "x" + fmtMult(m);
+    chip.appendChild(tag);
+  };
+  paint(0);
   board.appendChild(chip);
-  hoverWin(chip, { x: 4, y: 5, r: 1.3, s: .03, pace: .7 }, .14);   // lively: it is only up a second or so
+  sfx("winText");   // the win amount popping is this note's cue
+  const gone = () => !chip.isConnected;
+  const bye = () => chip.remove();
+  if (REDUCED_MOTION) {   // no motion: the end state, for a moment
+    paint(final, true);
+    if (m > 1) slamTag();
+    setTimeout(bye, 1800 * tempo());
+    return 600;
+  }
+  const T = tempo();
+  const wait = ms => new Promise(r => setTimeout(r, ms * T));
+  // a count from one figure to another, eased out, on the display's frames; it lands on the
+  // exact figure on a timer, so a stalled frame (a hidden tab) never leaves it short
+  const count = (from, to, ms, exact) => new Promise(done => {
+    const t0 = performance.now(), dur = ms * T;
+    let shown = num.textContent;
+    const step = now => {
+      if (gone()) return;
+      const p = Math.min(1, (now - t0) / dur);
+      if (p >= 1) return;
+      paint(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (num.textContent !== shown) { shown = num.textContent; sfxGap("countTick", 70); }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    setTimeout(() => { if (!gone()) paint(to, exact); done(); }, dur);
+  });
+  const IN = 100, UP1 = m > 1 ? 480 : 650, GAP = 110, HIT = 190, UP2 = 520, REST = 280;
+  (async () => {
+    await wait(IN);
+    await count(0, base, UP1, m === 1);
+    if (gone()) return;
+    if (m > 1) {
+      await wait(GAP);
+      if (gone()) return;
+      slamTag();                              // the multiplier comes down on the figure...
+      await wait(HIT);
+      if (gone()) return;
+      sfx("multSlam");
+      num.classList.add("hit");               // ...which takes the hit
+      sfx("countWhoosh", Math.min(1.4, 1 / Math.max(.6, T)));   // a rising whoosh under the climb
+      await count(base, final, UP2, true);    // and climbs on to what the cluster pays
+      if (gone()) return;
+      num.classList.remove("hit");
+    }
+    restyle(num); num.classList.add("land");
+    sfx("countEnd");
+    await wait(REST);
+    if (gone()) return;
+    chip.classList.add("off");                // up and away, slowly
+    sfxGap("floatAway", 400);                 // (one at a time: figures can overlap as clusters follow on)
+    chip.addEventListener("animationend", e => { if (e.animationName === "winAmtOff") bye(); });
+    setTimeout(bye, 1700 * T + 400);          // in case the animation never runs
+  })();
+  return IN + UP1 + (m > 1 ? GAP + HIT + UP2 : 0) + 150;
 }
 
 const RGS_MESSAGE = {
@@ -6088,6 +6462,7 @@ function openBonus() {
   showMenu($("bonusWrap"), true);
   $("bonusBtn").classList.add("open");
   sfx("menuOpen");
+  sfx("capPop");   // the can's cap comes off
   musicTo("menu", .8);
   paintBonus();
   fitBonus();
@@ -6130,6 +6505,7 @@ $("bonusBetUp").addEventListener("click", () => { state.betIdx = Math.min(state.
 $("bonusBetDown").addEventListener("click", () => { state.betIdx = Math.max(state.betIdx - 1, 0); sfx("bet", 0.8); refreshBet(); });
 $("bonusGo").addEventListener("click", () => {
   const mode = bonusMode;
+  sfx("buyConfirm");
   closeBonus();
   playRound(mode);
 });
@@ -6447,6 +6823,7 @@ const CHARACTERS = [
     el: "charfx", name: "skull",
     flavour: [["ash_break"]],
     swap: { big_win: "win" },   // the skull's big-win clip is retired: its normal win plays for both
+    shadow: false,              // no shadow under his shoes (owner, 2026-11-03)
   },
   {
     el: "charfx2", name: "boy",
@@ -6485,15 +6862,18 @@ async function charFrames(name, figurePx) {
   const dd = man.densities.find(d => parseInt(d.slice(1), 10) / 10 >= want) || man.densities[man.densities.length - 1];
   const d = parseInt(dd.slice(1), 10) / 10;
   const files = new Map(), frames = new Map();
-  const file = (kind, clip) => {   // kind: "art" or "unlit"
+  const file = (kind, clip) => {   // kind: "art", "unlit" or "smoke" (clip "smoke": the figure's own smoke loop)
     const key = kind + ":" + clip;
     if (!files.has(key)) {
-      const url = kind === "art" ? `${base}/${dd}/${clip}.bin` : `${base}/unlit/${clip}.bin`;
+      const url = kind === "unlit" ? `${base}/unlit/${clip}.bin` : `${base}/${dd}/${clip}.bin`;
       files.set(key, fetch(url).then(r => { if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`); return r.blob(); }));
     }
     return files.get(key);
   };
-  const info = (kind, clip) => { const c = man.clips[clip]; return kind === "art" ? c.files[dd] : c.unlit; };
+  const info = (kind, clip) => {
+    if (kind === "smoke") return man.smoke && man.smoke.files[dd];
+    const c = man.clips[clip]; return kind === "art" ? c.files[dd] : c.unlit;
+  };
   // A frame that will not decode (a file cut short in transit, or swapped under a page that had the old
   // manifest) is not asked for again every tick: its clip's file is fetched afresh and the frame retried a
   // couple of seconds later, a few times at most, with one warning per clip.
@@ -6751,7 +7131,7 @@ function footShadow(app, fig, root) {
   });
 }
 
-async function makeCharacter({ el, name, flavour, swap = {} }) {
+async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   const root = document.getElementById(el);
   if (!root || typeof PIXI === "undefined") return null;
   const headroom = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-headroom")) || 1;
@@ -6818,6 +7198,8 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
 
   // ---- the clock: what plays, from when, and what waits for the idle's next cue
   let cur = { clip: "idle", t0: performance.now() }, next = null, shown = null, fade = null;
+  const SM = man.smoke || null, smokeT0 = performance.now();   // the figure's smoke loop, if it has one
+  let smokeAt = 0, smokeLast = null;
   let rank = -1, until = 0, away = true, timer = 0, fadeTimer = 0;
   const lengthOf = clip => man.clips[clip].frames * 1000 / fps;
   const frameAt = (c, now) => {
@@ -6831,7 +7213,7 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
     alpha: () => 1,
     toStage: (x, y) => ({ x: actor.position.x + (x - W / 2) * actor.scale.x * d, y: actor.position.y + (y - man.ground_y) * actor.scale.x * d }),
   };
-  footShadow(app, fig, root);   // and their shadows on the pavement, under each shoe
+  if (shadow) footShadow(app, fig, root);   // and their shadows on the pavement, under each shoe
 
   const draw = (P, kind, clip, i, prev) => {
     const boxOf = c => kind === "art" ? man.clips[c].box : man.clips[c].unlit.box, box = boxOf(clip);
@@ -6843,6 +7225,17 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
     if (prev) {   // a cut away from a cue: the last frame shown fades out over the new one
       const pb = F.get(kind, prev.clip, prev.i), pbox = boxOf(prev.clip);
       if (pb) { P.ctx.globalAlpha = prev.a; P.ctx.drawImage(pb, pbox[0] * P.density, pbox[1] * P.density, pb.width, pb.height); P.ctx.globalAlpha = 1; }
+    }
+    // the figure's own smoke (the skull's cigar): its loop runs on its own clock and is laid with its
+    // emitter on the ember of the frame showing, so it follows the cigar and never restarts on a cut
+    const em = SM && kind === "art" && man.track[clip] && man.track[clip][i] && man.track[clip][i].ember;
+    if (em) {
+      const fresh = F.get("smoke", "smoke", smokeAt);
+      if (fresh) smokeLast = fresh;
+      const sb = smokeLast && smokeLast.width ? smokeLast : null;   // (a released frame is closed: width 0)
+      if (sb) {
+        P.ctx.drawImage(sb, (em[0] - SM.origin[0] + SM.box[0]) * P.density, (em[1] - SM.origin[1] + SM.box[1]) * P.density, sb.width, sb.height);
+      }
     }
     P.tex.source.update();
     return true;
@@ -6871,9 +7264,11 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
       const onCue = cur.clip !== "idle" || cues.includes(f) || (shown && shown.clip === "idle" && cues.some(c => c > shown.i && c <= f));
       const late = now - next.at > CHAR_CUE_WAIT;
       if (onCue || late || cur.clip !== "idle") {
-        // seamless only from the idle's first frame (the clips' smoke starts from its smoke); any other cut
-        // blends over CHAR_XFADE frames - the pose is the same at every cue, so only the smoke cross-fades
-        start(next.clip, now, !(cur.clip === "idle" && f === 0));
+        // on a cue the pose is the idle's rest pose, so the cut is seamless; a late cut or a bigger moment
+        // cutting off a smaller one blends over CHAR_XFADE frames (a figure's smoke is its own layer and
+        // carries straight on - see draw)
+        charSfx(name, next.clip);
+        start(next.clip, now, !(cur.clip === "idle" && onCue));
         next = null;
         f = 0;
       }
@@ -6889,6 +7284,10 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
       }
     };
     want(cur.clip, f, CHAR_AHEAD);
+    if (SM) {
+      smokeAt = Math.floor((now - smokeT0) * fps / 1000) % SM.frames;
+      for (let k = 0; k < CHAR_AHEAD; k++) { const i = (smokeAt + k) % SM.frames; wanted.add("smoke:smoke:" + i); F.get("smoke", "smoke", i); }
+    }
     if (cur.clip !== "idle") want("idle", 0, CHAR_AHEAD);
     if (next) want(next.clip, 0, CHAR_AHEAD);
     if (shown) want(shown.clip, shown.i, 1);
@@ -6897,11 +7296,11 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
     // draw when the frame changes (or while a cut blends)
     const a = fade ? 1 - (now - fade.t0) * fps / 1000 / CHAR_XFADE : 0;
     if (fade && a <= 0) fade = null;
-    if (shown && shown.clip === cur.clip && shown.i === f && !fade) return;
+    if (shown && shown.clip === cur.clip && shown.i === f && shown.smoke === smokeAt && !fade) return;
     const prev = fade && { clip: fade.clip, i: fade.i, a };
     if (draw(art, "art", cur.clip, f, prev)) {
       if (un && man.clips[cur.clip].unlit) draw(un, "unlit", cur.clip, f, prev);
-      shown = { clip: cur.clip, i: f };
+      shown = { clip: cur.clip, i: f, smoke: smokeAt };
       if (repose) repose();
       touch();
     }
@@ -6946,6 +7345,7 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
     app.canvas.classList.add("on");
     if (REDUCED_MOTION) { app.ticker.stop(); start("idle", performance.now(), false); draw(art, "art", "idle", 0); if (un) draw(un, "unlit", "idle", 0); app.render(); return; }
     // the walk-on starts at once, not on a cue
+    if (has("enter")) charSfx(name, "enter");
     start(has("enter") ? "enter" : "idle", performance.now(), false);
     rank = has("enter") ? CHAR_RANK.enter : -1;
     armFlavour();
@@ -6960,6 +7360,7 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
     // the canvas fade (--char-fade) covers its last beat; the next walk-on fades it back in.
     clearTimeout(fadeTimer);
     if (REDUCED_MOTION || !has("exit")) { app.canvas.classList.remove("on"); return; }
+    charSfx(name, "exit");
     start("exit", performance.now(), cur.clip !== "idle");   // the exit holds its hidden last pose
     rank = CHAR_RANK.exit; until = performance.now() + lengthOf("exit");
     const fadeMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
@@ -6967,7 +7368,7 @@ async function makeCharacter({ el, name, flavour, swap = {} }) {
   };
 
   // the loading screen waits for the walk-on and the idle's first frames (decoded, ready to show)
-  await Promise.all([F.ready("art", "enter", CHAR_AHEAD), F.ready("art", "idle", CHAR_AHEAD),
+  await Promise.all([F.ready("art", "enter", CHAR_AHEAD), F.ready("art", "idle", CHAR_AHEAD), SM && F.ready("smoke", "smoke", CHAR_AHEAD),
                      un && F.ready("unlit", "enter", CHAR_AHEAD), un && F.ready("unlit", "idle", CHAR_AHEAD)]);
   // the rest of the clips' files come down behind it, kept compressed until they play
   for (const clip of Object.keys(man.clips)) { F.file("art", clip).catch(() => {}); if (un) F.file("unlit", clip).catch(() => {}); }
@@ -7152,6 +7553,7 @@ $("spinBtn").addEventListener("click", e => {
   b.classList.remove("punch"); restyle(b); b.classList.add("punch");   // restart on every press
   if (state.playing && state.noSkip) return;   // jurisdiction forbids slam-stopping a round
   sfx(state.playing ? "skip" : "spin");
+  if (!state.playing) sfx("canShake");   // the can's ball rattles as the round goes
   playRound("base");
 });
 // clicking the board fast-forwards too — same cancel note, but only if a round is running
@@ -8349,7 +8751,10 @@ function paintVol() {
   $("audioBtn").classList.toggle("off", BUSES.every(b => vol[b.key] === 0));   // greyed only when everything is at zero
 }
 function setVol(key, v) {
+  const was = vol[key];
   vol[key] = Math.max(0, Math.min(100, Math.round(v)));
+  // a detent every few points of travel, pitched up the bar (heard at the new sound level)
+  if (Math.floor(vol[key] / 4) !== Math.floor(was / 4)) sfxGap("sliderTick", 45, .85 + vol[key] / 100 * .35);
   paintVol();
   applyVolumes();
   saveVol();
@@ -8608,6 +9013,7 @@ document.addEventListener("visibilitychange", async () => {
       liveMults();
     } else stopMults();
     showMenu(wrap, on);
+    document.body.classList.toggle("menu-open", on);   // the board and the pair step out while it is up
     sfx(on ? "menuOpen" : "menuClose");
     // the panel is modal: the keyboard belongs inside it while it is up, and back on the
     // button that opened it once it is gone
