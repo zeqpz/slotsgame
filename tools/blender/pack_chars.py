@@ -63,13 +63,32 @@ def encode(files, box, d, path, mask=False):
     return {"w": size[0], "h": size[1], "bytes": len(blob), "offsets": offsets}
 
 
+def rest_mask(char):
+    """The rest pose's silhouette (the idle's first frame), a quarter size: what every frame is compared with."""
+    f = sorted(glob.glob(os.path.join(SRC, char, "renders", "idle", "*.png")))[0]
+    im = Image.open(f).getchannel("A")
+    return np.asarray(im.resize((im.width // 4, im.height // 4))).astype(np.float32) / 255
+
+
+def away_from_rest(char, files):
+    """For each frame, how far its silhouette is from the rest pose's (mean |alpha difference|): a frame near 0 is
+    the rest pose, where a clip can be cut into another without a jump."""
+    rest = rest_mask(char)
+    out = []
+    for f in files:
+        im = Image.open(f).getchannel("A")
+        a = np.asarray(im.resize((im.width // 4, im.height // 4))).astype(np.float32) / 255
+        out.append(float(np.abs(a - rest).mean()))
+    return out
+
+
 def pack_clip(args):
     char, clip, densities = args
     ren = os.path.join(SRC, char, "renders")
     files = sorted(glob.glob(os.path.join(ren, clip, "*.png")))
     unlit = [] if clip == "smoke" else sorted(glob.glob(os.path.join(ren, clip + "_unlit", "*.png")))
     box = box_of(files)
-    out = {"box": [int(v) for v in box], "files": {}}
+    out = {"box": [int(v) for v in box], "files": {}, "away": [] if clip == "smoke" else away_from_rest(char, files)}
     for d in densities:
         dd = f"d{round(d * 10)}"
         out["files"][dd] = encode(files, box, d, os.path.join(OUT, char, dd, clip + ".bin"))
@@ -96,9 +115,14 @@ if __name__ == "__main__":
     for char in chars:
         m = metas[char]
         clips = {}
+        # every clip's cues: the frames back at the rest pose, as near to it as the idle's own (Blender-measured) cues
+        # are - so the player can leave a long clip (an idle break) for a reaction without a jump
+        idle_away = packed[char]["idle"]["away"]
+        near = max([idle_away[i] for i in m["clips"]["idle"].get("cues", []) if i < len(idle_away)] or [0.002]) * 1.15
         for clip, info in m["clips"].items():
             p = packed[char][clip]
-            clips[clip] = {"frames": info["frames"], "loop": bool(info.get("loop")), "cues": info.get("cues", []),
+            cues = info.get("cues") or [i for i, v in enumerate(p["away"]) if v <= near]
+            clips[clip] = {"frames": info["frames"], "loop": bool(info.get("loop")), "cues": cues,
                            "box": p["box"], "files": p["files"], **({"unlit": p["unlit"]} if "unlit" in p else {})}
         man = {"fps": m["fps"], "size": m["size"], "rest_height": m["rest_height_px"], "ground_y": m["ground_y"],
                "densities": [f"d{round(d * 10)}" for d in densities], "clips": clips, "track": m.get("track", {})}

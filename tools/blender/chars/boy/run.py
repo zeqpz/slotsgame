@@ -230,8 +230,9 @@ if "meta" in steps:
             now = [to_screen(v) for v in bone_points()]
             dist.append(max(math.hypot(p[0] - q[0], p[1] - q[1]) for p, q in zip(now, rest_s)))
         entry = {"frames": len(track), "loop": name in loops}
-        if name in loops:
-            entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.5]      # within 1.5 screen px of rest
+        # rest-pose frames (within 1.5 screen px of rest): the idle's cut points; in a one-shot, where the game
+        # may cut out of it early
+        entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.5]
         meta["clips"][name] = entry
         meta["track"][name] = track
         report[name] = {"first_vs_rest_px": round(dist[0], 3), "last_vs_rest_px": round(dist[-1], 3),

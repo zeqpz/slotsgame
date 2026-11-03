@@ -5,7 +5,10 @@ the raw generations and review spectrograms were left out (rebuildable, ~140 MB)
 
 - `gen.py` / `orapi.py` - generate takes with OpenRouter's Seed Audio model (key read from
   `Documents/gamdevkey.txt`; never printed). `newlist.txt` / `cand.json` - the prompts and the takes made.
-- `process.py`, `process2.py`, `audiolib.py` - clean each take: DC + high-pass, spectral gate from the take's own quiet
+- `clean3.py` (+ `report3.json`) - the final clean (2026-11-03, after the owner still heard hiss): noise profile from
+  the take's own bed (not its silent padding), per-type high-pass, noisereduce stationary (+ non-stationary on
+  transients), a hard gate to exact digital zero, trims at the gate, damage checks with gentler retries.
+- `process.py`, `process2.py`, `audiolib.py` - the first clean: DC + high-pass, spectral gate from the take's own quiet
   stretches, cut into single events, tight start / natural tail, expander, slow-attack compression, loudness match,
   a -1.5 dBFS limiter, end fades.
 - `pick_takes.py` (+ `picks.json`, `manual_picks.json`) - choose the best, most alike takes per set.

@@ -6838,8 +6838,8 @@ const CHAR_FPS = 63;
 const CHAR_FLAVOUR_GAP = [7000, 16000];   // how long idle runs before the next break
 const CHAR_AHEAD = 10;                    // frames kept decoded ahead of the one showing
 const CHAR_DECODES = 6;                   // decodes under way at once, per figure (charFrames)
-const CHAR_CUE_WAIT = 900;                // ms a reaction waits for the idle's next cue before it cuts in anyway
-const CHAR_XFADE = 6;                     // frames a cut blends over, unless it is at the idle's first frame (the smoke never jumps)
+const CHAR_CUE_WAIT = 2500;               // ms a reaction waits for the idle's rest pose before it cuts in anyway (a safety net: cues are <0.75 s apart)
+const CHAR_XFADE = 3;                     // frames a cut blends over: only the last px of the hanging parts, never a visible fade
 
 // How hard each moment grabs the figure. A bigger moment cuts off a smaller one; a smaller one
 // waits its turn rather than stamping on the celebration.
@@ -7241,9 +7241,10 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     return true;
   };
 
-  const start = (clip, now, cut) => {
+  const nextReady = () => F.get("art", next.clip, 0) && (!un || !man.clips[next.clip].unlit || F.get("unlit", next.clip, 0));
+  const start = (clip, now, cut, r = -1) => {
     fade = cut && shown ? { clip: shown.clip, i: shown.i, t0: now } : null;
-    cur = { clip, t0: now };
+    cur = { clip, t0: now, rank: r };
     if (clip !== "idle") { until = now + lengthOf(clip); }
   };
 
@@ -7251,24 +7252,38 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     const now = performance.now();
     let f = frameAt(cur, now);
     const C = man.clips[cur.clip];
-    // a one-shot over: back to the idle's first frame (the exit holds its last, hidden, pose)
+    // a one-shot over: on into a reaction waiting behind it, else back to the idle's first frame - every
+    // clip ends on the rest pose, so either way it carries straight on (the exit holds its last, hidden, pose)
     if (!C.loop && Math.floor((now - cur.t0) * fps / 1000) >= C.frames && cur.clip !== "exit") {
-      start("idle", cur.t0 + lengthOf(cur.clip), false);
-      rank = -1;
+      const endAt = cur.t0 + lengthOf(cur.clip);
+      if (next && nextReady()) { start(next.clip, endAt, true, next.rank); next = null; }
+      else { start("idle", endAt, false); rank = -1; }
       f = frameAt(cur, now);
     }
     // a waiting clip cuts in on the idle's next cue (or when it has waited long enough, blending), once its
     // first frames are decoded
-    if (next && F.get("art", next.clip, 0) && (!un || !man.clips[next.clip].unlit || F.get("unlit", next.clip, 0))) {
+    // A bigger moment leaves a smaller one-shot playing (an idle break such as the 8 s cash count, or a smaller
+    // reaction) where that clip passes back through the rest pose (its cues, found by the packer) - not at its end
+    if (next && cur.clip !== "idle" && cur.clip !== "enter" && cur.clip !== "exit" && next.rank > cur.rank && nextReady()) {
+      const cues = man.clips[cur.clip].cues || [];
+      const atRest = f > 2 && (cues.includes(f) || (shown && shown.clip === cur.clip && cues.some(c => c > shown.i && c <= f)));
+      const late = now - next.at > CHAR_CUE_WAIT;   // a clip with no rest pass for a while: the safety net
+      if (atRest || late) { start(next.clip, now, true, next.rank); next = null; f = 0; }
+    }
+    // A waiting reaction cuts into the idle only where the idle passes through the rest pose (its cues, never
+    // more than ~0.75 s apart) - never mid-move, never by fading one pose into another (owner, 2026-11-03).
+    // During another one-shot it waits for that clip's end (above). CHAR_CUE_WAIT is only a safety net.
+    if (next && cur.clip === "idle" && nextReady()) {
       const cues = man.clips.idle.cues || [];
-      const onCue = cur.clip !== "idle" || cues.includes(f) || (shown && shown.clip === "idle" && cues.some(c => c > shown.i && c <= f));
+      const passed = shown && shown.clip === "idle" && (cues.some(c => c > shown.i && c <= f) || f < shown.i);   // (f < shown.i: round past frame 0)
+      const onCue = cues.includes(f) || passed;
       const late = now - next.at > CHAR_CUE_WAIT;
-      if (onCue || late || cur.clip !== "idle") {
+      if (onCue || late) {
         // on a cue the pose is the idle's rest pose, so the cut is seamless; a late cut or a bigger moment
         // cutting off a smaller one blends over CHAR_XFADE frames (a figure's smoke is its own layer and
         // carries straight on - see draw)
         charSfx(name, next.clip);
-        start(next.clip, now, !(cur.clip === "idle" && onCue));
+        start(next.clip, now, true, next.rank);   // a 3-frame blend: the hanging parts (laces, beanie tip) settle the last px
         next = null;
         f = 0;
       }
@@ -7314,7 +7329,9 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     if (want <= rank && now < until) return false;   // a bigger moment still has the floor
     if (next && want <= next.rank) return false;      // one is already waiting for its cue
     next = { clip, rank: want, at: now };
-    rank = want; until = now + CHAR_CUE_WAIT + lengthOf(clip);
+    // it starts at the playing one-shot's end, or at the idle's next rest pose (~0.75 s at most)
+    const startsAt = cur.clip !== "idle" && cur.clip !== "exit" ? Math.max(now, cur.t0 + lengthOf(cur.clip)) : now + 750;
+    rank = want; until = startsAt + lengthOf(clip);
     return true;
   };
 
@@ -7324,7 +7341,8 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     clearTimeout(timer);
     if (REDUCED_MOTION || away || !flavour.length) return;
     timer = setTimeout(() => {
-      if (!document.hidden && performance.now() >= until) oneShot(pick(pick(flavour)), CHAR_RANK.flavour);
+      // not while a round plays: its reactions should never wait behind an idle break
+      if (!document.hidden && !state.playing && performance.now() >= until) oneShot(pick(pick(flavour)), CHAR_RANK.flavour);
       armFlavour();
     }, CHAR_FLAVOUR_GAP[0] + Math.random() * (CHAR_FLAVOUR_GAP[1] - CHAR_FLAVOUR_GAP[0]));
   };

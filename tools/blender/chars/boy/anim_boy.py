@@ -321,62 +321,81 @@ def lose():
     hard(52, "foot_r", "location", 1)
 
 
+# rest passes (keyed local frames) inside the one-shots: the game cuts only at frames at the rest pose, so the idle
+# breaks come back to it every ~1.2 s on screen (body, arms and money, head exactly at rest; the springs pinned)
+REST_PASS = {"cash_show": [26, 27, 52, 53], "cash_count": [27, 28, 55, 56, 83, 84, 111, 112, 139, 140, 167, 168]}
+
+
+def rest_pass(f):
+    """every acting bone at rest on frames f and f + 1 (a brief hold: a clean cut point)"""
+    rest_all(f)
+    rest_all(f + 1)
+
+
 def cash_show():
-    pose(7, hips=dict(y=-6, x=1), torso=dict(r=1.5), head=dict(r=-1), grip=dict(y=-10, x=-4, r=-3))
-    pose(22, hips=dict(y=-5, x=-8), torso=dict(r=2.5), chest=dict(r=1.5), head=dict(r=5, y=1),
-         grip=dict(y=92, x=52, r=19))
-    pose(30, grip=dict(y=84, x=48, r=16), head=dict(r=4))
-    pose(38, grip=dict(y=92, x=53, r=19.5), head=dict(r=5))
-    pose(45, hips=dict(y=-4, x=-6), torso=dict(r=2.2), chest=dict(r=1.2), grip=dict(y=82, x=47, r=16),
-         head=dict(r=3.8, y=1))
-    pose(58, hips=dict(y=-3, x=1), torso=dict(r=.6), chest=dict(r=.4), head=dict(r=-.8, y=0),
-         grip=dict(y=-4, x=-1, r=-1.5))
-    pose(66, hips=dict(y=-1, x=0), torso=dict(r=0), chest=dict(r=0), head=dict(r=.2), grip=dict(y=1, x=0, r=.3))
-    take(67, .6)
-    fan(6, 0)
-    fan(22, 2.2)
-    fan(30, 1.9)
-    fan(38, 2.3)
-    fan(46, 1.9)
-    fan(62, 0)
-    for f, a in ((26, 0), (29, 8), (32, 0), (35, 0), (38, 9), (41, 0)):
-        foot_pivot("r", f, a, HEEL_R)
-    for f in (32, 41):
+    """three shows of the money, each back to the rest pose: a quick flash of the fan up and out, then a bigger
+    one with the fan spread wide and a toe tap, then a cocky little pump of the stack"""
+    # show 1: up and out, a flash of the fan, back
+    pose(5, hips=dict(y=-5, x=1), torso=dict(r=1.2), head=dict(r=-1), grip=dict(y=-8, x=-3, r=-2))
+    pose(13, hips=dict(y=-3, x=-6), torso=dict(r=2.2), chest=dict(r=1.2), head=dict(r=4.5, y=1),
+         grip=dict(y=78, x=44, r=17))
+    pose(18, grip=dict(y=72, x=41, r=15), head=dict(r=4))
+    pose(23, hips=dict(y=-2, x=1), torso=dict(r=.4), chest=dict(r=.3), head=dict(r=-.5, y=0), grip=dict(y=-3, x=-1, r=-1))
+    fan(5, 0); fan(13, 1.9); fan(18, 1.6); fan(23, 0)
+    rest_pass(26)
+    # show 2: the big one - the fan wide, chin up, the toe tapping
+    pose(31, hips=dict(y=-6, x=1), torso=dict(r=1.5), head=dict(r=-1), grip=dict(y=-10, x=-4, r=-3))
+    pose(38, hips=dict(y=-5, x=-8), torso=dict(r=2.5), chest=dict(r=1.5), head=dict(r=5, y=1), grip=dict(y=92, x=52, r=19))
+    pose(43, grip=dict(y=84, x=48, r=16), head=dict(r=4))
+    pose(46, grip=dict(y=90, x=52, r=19), head=dict(r=5))
+    pose(50, hips=dict(y=-2, x=1), torso=dict(r=.4), chest=dict(r=.3), head=dict(r=-.6, y=0), grip=dict(y=-3, x=-1, r=-1))
+    fan(31, 0); fan(38, 2.3); fan(43, 1.9); fan(46, 2.2); fan(50, 0)
+    for f, a_ in ((37, 0), (40, 8), (42, 0), (44, 0), (46, 9), (48, 0)):
+        foot_pivot("r", f, a_, HEEL_R)
+    for f in (42, 48):
         hard(f, "foot_r", "rotation_euler", 2)
+    rest_pass(52)
+    # show 3: a cocky pump of the stack at chest height, a nod
+    pose(58, hips=dict(y=-4), grip=dict(y=24, x=10, r=6), head=dict(r=2.5, y=1))
+    pose(62, grip=dict(y=12, x=6, r=2), head=dict(r=-1.2, y=-1))
+    pose(66, grip=dict(y=20, x=9, r=5), head=dict(r=1.5, y=.5))
+    pose(72, hips=dict(y=-1), grip=dict(y=1, x=0, r=.3), head=dict(r=.2, y=0))
+    fan(58, .8); fan(66, .6); fan(72, 0)
+    take(67, .6)
     take(1, .8)
 
 
 def cash_count():
-    base = dict(hips=dict(y=-3, x=-1), torso=dict(r=-.8), neck=dict(r=-1.2), head=dict(r=-3.5, y=-2),
-                grip=dict(y=7, x=-4, r=-3))
-    pose(14, **base)
-    pose(158, **base)
-    T = [18 + 26 * i for i in range(6)]
-    for i, t0 in enumerate(T):
+    """he counts the money a bill at a time, in rounds: leans in and thumbs the front bill over, a nod as it
+    passes, and straightens back to the rest pose before the next (six rounds); then a satisfied look up and a
+    snap of the stack"""
+    for i in range(6):
+        r0 = 28 * i                                 # this round (rest at r0, back at rest by r0 + 27)
         b = NB - 1 - i                              # the front bill first
+        t0 = r0 + 7
+        pose(r0 + 5, hips=dict(y=-3, x=-1 + (1.2 if i % 2 else -1.2)), torso=dict(r=-.8), neck=dict(r=-1.2),
+             head=dict(r=-3.8, y=-2.2), grip=dict(y=7, x=-4, r=-3))
         k(t0 - 3, "hand_l", r=0)
         k(t0 + 3, "hand_l", r=-7)
         k(t0 + 10, "hand_l", r=0)
         k(t0, f"bill_{b}", r=0)
         k(t0 + 5, f"bill_{b}", r=-26)
         k(t0 + 9, f"bill_{b}", r=-28)
-        k(t0 + 17, f"bill_{b}", r=0)
+        k(t0 + 16, f"bill_{b}", r=0)
         for j in range(b):                          # the ones behind open up a little as it passes
             k(t0 + 1, f"bill_{j}", r=0)
             k(t0 + 7, f"bill_{j}", r=1.6)
             k(t0 + 16, f"bill_{j}", r=0)
-        k(t0 + 2, "head", r=-3.5, y=-2)
-        k(t0 + 7, "head", r=-5.5, y=-3.5)
-        k(t0 + 15, "head", r=-3.5, y=-2)
-        k(t0 + 4, "grip", y=7, r=-3)
-        k(t0 + 8, "grip", y=5, r=-4)
-        k(t0 + 16, "grip", y=7, r=-3)
-        k(t0 + 6, "hips", y=-3, x=-1 + (1.5 if i % 2 else -1.5))
+        k(t0 + 7, "head", r=-5.8, y=-3.6)           # the nod as it goes over
+        k(t0 + 8, "grip", y=5, x=-4, r=-4)
+        pose(t0 + 13, head=dict(r=-3.4, y=-2), grip=dict(y=6, x=-4, r=-3), hips=dict(y=-3, x=-1),
+             torso=dict(r=-.7), neck=dict(r=-1))
+        rest_pass(r0 + 27)
     # done: a satisfied look up, a snap of the stack
-    pose(167, head=dict(r=2.5, y=1), neck=dict(r=0), torso=dict(r=.5), hips=dict(y=-2, x=0), grip=dict(y=14, x=-2, r=3))
-    pose(171, grip=dict(y=-3, r=-2))
-    pose(176, grip=dict(y=4, x=0, r=1), head=dict(r=1.5, y=0))
-    pose(184, hips=dict(y=-1), head=dict(r=-.3), torso=dict(r=0), grip=dict(y=0, r=0))
+    pose(174, head=dict(r=2.5, y=1), torso=dict(r=.5), hips=dict(y=-2, x=0), grip=dict(y=14, x=-2, r=3))
+    pose(178, grip=dict(y=-3, r=-2))
+    pose(182, grip=dict(y=4, x=0, r=1), head=dict(r=1.5, y=0))
+    pose(187, hips=dict(y=-1), head=dict(r=-.3), torso=dict(r=0), grip=dict(y=0, r=0))
     take(181, .6)
     take(1, .7)
 
@@ -535,6 +554,19 @@ def pin_to_cues(vals, cues):
     return out
 
 
+def pin_open(vals, cues):
+    """a one-shot's spring motion pinned to zero on the given frames (a smooth curve through its values there
+    taken off between them), so it passes exactly through rest there"""
+    cs = sorted(set(c for c in cues if 0 <= c < len(vals)))
+    out = list(vals)
+    for j, jn in zip(cs, cs[1:]):
+        for i in range(j, jn + 1):
+            t = (i - j) / max(1, jn - j)
+            w = .5 - .5 * math.cos(math.pi * t)
+            out[i] = vals[i] - (vals[j] * (1 - w) + vals[jn] * w)
+    return out
+
+
 IDLE_CUES = [0, 16, 32, 48, 64, 80, 96, 101, 115, 120, 134]
 
 
@@ -550,6 +582,8 @@ def springs():
                 continue
             if C.loop:
                 vals = pin_to_cues(list(vals), IDLE_CUES)
+            elif C.name in REST_PASS:
+                vals = pin_open(list(vals), [0] + REST_PASS[C.name] + [C.n - 1])
             series(b, vals, tol=tol)
 
     apply(fxkit.secondary(sc, arm, "head", C.f0, f1, {"head_fx": dict(
@@ -649,6 +683,8 @@ def toss(f0):
 # ================================================================== the slow-down (time remapping at render)
 SLOW = 1.35                                       # every clip plays this many times slower than keyed (the owner:
                                                   # "moving very quickly"): rendered with Blender's Time Remapping
+SLOW_LOOP = 2.0                                   # the idle slower still (the owner: "make human's idle animation still
+                                                  # physically slower just stretch out the duration of it")
 
 
 def remap(n, loop):
@@ -656,7 +692,7 @@ def remap(n, loop):
     a one-shot's span (n - 1 frames, first to last key) becomes round((n - 1) * SLOW) - its first and last
     rendered frames land exactly on its first and last keys (the rest pose)"""
     old = n if loop else n - 1
-    return old, int(round(old * SLOW))
+    return old, int(round(old * (SLOW_LOOP if loop else SLOW)))
 
 
 def place_next(f, clip):
