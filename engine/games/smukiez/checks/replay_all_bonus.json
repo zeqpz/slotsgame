@@ -1,0 +1,31 @@
+{
+ "bonus": {
+  "books": 20000,
+  "identical": 20000,
+  "events": 1603563,
+  "mismatches": [],
+  "criteria": {
+   "freegame": 19990,
+   "wincap": 10
+  },
+  "features": {
+   "reveal": 20000,
+   "winInfo": 20000,
+   "updateTumbleWin": 20000,
+   "lineMults": 19993,
+   "booster": 20000,
+   "tumbleBoard": 20000,
+   "setWin": 19993,
+   "setTotalWin": 20000,
+   "freeSpinTrigger": 20000,
+   "enterBonus": 20000,
+   "updateFreeSpin": 20000,
+   "wallDrop": 17345,
+   "freeSpinEnd": 20000,
+   "finalWin": 20000,
+   "bonus:standard": 20000,
+   "wallDrop:line": 37556,
+   "wincap": 11
+  }
+ }
+}

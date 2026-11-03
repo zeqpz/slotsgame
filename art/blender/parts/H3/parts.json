@@ -1,0 +1,41 @@
+{
+ "id": "H3",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "s1",
+   "box": [
+    87,
+    174,
+    887,
+    798
+   ],
+   "pivot": [
+    487.0,
+    486.0
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 2
+  },
+  {
+   "name": "clasp",
+   "box": [
+    205,
+    447,
+    420,
+    665
+   ],
+   "pivot": [
+    312,
+    548
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 3
+  }
+ ]
+}

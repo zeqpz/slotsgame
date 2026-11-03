@@ -1,0 +1,1365 @@
+{
+ "which": "v5",
+ "mode": "extremebonus",
+ "files": {
+  "books": "C:\\Users\\CooperHinkel\\Documents\\ClaudeRoblox\\slotsgame-current\\math-sdk\\games\\smukiez_tag_run\\library\\publish_files\\books_extremebonus.jsonl.zst",
+  "lut": "C:\\Users\\CooperHinkel\\Documents\\ClaudeRoblox\\slotsgame-current\\math-sdk\\games\\smukiez_tag_run\\library\\publish_files\\lookUpTable_extremebonus_0.csv"
+ },
+ "cost": 400,
+ "weighted": {
+  "totalWeight": 1125899906949776,
+  "rtp": 0.9669999998999986,
+  "avgWin": 386.79999995999947,
+  "std": 440.9223005655799,
+  "hitRate": 1,
+  "pZero": 0,
+  "pLessBet": 0.6739281453590433,
+  "maxWinRate": 0.00007199999997390187,
+  "triggerRate": 1,
+  "standardRate": 0,
+  "directRate": 0.6683213023178247,
+  "upgradeRate": 0.3316786976821752,
+  "avgPayoutGivenTrigger": 386.79999995999947,
+  "avgBonusWin": 386.23166796264513,
+  "bonusRtpShare": 0.9655791699066129,
+  "baseRtpShare": 0.0014208870968345185,
+  "coverRate": 0,
+  "wall1000Rate": 0.0009450118124838448,
+  "baseWallLineRate": 0.0243934076433991
+ },
+ "pool": {
+  "extremegame": {
+   "n": 19980,
+   "mean": 350.35367367367314,
+   "std": 603.8200139174138,
+   "max": 10000,
+   "zero": 0,
+   "cap": 9
+  },
+  "wincap": {
+   "n": 20,
+   "mean": 10000,
+   "std": 0,
+   "max": 10000,
+   "zero": 0,
+   "cap": 20
+  }
+ },
+ "mech": {
+  "extremegame/basegame": {
+   "reveals": 19980,
+   "spins": 19980,
+   "multBoard": {
+    "2": 3854,
+    "3": 1554,
+    "5": 564,
+    "10": 165,
+    "20": 72,
+    "50": 27,
+    "100": 18,
+    "250": 3,
+    "500": 3,
+    "1000": 12,
+    "1.5": 7000,
+    "1.25": 12021
+   },
+   "multPad": {
+    "2": 1223,
+    "3": 495,
+    "5": 193,
+    "10": 46,
+    "20": 18,
+    "50": 10,
+    "100": 4,
+    "250": 2,
+    "1000": 6,
+    "1.25": 3758,
+    "1.5": 2249
+   },
+   "multsOnBoard": 25293,
+   "wallLine": {
+    "3": 371,
+    "4": 143
+   },
+   "wallOrient": {
+    "row": 256,
+    "column": 258
+   },
+   "cover": 0,
+   "boosterEvents": 16685,
+   "boosters": 27655,
+   "boosterValues": {
+    "2": 4228,
+    "3": 1698,
+    "5": 631,
+    "10": 177,
+    "20": 78,
+    "50": 30,
+    "100": 20,
+    "250": 3,
+    "500": 3,
+    "1000": 15,
+    "1.5": 7640,
+    "1.25": 13132
+   },
+   "boosterCells": {
+    "2": 252,
+    "3": 3216,
+    "4": 12234,
+    "5": 11953
+   },
+   "lineDropValues": {
+    "2": 697,
+    "1.25": 2773,
+    "1.5": 1157
+   },
+   "lineDropEvents": 4475,
+   "drops": 4627,
+   "tumblesPerSpin": {
+    "0": 4602,
+    "1": 12209,
+    "2": 2790,
+    "3": 331,
+    "4": 44,
+    "5": 4
+   },
+   "winBoardsPerSpin": {
+    "0": 15946,
+    "1": 3639,
+    "2": 350,
+    "3": 44,
+    "4": 1
+   },
+   "clusterKinds": {
+    "5": 3107,
+    "6": 1072,
+    "7": 308,
+    "8": 81,
+    "9": 31,
+    "10": 12,
+    "11": 2
+   },
+   "clusterSyms": {
+    "L1": 2283,
+    "L2": 2024,
+    "L3": 205,
+    "L4": 78,
+    "L7": 4,
+    "L6": 3,
+    "H7": 1,
+    "L5": 15
+   },
+   "wins": 4613,
+   "winCents": 1137370,
+   "spinWinCents": 1137370,
+   "spinsWithWin": 4034
+  },
+  "extremegame/freegame": {
+   "reveals": 291319,
+   "spins": 291319,
+   "multBoard": {
+    "2": 220197,
+    "3": 179312,
+    "5": 110152,
+    "10": 48022,
+    "20": 17369,
+    "50": 5529,
+    "100": 2108,
+    "250": 680,
+    "500": 285,
+    "1000": 161
+   },
+   "multPad": {
+    "2": 45934,
+    "3": 37178,
+    "5": 23117,
+    "10": 10054,
+    "20": 3637,
+    "50": 1146,
+    "100": 409,
+    "250": 147,
+    "500": 64,
+    "1000": 32
+   },
+   "multsOnBoard": 583815,
+   "wallLine": {
+    "3": 34060,
+    "4": 14659
+   },
+   "wallOrient": {
+    "row": 24529,
+    "column": 24190
+   },
+   "cover": 0,
+   "boosterEvents": 304915,
+   "boosters": 651390,
+   "boosterValues": {
+    "2": 245535,
+    "3": 200258,
+    "5": 122669,
+    "10": 53779,
+    "20": 19394,
+    "50": 6172,
+    "100": 2329,
+    "250": 768,
+    "500": 311,
+    "1000": 175
+   },
+   "boosterCells": {
+    "3": 46724,
+    "4": 260833,
+    "5": 343833
+   },
+   "lineDropValues": {
+    "2": 13357,
+    "1.25": 53078,
+    "1.5": 22035
+   },
+   "lineDropEvents": 84360,
+   "drops": 88470,
+   "tumblesPerSpin": {
+    "0": 37598,
+    "1": 179910,
+    "2": 61970,
+    "3": 10483,
+    "4": 1251,
+    "5": 98,
+    "6": 9
+   },
+   "winBoardsPerSpin": {
+    "0": 214820,
+    "1": 69040,
+    "2": 7067,
+    "3": 373,
+    "4": 19
+   },
+   "clusterKinds": {
+    "5": 58296,
+    "6": 19311,
+    "7": 6597,
+    "8": 2412,
+    "9": 885,
+    "10": 321,
+    "11": 123,
+    "12": 29,
+    "13": 12,
+    "14": 3,
+    "15": 1
+   },
+   "clusterSyms": {
+    "L1": 46126,
+    "L3": 16083,
+    "L2": 21672,
+    "L4": 3378,
+    "L5": 679,
+    "L7": 13,
+    "H4": 1,
+    "L6": 25,
+    "H7": 3,
+    "H6": 7,
+    "H5": 2,
+    "H1": 1
+   },
+   "wins": 87990,
+   "winCents": 699321360,
+   "spinWinCents": 699321360,
+   "spinsWithWin": 76499
+  },
+  "wincap/basegame": {
+   "reveals": 20,
+   "spins": 20,
+   "multBoard": {
+    "2": 6,
+    "3": 1,
+    "250": 1,
+    "1.5": 8,
+    "1.25": 12
+   },
+   "multPad": {
+    "3": 1,
+    "10": 1,
+    "1.25": 5,
+    "1.5": 3
+   },
+   "multsOnBoard": 28,
+   "wallLine": {},
+   "wallOrient": {},
+   "cover": 0,
+   "boosterEvents": 17,
+   "boosters": 30,
+   "boosterValues": {
+    "2": 7,
+    "3": 1,
+    "250": 1,
+    "1.5": 8,
+    "1.25": 13
+   },
+   "boosterCells": {
+    "3": 4,
+    "4": 14,
+    "5": 12
+   },
+   "lineDropValues": {
+    "2": 1,
+    "1.25": 2,
+    "1.5": 1
+   },
+   "lineDropEvents": 4,
+   "drops": 4,
+   "tumblesPerSpin": {
+    "0": 4,
+    "1": 14,
+    "2": 2
+   },
+   "winBoardsPerSpin": {
+    "0": 16,
+    "1": 4
+   },
+   "clusterKinds": {
+    "5": 3,
+    "7": 1
+   },
+   "clusterSyms": {
+    "L1": 2,
+    "L2": 2
+   },
+   "wins": 4,
+   "winCents": 560,
+   "spinWinCents": 560,
+   "spinsWithWin": 4
+  },
+  "wincap/freegame": {
+   "reveals": 93,
+   "spins": 93,
+   "multBoard": {
+    "1000": 705
+   },
+   "multPad": {
+    "1000": 194
+   },
+   "multsOnBoard": 705,
+   "wallLine": {
+    "3": 13,
+    "4": 4
+   },
+   "wallOrient": {
+    "column": 9,
+    "row": 8
+   },
+   "cover": 0,
+   "boosterEvents": 312,
+   "boosters": 1258,
+   "boosterValues": {
+    "1000": 1258
+   },
+   "boosterCells": {
+    "3": 113,
+    "4": 529,
+    "5": 616
+   },
+   "lineDropValues": {
+    "2": 2,
+    "1.25": 1
+   },
+   "lineDropEvents": 3,
+   "drops": 3,
+   "tumblesPerSpin": {
+    "0": 6,
+    "1": 8,
+    "2": 16,
+    "3": 22,
+    "4": 19,
+    "5": 10,
+    "6": 8,
+    "7": 3,
+    "11": 1
+   },
+   "winBoardsPerSpin": {
+    "0": 70,
+    "1": 23
+   },
+   "clusterKinds": {
+    "5": 15,
+    "6": 5,
+    "7": 1,
+    "8": 2
+   },
+   "clusterSyms": {
+    "L1": 10,
+    "L2": 11,
+    "L4": 2
+   },
+   "wins": 23,
+   "winCents": 21280160,
+   "spinWinCents": 21280160,
+   "spinsWithWin": 23
+  }
+ },
+ "triggers": {
+  "extreme_direct|fs17|bs1|es2": 3342,
+  "extreme_upgrade|fs12|bs4|es1": 2078,
+  "extreme_direct|fs17|bs0|es2": 6826,
+  "extreme_upgrade|fs10|bs3|es1": 5402,
+  "extreme_direct|fs17|bs2|es2": 1836,
+  "extreme_direct|fs17|bs0|es3": 129,
+  "extreme_direct|fs17|bs3|es2": 203,
+  "extreme_direct|fs17|bs1|es3": 58,
+  "extreme_upgrade|fs15|bs5|es1": 66,
+  "extreme_direct|fs17|bs4|es2": 27,
+  "extreme_direct|fs17|bs2|es3": 26,
+  "extreme_direct|fs17|bs5|es2": 2,
+  "extreme_direct|fs17|bs3|es3": 3,
+  "extreme_upgrade|fs15|bs6|es1": 2
+ },
+ "eventTypes": {
+  "reveal": 311412,
+  "booster": 321929,
+  "tumbleBoard": 360155,
+  "setTotalWin": 311412,
+  "freeSpinTrigger": 20000,
+  "extremeTrigger": 20000,
+  "enterBonus": 20000,
+  "updateFreeSpin": 291412,
+  "wallDrop": 49250,
+  "winInfo": 88871,
+  "updateTumbleWin": 88871,
+  "lineMults": 88842,
+  "setWin": 80531,
+  "freeSpinEnd": 20000,
+  "finalWin": 20000,
+  "wincap": 29
+ },
+ "bookKeys": {
+  "id,payoutMultiplier,events,criteria,baseGameWins,freeGameWins": 20000
+ },
+ "checks": {
+  "books": 20000,
+  "payoutMismatch": 0,
+  "badIndex": 0,
+  "negPadding": 1417,
+  "maxEvents": 176,
+  "maxBytes": 91840,
+  "over512k": 0,
+  "lutMissing": 0,
+  "firstIndex": {
+   "0": 20000
+  },
+  "medianBytes": 47510,
+  "p99Bytes": 61927
+ },
+ "schema": {
+  "reveal": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,board,paddingPositions,gameType,anticipation"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".board": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".board[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".board[][]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "name",
+     "name,scatter_extreme",
+     "name,scatter",
+     "name,booster,multiplier"
+    ]
+   },
+   ".board[][].name": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".board[][].scatter_extreme": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".board[][].scatter": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".board[][].booster": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".board[][].multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".paddingPositions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".paddingPositions[]": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".gameType": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".anticipation": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".anticipation[]": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "booster": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,boosters,gridMults"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".boosters": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".boosters[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row,mult,cells"
+    ]
+   },
+   ".boosters[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].mult": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".boosters[].cells[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".gridMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[][]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "tumbleBoard": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,newSymbols,explodingSymbols"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".newSymbols": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".newSymbols[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "name",
+     "name,booster,multiplier",
+     "name,scatter",
+     "name,scatter_extreme"
+    ]
+   },
+   ".newSymbols[][].name": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".explodingSymbols[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].booster": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].scatter": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].scatter_extreme": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   }
+  },
+  "setTotalWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "freeSpinTrigger": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,totalFs,positions"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".totalFs": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "extremeTrigger": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,positions,reason"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".reason": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   }
+  },
+  "enterBonus": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,reason"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".reason": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   }
+  },
+  "updateFreeSpin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,total"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".total": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "wallDrop": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,kind,positions"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".kind": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "winInfo": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,totalWin,wins"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".totalWin": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "symbol,kind,win,positions,meta"
+    ]
+   },
+   ".wins[].symbol": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".wins[].kind": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].win": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[].positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".wins[].positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "clusterSize,winWithoutMult,multiplier,cellMults",
+     "clusterSize,winWithoutMult,multiplier"
+    ]
+   },
+   ".wins[].meta.clusterSize": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.winWithoutMult": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.cellMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.cellMults[]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "updateTumbleWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "lineMults": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,drops,gridMults"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".drops": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".drops[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row,mult"
+    ]
+   },
+   ".drops[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".drops[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".drops[].mult": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".gridMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[][]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "setWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,winLevel"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".winLevel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "freeSpinEnd": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,winLevel"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".winLevel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "finalWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "wincap": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  }
+ }
+}

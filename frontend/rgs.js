@@ -69,6 +69,9 @@ const RGS = (() => {
   function errorCode(data, status) {
     const c = data && (data.statusCode || data.code || data.error ||
                        (data.status && data.status.code));
+    // A server that lost the session (a restarted local server, say) may call it ERR_VAL; it is a session
+    // problem, not the bet's, so don't send the player off trying other amounts.
+    if (data && /unknown session|session not authenticated|session .* does not exist/i.test(String(data.message || ""))) return "ERR_IS";
     if (typeof c === "string" && /^ERR_/.test(c)) return c;
     // The RGS rate-limits bursts of requests ("Slow down"); a 429 body is sometimes plain text.
     if (status === 429 || (data && /slow down|too many/i.test(String(data.message || "")))) return "ERR_ACT";

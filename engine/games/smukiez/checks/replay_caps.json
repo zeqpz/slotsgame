@@ -1,0 +1,93 @@
+{
+ "base": {
+  "books": 22,
+  "identical": 22,
+  "events": 1502,
+  "mismatches": [],
+  "criteria": {
+   "wincap": 20,
+   "extremegame": 2
+  },
+  "features": {
+   "reveal": 22,
+   "booster": 22,
+   "tumbleBoard": 22,
+   "setTotalWin": 22,
+   "freeSpinTrigger": 22,
+   "extremeTrigger": 22,
+   "enterBonus": 22,
+   "updateFreeSpin": 22,
+   "winInfo": 22,
+   "updateTumbleWin": 22,
+   "wincap": 22,
+   "freeSpinEnd": 22,
+   "finalWin": 22,
+   "bonus:extreme_upgrade": 9,
+   "wallDrop": 13,
+   "lineMults": 8,
+   "setWin": 7,
+   "wallDrop:line": 20,
+   "bonus:extreme_direct": 13
+  }
+ },
+ "bonus": {
+  "books": 11,
+  "identical": 11,
+  "events": 911,
+  "mismatches": [],
+  "criteria": {
+   "wincap": 10,
+   "freegame": 1
+  },
+  "features": {
+   "reveal": 11,
+   "winInfo": 11,
+   "updateTumbleWin": 11,
+   "lineMults": 4,
+   "booster": 11,
+   "tumbleBoard": 11,
+   "setWin": 4,
+   "setTotalWin": 11,
+   "freeSpinTrigger": 11,
+   "enterBonus": 11,
+   "updateFreeSpin": 11,
+   "wallDrop": 9,
+   "wincap": 11,
+   "freeSpinEnd": 11,
+   "finalWin": 11,
+   "bonus:standard": 11,
+   "wallDrop:line": 14
+  }
+ },
+ "extremebonus": {
+  "books": 29,
+  "identical": 29,
+  "events": 2039,
+  "mismatches": [],
+  "criteria": {
+   "wincap": 20,
+   "extremegame": 9
+  },
+  "features": {
+   "reveal": 29,
+   "winInfo": 29,
+   "updateTumbleWin": 29,
+   "lineMults": 16,
+   "booster": 29,
+   "tumbleBoard": 29,
+   "setWin": 16,
+   "setTotalWin": 29,
+   "freeSpinTrigger": 29,
+   "extremeTrigger": 29,
+   "enterBonus": 29,
+   "updateFreeSpin": 29,
+   "wallDrop": 23,
+   "wincap": 29,
+   "freeSpinEnd": 29,
+   "finalWin": 29,
+   "bonus:extreme_direct": 22,
+   "wallDrop:line": 32,
+   "bonus:extreme_upgrade": 7
+  }
+ }
+}

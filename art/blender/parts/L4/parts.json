@@ -1,0 +1,57 @@
+{
+ "id": "L4",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "back",
+   "box": [
+    240,
+    230,
+    908,
+    954
+   ],
+   "pivot": [
+    497,
+    298
+   ],
+   "parent": "string",
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "string",
+   "box": [
+    332,
+    28,
+    585,
+    263
+   ],
+   "pivot": [
+    450,
+    44
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "front",
+   "box": [
+    219,
+    226,
+    667,
+    916
+   ],
+   "pivot": [
+    497,
+    298
+   ],
+   "parent": "string",
+   "hidden": false,
+   "draw": 2
+  }
+ ]
+}

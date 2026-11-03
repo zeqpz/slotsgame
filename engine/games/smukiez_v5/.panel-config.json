@@ -1,0 +1,13 @@
+{
+  "id": "smukiez_tag_run",
+  "simulation": {
+    "simRunsAmount": {},
+    "concurrency": 8,
+    "maxPendingSims": 25,
+    "maxDiskBuffer": 150,
+    "makeUncompressedBooks": false
+  },
+  "betSimulations": [],
+  "reelSets": [],
+  "forceStop": false
+}

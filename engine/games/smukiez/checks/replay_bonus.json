@@ -1,0 +1,31 @@
+{
+ "bonus": {
+  "books": 2000,
+  "identical": 2000,
+  "events": 160195,
+  "mismatches": [],
+  "criteria": {
+   "freegame": 1999,
+   "wincap": 1
+  },
+  "features": {
+   "reveal": 2000,
+   "winInfo": 2000,
+   "updateTumbleWin": 2000,
+   "lineMults": 1999,
+   "booster": 2000,
+   "tumbleBoard": 2000,
+   "setWin": 1999,
+   "setTotalWin": 2000,
+   "freeSpinTrigger": 2000,
+   "enterBonus": 2000,
+   "updateFreeSpin": 2000,
+   "wallDrop": 1739,
+   "freeSpinEnd": 2000,
+   "finalWin": 2000,
+   "bonus:standard": 2000,
+   "wallDrop:line": 3798,
+   "wincap": 1
+  }
+ }
+}

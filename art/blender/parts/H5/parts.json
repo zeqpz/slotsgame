@@ -1,0 +1,73 @@
+{
+ "id": "H5",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "handle",
+   "box": [
+    40,
+    109,
+    994,
+    277
+   ],
+   "pivot": [
+    952,
+    262
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "body",
+   "box": [
+    23,
+    248,
+    980,
+    879
+   ],
+   "pivot": [
+    470,
+    790
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "spk_l",
+   "box": [
+    39,
+    407,
+    292,
+    724
+   ],
+   "pivot": [
+    162,
+    568
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 2
+  },
+  {
+   "name": "spk_r",
+   "box": [
+    546,
+    445,
+    878,
+    805
+   ],
+   "pivot": [
+    716,
+    630
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 3
+  }
+ ]
+}

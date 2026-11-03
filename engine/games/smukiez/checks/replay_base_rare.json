@@ -1,0 +1,34 @@
+{
+ "base": {
+  "books": 220,
+  "identical": 220,
+  "events": 3924,
+  "mismatches": [],
+  "criteria": {
+   "wallcover": 200,
+   "wincap": 20
+  },
+  "features": {
+   "reveal": 220,
+   "wallDrop": 211,
+   "booster": 220,
+   "tumbleBoard": 220,
+   "winInfo": 220,
+   "updateTumbleWin": 220,
+   "lineMults": 206,
+   "setWin": 205,
+   "setTotalWin": 220,
+   "finalWin": 220,
+   "wallDrop:cover": 200,
+   "freeSpinTrigger": 20,
+   "extremeTrigger": 20,
+   "enterBonus": 20,
+   "updateFreeSpin": 20,
+   "wincap": 20,
+   "freeSpinEnd": 20,
+   "bonus:extreme_upgrade": 9,
+   "wallDrop:line": 17,
+   "bonus:extreme_direct": 11
+  }
+ }
+}

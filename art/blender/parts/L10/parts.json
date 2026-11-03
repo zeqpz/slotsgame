@@ -1,0 +1,41 @@
+{
+ "id": "L10",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "box": [
+    10,
+    276,
+    987,
+    737
+   ],
+   "pivot": [
+    866,
+    692
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "wheel_near",
+   "box": [
+    469,
+    476,
+    677,
+    684
+   ],
+   "pivot": [
+    546,
+    566
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 1
+  }
+ ]
+}

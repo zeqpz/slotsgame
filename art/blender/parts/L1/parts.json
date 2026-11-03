@@ -1,0 +1,73 @@
+{
+ "id": "L1",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "cloud",
+   "box": [
+    136,
+    30,
+    530,
+    435
+   ],
+   "pivot": [
+    300,
+    238
+   ],
+   "parent": "can",
+   "hidden": false,
+   "draw": -1
+  },
+  {
+   "name": "can",
+   "box": [
+    163,
+    87,
+    873,
+    981
+   ],
+   "pivot": [
+    420,
+    935
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "cap",
+   "box": [
+    562,
+    62,
+    815,
+    322
+   ],
+   "pivot": [
+    690,
+    300
+   ],
+   "parent": "can",
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "jet",
+   "box": [
+    450,
+    121,
+    661,
+    249
+   ],
+   "pivot": [
+    668,
+    158
+   ],
+   "parent": "cap",
+   "hidden": false,
+   "draw": 2
+  }
+ ]
+}

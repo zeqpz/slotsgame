@@ -1,0 +1,62 @@
+{
+ "id": "L3",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "crown",
+   "box": [
+    139,
+    41,
+    931,
+    564
+   ],
+   "pivot": [
+    510,
+    450
+   ],
+   "parent": "cuff",
+   "hidden": false,
+   "draw": 0,
+   "anchor": {
+    "bone": "cuff",
+    "y0": 330,
+    "y1": 150
+   }
+  },
+  {
+   "name": "cuff",
+   "box": [
+    66,
+    325,
+    941,
+    937
+   ],
+   "pivot": [
+    490,
+    880
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "logo",
+   "box": [
+    266,
+    345,
+    769,
+    673
+   ],
+   "pivot": [
+    515,
+    505
+   ],
+   "parent": "cuff",
+   "hidden": false,
+   "draw": 2
+  }
+ ]
+}

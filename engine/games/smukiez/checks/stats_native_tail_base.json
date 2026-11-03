@@ -1,0 +1,1872 @@
+{
+ "which": "native",
+ "mode": "base",
+ "files": {
+  "books": "C:\\Users\\CooperHinkel\\Documents\\ClaudeRoblox\\slotsgame-current\\engine\\games\\smukiez\\__build__\\publish_files\\books_base.jsonl.zst",
+  "lut": "C:\\Users\\CooperHinkel\\Documents\\ClaudeRoblox\\slotsgame-current\\engine\\games\\smukiez\\__build__\\publish_files\\lookUpTable_base_0.csv",
+  "segmented": "C:\\Users\\CooperHinkel\\Documents\\ClaudeRoblox\\slotsgame-current\\engine\\games\\smukiez\\__build__\\lookUpTableSegmented_base.csv"
+ },
+ "cost": 1,
+ "weighted": {
+  "totalWeight": 1125899906962215,
+  "rtp": 0.9669999998998334,
+  "avgWin": 0.9669999998998334,
+  "std": 20.191201659466653,
+  "hitRate": 2.4733841198768896,
+  "pZero": 0.5956956333778943,
+  "pLessBet": 0.9374804766067661,
+  "maxWinRate": 1.999999952105485e-7,
+  "triggerRate": 0.0042918765385484385,
+  "standardRate": 0.003797565159697176,
+  "directRate": 0.00013495253736804793,
+  "upgradeRate": 0.000359358841483214,
+  "avgPayoutGivenTrigger": 90.61415733687237,
+  "avgBonusWin": 90.15657053635537,
+  "bonusRtpShare": 0.38694086988097104,
+  "baseRtpShare": 0.5800591395427386,
+  "coverRate": 0.000012509523811047505,
+  "wall1000Rate": 0.0006666666665487077,
+  "baseWallLineRate": 0.02408494202405423
+ },
+ "pool": {
+  "0": {
+   "n": 35000,
+   "mean": 0,
+   "std": 0,
+   "max": 0,
+   "zero": 35000,
+   "cap": 0
+  },
+  "freegame": {
+   "n": 7001,
+   "mean": 94.66540494215144,
+   "std": 222.59184959715213,
+   "max": 6666.8,
+   "zero": 0,
+   "cap": 0
+  },
+  "basegame": {
+   "n": 55779,
+   "mean": 2.706984707506806,
+   "std": 21.084277738584955,
+   "max": 3209.6,
+   "zero": 0,
+   "cap": 0
+  },
+  "extremegame": {
+   "n": 2000,
+   "mean": 357.47529999999995,
+   "std": 625.1190582360371,
+   "max": 9077.8,
+   "zero": 0,
+   "cap": 0
+  },
+  "wallcover": {
+   "n": 200,
+   "mean": 902.9049999999999,
+   "std": 1299.510841499601,
+   "max": 10000,
+   "zero": 0,
+   "cap": 1
+  },
+  "wincap": {
+   "n": 20,
+   "mean": 10000,
+   "std": 0,
+   "max": 10000,
+   "zero": 0,
+   "cap": 20
+  }
+ },
+ "mech": {
+  "0/basegame": {
+   "reveals": 35000,
+   "spins": 35000,
+   "multBoard": {
+    "2": 8060,
+    "3": 3166,
+    "5": 1226,
+    "10": 392,
+    "20": 181,
+    "50": 57,
+    "100": 16,
+    "250": 13,
+    "500": 8,
+    "1000": 33,
+    "1.5": 15148,
+    "1.25": 25806
+   },
+   "multPad": {
+    "2": 2196,
+    "3": 877,
+    "5": 324,
+    "10": 94,
+    "20": 41,
+    "50": 19,
+    "100": 7,
+    "250": 2,
+    "1000": 17,
+    "1.5": 4130,
+    "1.25": 6967
+   },
+   "multsOnBoard": 54106,
+   "wallLine": {
+    "3": 613,
+    "4": 237
+   },
+   "wallOrient": {
+    "column": 428,
+    "row": 422
+   },
+   "cover": 0,
+   "boosterEvents": 34416,
+   "boosters": 61525,
+   "boosterValues": {
+    "2": 9169,
+    "3": 3599,
+    "5": 1377,
+    "10": 444,
+    "20": 199,
+    "50": 62,
+    "100": 18,
+    "250": 15,
+    "500": 8,
+    "1000": 40,
+    "1.5": 17265,
+    "1.25": 29329
+   },
+   "boosterCells": {
+    "2": 64,
+    "3": 6361,
+    "4": 27382,
+    "5": 27718
+   },
+   "lineDropValues": {},
+   "lineDropEvents": 0,
+   "drops": 0,
+   "tumblesPerSpin": {
+    "0": 7242,
+    "1": 21565,
+    "2": 5743,
+    "3": 435,
+    "4": 15
+   },
+   "winBoardsPerSpin": {
+    "0": 35000
+   },
+   "clusterKinds": {},
+   "clusterSyms": {},
+   "wins": 0,
+   "winCents": 0,
+   "spinWinCents": 0,
+   "spinsWithWin": 0
+  },
+  "freegame/basegame": {
+   "reveals": 7001,
+   "spins": 7001,
+   "multBoard": {
+    "2": 1702,
+    "3": 696,
+    "5": 245,
+    "10": 75,
+    "20": 40,
+    "50": 14,
+    "100": 6,
+    "250": 2,
+    "500": 3,
+    "1000": 9,
+    "1.5": 3165,
+    "1.25": 5358
+   },
+   "multPad": {
+    "2": 491,
+    "3": 173,
+    "5": 74,
+    "10": 25,
+    "20": 12,
+    "50": 1,
+    "100": 3,
+    "250": 2,
+    "500": 1,
+    "1.25": 1730,
+    "1.5": 932
+   },
+   "multsOnBoard": 11315,
+   "wallLine": {
+    "3": 135,
+    "4": 49
+   },
+   "wallOrient": {
+    "row": 101,
+    "column": 83
+   },
+   "cover": 0,
+   "boosterEvents": 7226,
+   "boosters": 12966,
+   "boosterValues": {
+    "2": 1939,
+    "3": 785,
+    "5": 279,
+    "10": 90,
+    "20": 44,
+    "50": 15,
+    "100": 7,
+    "250": 2,
+    "500": 3,
+    "1000": 9,
+    "1.5": 3595,
+    "1.25": 6198
+   },
+   "boosterCells": {
+    "1": 5,
+    "2": 145,
+    "3": 2393,
+    "4": 7070,
+    "5": 3353
+   },
+   "lineDropValues": {
+    "2": 203,
+    "1.25": 870,
+    "1.5": 369
+   },
+   "lineDropEvents": 1392,
+   "drops": 1442,
+   "tumblesPerSpin": {
+    "0": 1092,
+    "1": 4194,
+    "2": 1519,
+    "3": 182,
+    "4": 14
+   },
+   "winBoardsPerSpin": {
+    "0": 5744,
+    "1": 1134,
+    "2": 111,
+    "3": 12
+   },
+   "clusterKinds": {
+    "5": 1002,
+    "6": 282,
+    "7": 84,
+    "8": 42,
+    "9": 18,
+    "10": 6,
+    "12": 1
+   },
+   "clusterSyms": {
+    "L1": 671,
+    "L4": 102,
+    "L2": 465,
+    "L3": 118,
+    "L5": 77,
+    "L6": 2
+   },
+   "wins": 1435,
+   "winCents": 326410,
+   "spinWinCents": 326410,
+   "spinsWithWin": 1257
+  },
+  "freegame/freegame": {
+   "reveals": 74867,
+   "spins": 74867,
+   "multBoard": {
+    "2": 31682,
+    "3": 21434,
+    "5": 11493,
+    "10": 5007,
+    "20": 2029,
+    "50": 727,
+    "100": 311,
+    "250": 104,
+    "500": 43,
+    "1000": 20,
+    "1.25": 42958,
+    "1.5": 34177
+   },
+   "multPad": {
+    "2": 6611,
+    "3": 4503,
+    "5": 2418,
+    "10": 1052,
+    "20": 414,
+    "50": 131,
+    "100": 58,
+    "250": 18,
+    "500": 12,
+    "1000": 4,
+    "1.25": 8951,
+    "1.5": 7198
+   },
+   "multsOnBoard": 149985,
+   "wallLine": {
+    "3": 8760,
+    "4": 3725
+   },
+   "wallOrient": {
+    "column": 6182,
+    "row": 6303
+   },
+   "cover": 0,
+   "boosterEvents": 77867,
+   "boosters": 168176,
+   "boosterValues": {
+    "2": 35539,
+    "3": 24036,
+    "5": 12893,
+    "10": 5617,
+    "20": 2270,
+    "50": 793,
+    "100": 343,
+    "250": 114,
+    "500": 51,
+    "1000": 25,
+    "1.25": 48175,
+    "1.5": 38320
+   },
+   "boosterCells": {
+    "3": 12115,
+    "4": 67364,
+    "5": 88697
+   },
+   "lineDropValues": {
+    "2": 3203,
+    "1.25": 13052,
+    "1.5": 5398
+   },
+   "lineDropEvents": 20738,
+   "drops": 21653,
+   "tumblesPerSpin": {
+    "0": 10354,
+    "1": 45185,
+    "2": 16521,
+    "3": 2453,
+    "4": 312,
+    "5": 37,
+    "6": 5
+   },
+   "winBoardsPerSpin": {
+    "0": 56136,
+    "1": 16868,
+    "2": 1735,
+    "3": 113,
+    "4": 14,
+    "5": 1
+   },
+   "clusterKinds": {
+    "5": 14560,
+    "6": 4755,
+    "7": 1547,
+    "8": 487,
+    "9": 159,
+    "10": 46,
+    "11": 18,
+    "12": 3,
+    "13": 3,
+    "14": 1,
+    "15": 1
+   },
+   "clusterSyms": {
+    "L1": 10088,
+    "L2": 5750,
+    "L3": 1658,
+    "L5": 3481,
+    "L4": 559,
+    "L6": 12,
+    "H6": 31,
+    "L7": 1
+   },
+   "wins": 21580,
+   "winCents": 65948840,
+   "spinWinCents": 65948840,
+   "spinsWithWin": 18731
+  },
+  "basegame/basegame": {
+   "reveals": 55779,
+   "spins": 55779,
+   "multBoard": {
+    "2": 12892,
+    "3": 5133,
+    "5": 1961,
+    "10": 568,
+    "20": 248,
+    "50": 104,
+    "100": 35,
+    "250": 12,
+    "500": 10,
+    "1000": 55,
+    "1.5": 23988,
+    "1.25": 41116
+   },
+   "multPad": {
+    "2": 3349,
+    "3": 1375,
+    "5": 501,
+    "10": 159,
+    "20": 58,
+    "50": 25,
+    "100": 12,
+    "250": 6,
+    "500": 2,
+    "1000": 8,
+    "1.25": 10837,
+    "1.5": 6321
+   },
+   "multsOnBoard": 86122,
+   "wallLine": {
+    "3": 1028,
+    "4": 476
+   },
+   "wallOrient": {
+    "column": 735,
+    "row": 769
+   },
+   "cover": 0,
+   "boosterEvents": 64352,
+   "boosters": 108441,
+   "boosterValues": {
+    "2": 16216,
+    "3": 6469,
+    "5": 2483,
+    "10": 728,
+    "20": 304,
+    "50": 128,
+    "100": 45,
+    "250": 18,
+    "500": 11,
+    "1000": 68,
+    "1.5": 30143,
+    "1.25": 51828
+   },
+   "boosterCells": {
+    "2": 115,
+    "3": 11839,
+    "4": 49274,
+    "5": 47213
+   },
+   "lineDropValues": {
+    "2": 10064,
+    "1.5": 16677,
+    "1.25": 40521
+   },
+   "lineDropEvents": 63563,
+   "drops": 67262,
+   "tumblesPerSpin": {
+    "1": 27283,
+    "2": 22355,
+    "3": 5129,
+    "4": 883,
+    "5": 103,
+    "6": 25,
+    "7": 1
+   },
+   "winBoardsPerSpin": {
+    "1": 48758,
+    "2": 6313,
+    "3": 657,
+    "4": 47,
+    "5": 4
+   },
+   "clusterKinds": {
+    "5": 42943,
+    "6": 14656,
+    "7": 5493,
+    "8": 2285,
+    "9": 884,
+    "10": 335,
+    "11": 116,
+    "12": 33,
+    "13": 9,
+    "14": 6,
+    "15": 1
+   },
+   "clusterSyms": {
+    "L1": 28708,
+    "L2": 25816,
+    "L3": 5438,
+    "L5": 3324,
+    "L4": 3285,
+    "L6": 189,
+    "L7": 1
+   },
+   "wins": 66761,
+   "winCents": 15099290,
+   "spinWinCents": 15099290,
+   "spinsWithWin": 55779
+  },
+  "extremegame/basegame": {
+   "reveals": 2000,
+   "spins": 2000,
+   "multBoard": {
+    "2": 392,
+    "3": 134,
+    "5": 57,
+    "10": 13,
+    "20": 8,
+    "50": 6,
+    "100": 1,
+    "250": 2,
+    "1000": 1,
+    "1.25": 1196,
+    "1.5": 705
+   },
+   "multPad": {
+    "2": 123,
+    "3": 54,
+    "5": 10,
+    "10": 7,
+    "20": 4,
+    "50": 1,
+    "1000": 1,
+    "1.5": 224,
+    "1.25": 402
+   },
+   "multsOnBoard": 2515,
+   "wallLine": {
+    "3": 29,
+    "4": 20
+   },
+   "wallOrient": {
+    "row": 23,
+    "column": 26
+   },
+   "cover": 0,
+   "boosterEvents": 1694,
+   "boosters": 2793,
+   "boosterValues": {
+    "2": 436,
+    "3": 150,
+    "5": 61,
+    "10": 14,
+    "20": 9,
+    "50": 6,
+    "100": 1,
+    "250": 2,
+    "1000": 2,
+    "1.25": 1327,
+    "1.5": 785
+   },
+   "boosterCells": {
+    "2": 26,
+    "3": 313,
+    "4": 1271,
+    "5": 1183
+   },
+   "lineDropValues": {
+    "2": 72,
+    "1.25": 274,
+    "1.5": 134
+   },
+   "lineDropEvents": 467,
+   "drops": 480,
+   "tumblesPerSpin": {
+    "0": 472,
+    "1": 1188,
+    "2": 289,
+    "3": 45,
+    "4": 6
+   },
+   "winBoardsPerSpin": {
+    "0": 1577,
+    "1": 383,
+    "2": 37,
+    "3": 2,
+    "4": 1
+   },
+   "clusterKinds": {
+    "5": 315,
+    "6": 119,
+    "7": 34,
+    "8": 9,
+    "9": 3
+   },
+   "clusterSyms": {
+    "L2": 211,
+    "L1": 251,
+    "L3": 12,
+    "L5": 1,
+    "L4": 5
+   },
+   "wins": 480,
+   "winCents": 113780,
+   "spinWinCents": 113780,
+   "spinsWithWin": 423
+  },
+  "extremegame/freegame": {
+   "reveals": 29364,
+   "spins": 29364,
+   "multBoard": {
+    "2": 22290,
+    "3": 18217,
+    "5": 10988,
+    "10": 4937,
+    "20": 1741,
+    "50": 579,
+    "100": 212,
+    "250": 69,
+    "500": 35,
+    "1000": 14
+   },
+   "multPad": {
+    "2": 4587,
+    "3": 3703,
+    "5": 2225,
+    "10": 1017,
+    "20": 371,
+    "50": 104,
+    "100": 36,
+    "250": 20,
+    "500": 2,
+    "1000": 3
+   },
+   "multsOnBoard": 59082,
+   "wallLine": {
+    "3": 3447,
+    "4": 1382
+   },
+   "wallOrient": {
+    "row": 2366,
+    "column": 2463
+   },
+   "cover": 0,
+   "boosterEvents": 30695,
+   "boosters": 65903,
+   "boosterValues": {
+    "2": 24895,
+    "3": 20293,
+    "5": 12264,
+    "10": 5493,
+    "20": 1933,
+    "50": 652,
+    "100": 240,
+    "250": 77,
+    "500": 39,
+    "1000": 17
+   },
+   "boosterCells": {
+    "3": 4806,
+    "4": 26412,
+    "5": 34685
+   },
+   "lineDropValues": {
+    "2": 1412,
+    "1.5": 2235,
+    "1.25": 5309
+   },
+   "lineDropEvents": 8500,
+   "drops": 8956,
+   "tumblesPerSpin": {
+    "0": 3788,
+    "1": 18208,
+    "2": 6162,
+    "3": 1073,
+    "4": 116,
+    "5": 17
+   },
+   "winBoardsPerSpin": {
+    "0": 21671,
+    "1": 6926,
+    "2": 729,
+    "3": 36,
+    "4": 2
+   },
+   "clusterKinds": {
+    "5": 5821,
+    "6": 2011,
+    "7": 696,
+    "8": 247,
+    "9": 87,
+    "10": 30,
+    "11": 11,
+    "12": 6
+   },
+   "clusterSyms": {
+    "L4": 326,
+    "L3": 1621,
+    "L1": 4728,
+    "L2": 2160,
+    "L5": 71,
+    "L7": 1,
+    "H4": 1,
+    "L6": 1
+   },
+   "wins": 8909,
+   "winCents": 71381280,
+   "spinWinCents": 71381280,
+   "spinsWithWin": 7693
+  },
+  "wallcover/basegame": {
+   "reveals": 200,
+   "spins": 200,
+   "multBoard": {
+    "5": 2905,
+    "10": 2925,
+    "20": 2412,
+    "50": 1186,
+    "100": 298
+   },
+   "multPad": {
+    "2": 11,
+    "3": 7,
+    "5": 2,
+    "50": 1,
+    "1.5": 26,
+    "1.25": 45
+   },
+   "multsOnBoard": 9726,
+   "wallLine": {},
+   "wallOrient": {},
+   "cover": 200,
+   "boosterEvents": 418,
+   "boosters": 10078,
+   "boosterValues": {
+    "2": 55,
+    "3": 18,
+    "5": 2914,
+    "10": 2926,
+    "20": 2413,
+    "50": 1186,
+    "100": 298,
+    "1.5": 101,
+    "1.25": 167
+   },
+   "boosterCells": {
+    "2": 15,
+    "3": 900,
+    "4": 4185,
+    "5": 4978
+   },
+   "lineDropValues": {
+    "2": 40,
+    "1.25": 133,
+    "1.5": 51
+   },
+   "lineDropEvents": 215,
+   "drops": 224,
+   "tumblesPerSpin": {
+    "1": 1,
+    "2": 108,
+    "3": 77,
+    "4": 12,
+    "5": 2
+   },
+   "winBoardsPerSpin": {
+    "1": 185,
+    "2": 14,
+    "3": 1
+   },
+   "clusterKinds": {
+    "5": 145,
+    "6": 42,
+    "7": 30,
+    "8": 1,
+    "9": 2,
+    "10": 2,
+    "13": 1
+   },
+   "clusterSyms": {
+    "L3": 19,
+    "L2": 72,
+    "L1": 111,
+    "L5": 10,
+    "L4": 9,
+    "L6": 2
+   },
+   "wins": 223,
+   "winCents": 18058100,
+   "spinWinCents": 18058100,
+   "spinsWithWin": 200
+  },
+  "wincap/basegame": {
+   "reveals": 20,
+   "spins": 20,
+   "multBoard": {
+    "2": 3,
+    "3": 1,
+    "1.25": 13,
+    "1.5": 8
+   },
+   "multPad": {
+    "10": 1,
+    "20": 1,
+    "1.5": 2,
+    "1.25": 4
+   },
+   "multsOnBoard": 25,
+   "wallLine": {},
+   "wallOrient": {},
+   "cover": 0,
+   "boosterEvents": 14,
+   "boosters": 25,
+   "boosterValues": {
+    "2": 3,
+    "3": 1,
+    "1.25": 13,
+    "1.5": 8
+   },
+   "boosterCells": {
+    "3": 4,
+    "4": 11,
+    "5": 10
+   },
+   "lineDropValues": {
+    "1.25": 1
+   },
+   "lineDropEvents": 1,
+   "drops": 1,
+   "tumblesPerSpin": {
+    "0": 6,
+    "1": 13,
+    "2": 1
+   },
+   "winBoardsPerSpin": {
+    "0": 19,
+    "1": 1
+   },
+   "clusterKinds": {
+    "5": 1
+   },
+   "clusterSyms": {
+    "L2": 1
+   },
+   "wins": 1,
+   "winCents": 100,
+   "spinWinCents": 100,
+   "spinsWithWin": 1
+  },
+  "wincap/freegame": {
+   "reveals": 102,
+   "spins": 102,
+   "multBoard": {
+    "1000": 824
+   },
+   "multPad": {
+    "1000": 206
+   },
+   "multsOnBoard": 824,
+   "wallLine": {
+    "3": 11,
+    "4": 7
+   },
+   "wallOrient": {
+    "row": 9,
+    "column": 9
+   },
+   "cover": 0,
+   "boosterEvents": 382,
+   "boosters": 1556,
+   "boosterValues": {
+    "1000": 1556
+   },
+   "boosterCells": {
+    "3": 118,
+    "4": 685,
+    "5": 753
+   },
+   "lineDropValues": {
+    "1.25": 1,
+    "1.5": 1
+   },
+   "lineDropEvents": 2,
+   "drops": 2,
+   "tumblesPerSpin": {
+    "0": 5,
+    "1": 6,
+    "2": 15,
+    "3": 21,
+    "4": 20,
+    "5": 18,
+    "6": 9,
+    "7": 5,
+    "8": 3
+   },
+   "winBoardsPerSpin": {
+    "0": 80,
+    "1": 22
+   },
+   "clusterKinds": {
+    "5": 16,
+    "6": 5,
+    "9": 1
+   },
+   "clusterSyms": {
+    "L1": 12,
+    "L2": 7,
+    "H7": 1,
+    "L3": 1,
+    "L4": 1
+   },
+   "wins": 22,
+   "winCents": 20400800,
+   "spinWinCents": 20400800,
+   "spinsWithWin": 22
+  }
+ },
+ "triggers": {
+  "standard|fs12|bs4|es0": 1376,
+  "standard|fs10|bs3|es0": 5204,
+  "extreme_upgrade|fs10|bs3|es1": 502,
+  "extreme_direct|fs17|bs0|es2": 698,
+  "extreme_direct|fs17|bs1|es2": 328,
+  "standard|fs15|bs5|es0": 406,
+  "extreme_upgrade|fs12|bs4|es1": 229,
+  "extreme_direct|fs17|bs2|es2": 214,
+  "extreme_direct|fs17|bs3|es2": 22,
+  "extreme_direct|fs17|bs2|es3": 2,
+  "extreme_direct|fs17|bs4|es2": 1,
+  "extreme_direct|fs17|bs1|es3": 7,
+  "standard|fs15|bs6|es0": 15,
+  "extreme_direct|fs17|bs0|es3": 11,
+  "extreme_upgrade|fs15|bs5|es1": 6
+ },
+ "eventTypes": {
+  "reveal": 204333,
+  "booster": 217064,
+  "tumbleBoard": 258011,
+  "setTotalWin": 204333,
+  "finalWin": 100000,
+  "freeSpinTrigger": 9021,
+  "enterBonus": 9021,
+  "updateFreeSpin": 104333,
+  "winInfo": 94899,
+  "updateTumbleWin": 94899,
+  "lineMults": 94878,
+  "setWin": 84085,
+  "freeSpinEnd": 9021,
+  "wallDrop": 20119,
+  "extremeTrigger": 2020,
+  "wincap": 21
+ },
+ "bookKeys": {
+  "id,payoutMultiplier,events": 100000
+ },
+ "checks": {
+  "books": 100000,
+  "payoutMismatch": 0,
+  "badIndex": 0,
+  "negPadding": 150,
+  "maxEvents": 219,
+  "maxBytes": 131577,
+  "over512k": 0,
+  "lutMissing": 0,
+  "firstIndex": {
+   "0": 100000
+  },
+  "medianBytes": 2614,
+  "p99Bytes": 40277
+ },
+ "schema": {
+  "reveal": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,board,paddingPositions,gameType,anticipation"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".board": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".board[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".board[][]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "name",
+     "name,scatter",
+     "name,booster,multiplier",
+     "name,scatter_extreme"
+    ]
+   },
+   ".board[][].name": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".board[][].scatter": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".board[][].booster": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".board[][].multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".paddingPositions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".paddingPositions[]": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".gameType": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".anticipation": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".anticipation[]": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".board[][].scatter_extreme": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   }
+  },
+  "booster": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,boosters,gridMults"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".boosters": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".boosters[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row,mult,cells"
+    ]
+   },
+   ".boosters[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].mult": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".boosters[].cells[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".boosters[].cells[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".gridMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[][]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "tumbleBoard": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,newSymbols,explodingSymbols"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".newSymbols": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".newSymbols[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "name",
+     "name,booster,multiplier",
+     "name,scatter",
+     "name,scatter_extreme"
+    ]
+   },
+   ".newSymbols[][].name": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".explodingSymbols[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".explodingSymbols[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].booster": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].scatter": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   },
+   ".newSymbols[][].scatter_extreme": {
+    "types": [
+     "boolean"
+    ],
+    "keys": []
+   }
+  },
+  "setTotalWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "finalWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "freeSpinTrigger": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,totalFs,positions"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".totalFs": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "enterBonus": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,reason"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".reason": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   }
+  },
+  "updateFreeSpin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,total"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".total": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "winInfo": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,totalWin,wins"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".totalWin": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "symbol,kind,win,positions,meta"
+    ]
+   },
+   ".wins[].symbol": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".wins[].kind": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].win": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[].positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".wins[].positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "clusterSize,winWithoutMult,multiplier,cellMults",
+     "clusterSize,winWithoutMult,multiplier"
+    ]
+   },
+   ".wins[].meta.clusterSize": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.winWithoutMult": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.multiplier": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.cellMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".wins[].meta.cellMults[]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "updateTumbleWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "lineMults": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,drops,gridMults"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".drops": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".drops[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row,mult"
+    ]
+   },
+   ".drops[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".drops[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".drops[].mult": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   },
+   ".gridMults": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[]": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".gridMults[][]": {
+    "types": [
+     "frac",
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "setWin": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,winLevel"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".winLevel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "freeSpinEnd": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount,winLevel"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".winLevel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "wallDrop": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,kind,positions"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".kind": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  },
+  "extremeTrigger": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,positions,reason"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".positions": {
+    "types": [
+     "array"
+    ],
+    "keys": []
+   },
+   ".positions[]": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "reel,row"
+    ]
+   },
+   ".positions[].reel": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".positions[].row": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".reason": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   }
+  },
+  "wincap": {
+   "": {
+    "types": [
+     "object"
+    ],
+    "keys": [
+     "index,type,amount"
+    ]
+   },
+   ".index": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   },
+   ".type": {
+    "types": [
+     "string"
+    ],
+    "keys": []
+   },
+   ".amount": {
+    "types": [
+     "int"
+    ],
+    "keys": []
+   }
+  }
+ }
+}

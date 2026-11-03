@@ -13,3 +13,13 @@ frontend_manifest.json
 upload_media/
 # local pre-shrink book backups (tools/shrink_books.py keeps them next to the originals)
 *.jsonl.zst.orig
+
+# hard links to math-sdk's publish files for the Stake Dev Tool (no copy in git)
+devtool-math/
+
+# Blender pipeline: renders and QA images are rebuilt from art/blender/symbols/*.blend (tools/blender/run.py)
+art/blender/renders/
+art/blender/qa/
+art/blender/plates/*_raw.png
+art/blender/plates/*_response.json
+*.blend1

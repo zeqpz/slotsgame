@@ -1,0 +1,25 @@
+{
+ "id": "L8",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "bag",
+   "box": [
+    131,
+    55,
+    872,
+    923
+   ],
+   "pivot": [
+    505,
+    905
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  }
+ ]
+}

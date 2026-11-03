@@ -1,0 +1,180 @@
+{
+ "id": "H1",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "box": [
+    158,
+    328,
+    913,
+    946
+   ],
+   "pivot": [
+    530,
+    936
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "top",
+   "box": [
+    153,
+    47,
+    730,
+    373
+   ],
+   "pivot": [
+    512,
+    330
+   ],
+   "parent": "band",
+   "hidden": false,
+   "draw": 4,
+   "anchor": {
+    "bone": "band",
+    "y0": 350,
+    "y1": 285
+   }
+  },
+  {
+   "name": "dollar",
+   "box": [
+    367,
+    481,
+    640,
+    810
+   ],
+   "pivot": [
+    500,
+    645
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 5
+  },
+  {
+   "name": "rope_lo_rim",
+   "box": [
+    124,
+    359,
+    369,
+    538
+   ],
+   "pivot": [
+    348,
+    391
+   ],
+   "parent": "band",
+   "hidden": false,
+   "draw": 6,
+   "bones_of": "rope_lo"
+  },
+  {
+   "name": "rope_up_rim",
+   "box": [
+    119,
+    312,
+    369,
+    419
+   ],
+   "pivot": [
+    364,
+    362
+   ],
+   "parent": "band",
+   "hidden": false,
+   "draw": 7,
+   "bones_of": "rope_up"
+  },
+  {
+   "name": "rope_lo",
+   "box": [
+    140,
+    372,
+    365,
+    523
+   ],
+   "pivot": [
+    348,
+    391
+   ],
+   "parent": "band",
+   "hidden": false,
+   "draw": 8,
+   "chain": [
+    [
+     348.0,
+     391.0
+    ],
+    [
+     290.0,
+     413.0
+    ],
+    [
+     234.0,
+     466.0
+    ],
+    [
+     138.0,
+     490.0
+    ]
+   ]
+  },
+  {
+   "name": "rope_up",
+   "box": [
+    134,
+    327,
+    368,
+    404
+   ],
+   "pivot": [
+    364,
+    362
+   ],
+   "parent": "band",
+   "hidden": false,
+   "draw": 9,
+   "chain": [
+    [
+     364.0,
+     362.0
+    ],
+    [
+     290.0,
+     354.0
+    ],
+    [
+     218.0,
+     353.0
+    ],
+    [
+     132.0,
+     372.0
+    ]
+   ]
+  },
+  {
+   "name": "band",
+   "box": [
+    334,
+    304,
+    680,
+    435
+   ],
+   "pivot": [
+    512,
+    366
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 10
+  }
+ ]
+}

@@ -1,0 +1,41 @@
+{
+ "id": "H2",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "frame",
+   "box": [
+    41,
+    223,
+    932,
+    888
+   ],
+   "pivot": [
+    700,
+    640
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "slide",
+   "box": [
+    45,
+    97,
+    948,
+    474
+   ],
+   "pivot": [
+    500,
+    300
+   ],
+   "parent": "frame",
+   "hidden": false,
+   "draw": 1
+  }
+ ]
+}

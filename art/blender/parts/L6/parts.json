@@ -1,0 +1,41 @@
+{
+ "id": "L6",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "box": [
+    36,
+    59,
+    966,
+    954
+   ],
+   "pivot": [
+    500,
+    80
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "logo",
+   "box": [
+    267,
+    245,
+    716,
+    688
+   ],
+   "pivot": [
+    490,
+    420
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 1
+  }
+ ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "smukiez-slot-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Smukiez's City math on Slot Engine (https://slot-engine.dev): simulate, optimise, analyse, and play the front end against a local gaming server",
+  "scripts": {
+    "panel": "tsx watch ./panel.ts",
+    "sim:example": "tsx ./games/cluster_example/index.ts --slot-engine-run"
+  },
+  "dependencies": {
+    "@slot-engine/core": "0.4.0",
+    "@slot-engine/lgs": "0.1.0",
+    "@slot-engine/optimizer": "0.2.0",
+    "@slot-engine/panel": "0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "tsx": "4.20.6",
+    "typescript": "^5.9"
+  }
+}

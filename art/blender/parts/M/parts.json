@@ -1,0 +1,89 @@
+{
+ "id": "M",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "left",
+   "box": [
+    141,
+    115,
+    639,
+    924
+   ],
+   "pivot": [
+    588,
+    905
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "right",
+   "box": [
+    494,
+    121,
+    880,
+    925
+   ],
+   "pivot": [
+    588,
+    905
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "brick_tl",
+   "box": [
+    138,
+    110,
+    309,
+    247
+   ],
+   "pivot": [
+    306,
+    244
+   ],
+   "parent": "left",
+   "hidden": false,
+   "draw": 2
+  },
+  {
+   "name": "brick_tr",
+   "box": [
+    688,
+    110,
+    875,
+    250
+   ],
+   "pivot": [
+    692,
+    247
+   ],
+   "parent": "right",
+   "hidden": false,
+   "draw": 3
+  },
+  {
+   "name": "brick_bl",
+   "box": [
+    145,
+    800,
+    290,
+    925
+   ],
+   "pivot": [
+    213,
+    852
+   ],
+   "parent": "left",
+   "hidden": false,
+   "draw": 4
+  }
+ ]
+}

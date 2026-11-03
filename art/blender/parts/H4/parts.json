@@ -1,0 +1,369 @@
+{
+ "id": "H4",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "back_rim",
+   "box": [
+    55,
+    18,
+    694,
+    683
+   ],
+   "pivot": [
+    436,
+    172
+   ],
+   "parent": "back",
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "front_rim",
+   "box": [
+    262,
+    269,
+    951,
+    902
+   ],
+   "pivot": [
+    596,
+    296
+   ],
+   "parent": "front",
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "back_lace_rim",
+   "box": [
+    397,
+    17,
+    483,
+    192
+   ],
+   "pivot": [
+    440,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 2,
+   "bones_of": "back_lace"
+  },
+  {
+   "name": "back_end_rim",
+   "box": [
+    450,
+    39,
+    513,
+    274
+   ],
+   "pivot": [
+    486,
+    56
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 3,
+   "bones_of": "back_end"
+  },
+  {
+   "name": "front_lace_rim",
+   "box": [
+    541,
+    18,
+    626,
+    316
+   ],
+   "pivot": [
+    580,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 4,
+   "bones_of": "front_lace"
+  },
+  {
+   "name": "front_end_rim",
+   "box": [
+    581,
+    36,
+    714,
+    422
+   ],
+   "pivot": [
+    606,
+    58
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 5,
+   "bones_of": "front_end"
+  },
+  {
+   "name": "back_rimfill",
+   "box": [
+    60,
+    23,
+    690,
+    677
+   ],
+   "pivot": [
+    436,
+    172
+   ],
+   "parent": "back",
+   "hidden": false,
+   "draw": 6
+  },
+  {
+   "name": "front_rimfill",
+   "box": [
+    268,
+    272,
+    946,
+    897
+   ],
+   "pivot": [
+    596,
+    296
+   ],
+   "parent": "front",
+   "hidden": false,
+   "draw": 7
+  },
+  {
+   "name": "back_lace_rimfill",
+   "box": [
+    400,
+    22,
+    480,
+    188
+   ],
+   "pivot": [
+    440,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 8,
+   "bones_of": "back_lace"
+  },
+  {
+   "name": "back_end_rimfill",
+   "box": [
+    456,
+    43,
+    507,
+    268
+   ],
+   "pivot": [
+    486,
+    56
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 9,
+   "bones_of": "back_end"
+  },
+  {
+   "name": "front_lace_rimfill",
+   "box": [
+    546,
+    23,
+    620,
+    310
+   ],
+   "pivot": [
+    580,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 10,
+   "bones_of": "front_lace"
+  },
+  {
+   "name": "front_end_rimfill",
+   "box": [
+    587,
+    40,
+    708,
+    416
+   ],
+   "pivot": [
+    606,
+    58
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 11,
+   "bones_of": "front_end"
+  },
+  {
+   "name": "back",
+   "box": [
+    70,
+    34,
+    774,
+    667
+   ],
+   "pivot": [
+    436,
+    172
+   ],
+   "parent": "back_lace.1",
+   "hidden": false,
+   "draw": 12
+  },
+  {
+   "name": "back_lace",
+   "box": [
+    413,
+    33,
+    467,
+    176
+   ],
+   "pivot": [
+    440,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 13,
+   "chain": [
+    [
+     440.0,
+     40.0
+    ],
+    [
+     438.0,
+     104.0
+    ],
+    [
+     436.0,
+     172.0
+    ]
+   ]
+  },
+  {
+   "name": "back_end",
+   "box": [
+    466,
+    55,
+    497,
+    258
+   ],
+   "pivot": [
+    486,
+    56
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 14,
+   "chain": [
+    [
+     486.0,
+     56.0
+    ],
+    [
+     484.0,
+     118.0
+    ],
+    [
+     483.0,
+     184.0
+    ],
+    [
+     482.0,
+     252.0
+    ]
+   ]
+  },
+  {
+   "name": "front",
+   "box": [
+    278,
+    285,
+    936,
+    887
+   ],
+   "pivot": [
+    596,
+    296
+   ],
+   "parent": "front_lace.1",
+   "hidden": false,
+   "draw": 15
+  },
+  {
+   "name": "front_lace",
+   "box": [
+    557,
+    34,
+    610,
+    300
+   ],
+   "pivot": [
+    580,
+    40
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 16,
+   "chain": [
+    [
+     580.0,
+     40.0
+    ],
+    [
+     588.0,
+     166.0
+    ],
+    [
+     596.0,
+     296.0
+    ]
+   ]
+  },
+  {
+   "name": "front_end",
+   "box": [
+    597,
+    52,
+    698,
+    406
+   ],
+   "pivot": [
+    606,
+    58
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 17,
+   "chain": [
+    [
+     606.0,
+     58.0
+    ],
+    [
+     613.0,
+     150.0
+    ],
+    [
+     634.0,
+     262.0
+    ],
+    [
+     684.0,
+     396.0
+    ]
+   ]
+  }
+ ]
+}

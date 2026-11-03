@@ -1,0 +1,57 @@
+{
+ "id": "H6",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "deck",
+   "box": [
+    103,
+    72,
+    935,
+    916
+   ],
+   "pivot": [
+    484,
+    487
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "truck_f",
+   "box": [
+    106,
+    339,
+    487,
+    585
+   ],
+   "pivot": [
+    330,
+    432
+   ],
+   "parent": "deck",
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "truck_b",
+   "box": [
+    473,
+    693,
+    819,
+    937
+   ],
+   "pivot": [
+    676,
+    806
+   ],
+   "parent": "deck",
+   "hidden": false,
+   "draw": 2
+  }
+ ]
+}

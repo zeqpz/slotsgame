@@ -1,0 +1,95 @@
+{
+ "id": "L5",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "top_die_rim",
+   "box": [
+    34,
+    54,
+    583,
+    626
+   ],
+   "pivot": [
+    304,
+    340
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0,
+   "bones_of": "top_die"
+  },
+  {
+   "name": "top_die",
+   "box": [
+    43,
+    64,
+    565,
+    618
+   ],
+   "pivot": [
+    304,
+    340
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1,
+   "chain": [
+    [
+     304.0,
+     340.0
+    ],
+    [
+     304.0,
+     240.0
+    ]
+   ]
+  },
+  {
+   "name": "low_die_rim",
+   "box": [
+    412,
+    355,
+    975,
+    923
+   ],
+   "pivot": [
+    700,
+    640
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 3,
+   "bones_of": "low_die"
+  },
+  {
+   "name": "low_die",
+   "box": [
+    425,
+    362,
+    968,
+    912
+   ],
+   "pivot": [
+    700,
+    640
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 4,
+   "chain": [
+    [
+     700.0,
+     640.0
+    ],
+    [
+     700.0,
+     540.0
+    ]
+   ]
+  }
+ ]
+}

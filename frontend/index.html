@@ -1460,8 +1460,8 @@
      the graffiti face runs much wider than the UI font it replaced */
   .cell > div { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cell img { width: 88%; height: 88%; object-fit: contain; pointer-events: none; }
-  /* Each cell's contents sit in one lasting box (.ico) that idleStretch() animates. The icon
-     inside is replaced on every fill; the box is not, so its idle path carries straight on. */
+  /* Each cell's contents sit in one lasting box (.ico). The icon inside is replaced on every
+     fill; the box is not. */
   .cell .ico {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
     transform-origin: 50% 90%; pointer-events: none;
@@ -1478,6 +1478,7 @@
   }
   .cell .rigin { position: absolute; inset: 0; }
   .cell .rig .part { position: absolute; left: 0; top: 0; transform-origin: 0 0; background-repeat: no-repeat; }
+  .cell .rig .symc { position: absolute; pointer-events: none; }   /* Blender's frames, on the clip's own box */
   /* The paying tiers wear a neon glow round the sticker (art/STYLE.md, "Symbol tiers"): the top
      three a neon-lime tube with a violet halo, the next four a violet one, the lows none, so the
      pay order reads at a glance and not only by colour. Two pictures per symbol
@@ -1515,18 +1516,6 @@
   .cell.explode .tglow.halo, .cell.explode .tglow.tube { animation: tglowStrain calc(.5s * var(--tempo, 1)) linear forwards; }
   @keyframes tglowStrain { 0% { opacity: .85; transform: scale(1); } 50% { opacity: 1; transform: scale(1.22); } 53%, 100% { opacity: 0; transform: scale(1.3); } }
   @media (prefers-reduced-motion: reduce) { .cell .tglow { animation: none !important; opacity: .85; } }
-  /* Everything on the board idles with a slight stretch of its own: a slow random wander in
-     width, height and lean that never repeats (idleStretch writes --sx / --sy / --sr per board
-     position; the multiplier slot under a cell takes its cell's), so the wall never looks
-     frozen, never pulses in step and never loops: the paying icons, the Multi with its value,
-     the value boxes Multis leave behind, and the bonus-spin scatters (their rules are below,
-     alongside the glow). It keeps going through spins and bonuses: it moves the individual
-     scale/rotate properties, while the drops, landings, pops and blow-outs animate the tile
-     around it, so the two layer instead of fighting. */
-  .cell.low img, .cell.high img, .cell.booster img {
-    transform-origin: 50% 90%;
-    scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg);
-  }
   /* the Multi's value moves with its brick: the same stretch, pivoting at the brick's base */
   .cell.booster .multface {
     transform-origin: 50% 85%;
@@ -1549,8 +1538,7 @@
   }
   .cell.wild  { background: var(--spray-deep); border-color: var(--spray); color: #fff; }
   /* The two scatters are hand-painted FS and XFS. They glow in their own colour and the
-     glow breathes, so a landed scatter reads as live even before anything happens to it; they
-     also take the board's slow stretch (idleStretch, above), pivoting on their centre. */
+     glow breathes, so a landed scatter reads as live even before anything happens to it. */
   .cell.scat  { color: var(--fs-green); }
   .cell.escat { color: var(--fs-purple); }
   .cell.scat img, .cell.escat img { scale: var(--sx, 1) var(--sy, 1); rotate: var(--sr, 0deg); }
@@ -3094,8 +3082,6 @@ const reelEls = [];
 const multEls = [];   // multEls[r][y]: the number slot under cell (r, y)
 function buildBoard() {
   const board = $("board");
-  // the idle stretch of every cell (and of the multiplier slot under it) is driven by
-  // idleStretch(), started once the board is built
   const layer = document.createElement("div");
   layer.className = "multlayer"; layer.id = "multLayer";
   board.appendChild(layer);
@@ -3125,7 +3111,7 @@ function buildBoard() {
       c.smear = document.createElement("i");      // the motion blur behind it while it falls (under the icon)
       c.smear.className = "smear";
       c.appendChild(c.smear);
-      c.ico = document.createElement("span");      // the lasting box the icon sits in (idleStretch moves it)
+      c.ico = document.createElement("span");      // the lasting box the icon sits in
       c.ico.className = "ico";
       c.appendChild(c.ico);
       reel.appendChild(c); cellEls[r].push(c);
@@ -3138,7 +3124,6 @@ function buildBoard() {
   // a Multi that dropped in bare gets its value sprayed on the moment it has landed
   board.addEventListener("animationend", e => { if (e.animationName === "tumbleDrop") sprayDue(e.target); });
   prepareSpray();   // normally already under way behind the loading screen
-  idleStretch();
   startRims();
   frameIdle();
   startRigs();
@@ -3206,24 +3191,6 @@ function wander(targets, frames, { seg = 6, rate = 8 } = {}) {
     if (lead) lead.onfinish = run;
   };
   run();
-}
-// Every icon on the board idles with a slight stretch of its own: a slow random wander in
-// width, height and lean, every cell on its own path - so no two move alike and none ever
-// repeats. It moves the cell's lasting icon box (.ico) and the multiplier slot under the cell
-// together. It is played on `transform`, the one property Chrome animates entirely on the
-// compositor (the individual scale/rotate properties were still resolved on the main thread
-// every frame); nothing else animates the .ico box, and the slot's own pop and fade use scale.
-function idleStretch() {
-  if (REDUCED_MOTION) return;
-  const AMP = [.07, .07, 2.5];   // up to 7% wider or narrower, 7% taller or shorter, 2.5 degrees of lean
-  for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
-    // each channel is a slow wander with a quicker, smaller one laid over it, so the motion
-    // never stalls at the slow one's turning points - there is always something moving
-    const ch = [0, 1, 2].map(() => { const slow = drift(1.3, 2.4), quick = drift(.5, 1); return t => .7 * slow(t) + .3 * quick(t); });
-    wander(() => [cellEls[r][y].ico, multEls[r][y]], t => ({
-      transform: `rotate(${(AMP[2] * ch[2](t)).toFixed(2)}deg) scale(${(1 + AMP[0] * ch[0](t)).toFixed(4)}, ${(1 + AMP[1] * ch[1](t)).toFixed(4)})`,
-    }));
-  }
 }
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
 // icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
@@ -3312,11 +3279,12 @@ function fillCell(cell, sym) {
       m.append(v);
       m.style.setProperty("--heat", heatColour(sym.multiplier));
       m._mult = sym.multiplier;
-    } else m.textContent = def.label;
+    }   // no value yet: the bare brick, never a "MULTI" caption over it
     el.append(m);
     return;
   }
-  if (cell.ico && TIER[sym.name] && (rig || def.img)) el.append(tierGlow(sym.name));   // behind the icon
+  // the neon is Blender's, in the animated symbol's frames; a flat icon (reduced motion) still wears the old glow
+  if (cell.ico && TIER[sym.name] && !rig && def.img) el.append(tierGlow(sym.name));   // behind the icon
   if (rig) {
     el.append(rig);
   } else if (def.img) {
@@ -3342,356 +3310,172 @@ function setCell(r, y, sym) {
 }
 
 /* ---------- animated symbols ---------- */
-// Every symbol is a Spine 4.2 skeleton: tools/icon_rigs cuts the icon art into parts, packs
-// them into one atlas (assets/icons/icons*.webp) and authors each icon's clips - "idle" (its own
-// performance, played as the symbol lands: the lowrider hops on its hydraulics, the spray can's
-// cloud billows and sheds puffs, the marker redraws its line...), "land" (a spare, for a rig
-// without an idle) and "win", played when it is in a paid cluster. Nothing replays between rounds:
-// a symbol performs as it first lands and when it wins, and rests otherwise (owner, 2026-10-30:
-// no spray cans and markers going off on an idle board). The Spine runtime
-// the characters already use evaluates every clip once, at load: each part's transform and
-// opacity, RIG_FPS times a second. Those are played back as Web Animations on plain elements
-// inside the cell - on the compositor, no per-frame script - so a symbol still rides on
-// everything the board does to its cell: the drops, the pops, the spotlight, the idle stretch.
-const RIG_FPS = 30;
-const RIG_DROP_S = 1.1, RIG_SETTLE_S = .3;   // a drop-in plays this much of the idle, then settles (0 = the whole idle)
-// every clip's keyframes are parsed once into a KeyframeEffect, and a play copies it
-const RIG_FX = typeof KeyframeEffect === "function" && typeof Animation === "function";
-const RIGS = {};             // symbol -> { w, h, parts: [{ w, h, bg, m, a }], clips: { name: { ms, kf: [keyframes | null per part] } } }
-let rigsReady = null;
-const rigPages = [];         // the atlas pages, decoded and held for as long as the page is up
-// The atlas ships at several densities (tools/icon_rigs/build.py: d10/ = 1.0 atlas px per rig
-// unit ... d48/, and the full 6.4 at the top). Every part is drawn in rig units, so a density is
-// only a different picture behind the same numbers. The game takes the one that matches the
-// screen: while a symbol animates the browser draws it with plain bilinear filtering (no
-// mipmaps), so pages several times denser than the screen went jagged and shimmered whenever a
-// symbol moved, and pages thinner than the screen go soft. Picked so a symbol at rest is drawn
-// at about its own pixels (a touch over, for the win pops), and picked again when the window's
-// size changes the board's.
-const RIG_DENSITY = [1, 1.2, 1.4, 1.6, 2, 2.4, 3.2, 4, 4.8, 6.4];
-const RIG_HEADROOM = 1.5;    // atlas px per screen px at rest: crisp at rest and through the lit hold (x1.2), and
-                             // measured (scratch animq.js, 1080p): 1.5-1.7x still draws clean in motion, 3x+ goes jagged
-let rigDensity = 6.4, rigPageNames = [];
-const rigPageUrl = (name, d = rigDensity) => "assets/icons/" + (d >= 6.4 ? "" : "d" + Math.round(d * 10) + "/") + name;
-// device px per rig unit for the biggest symbol at rest, times the headroom -> the density to load
-function rigWantDensity() {
+// Every symbol is animated in Blender (tools/blender: the icon cut into a 2D rig, its clips keyed on the bones,
+// the parts that hang and trail following through, effects drawn frame by frame in Grease Pencil, the paying
+// tiers' neon bloomed by Blender's compositor) and rendered to frames. assets/sym/d<density>/<ID>_<clip>.webp
+// holds one clip's frames in a grid; assets/sym/manifest.json says where each clip's box sits on the icon and how
+// it runs (tools/blender/pack_frames.py). On the board a symbol is a canvas showing one frame at a time, and one
+// loop steps every symbol that is playing - nothing is animated by CSS. Clips: "land" as a tile drops in, "hit"
+// in a paid cluster, "multi" when a Multi powers it (and the Multi itself as it goes off), "idle" looping on every
+// symbol of a resting board. Every clip starts and ends on the rest pose, so a finished one simply
+// leaves the rest pose showing, and a new one cuts the one running.
+const SYM_DENSITY = [1.6, 2.4, 3.2];   // sheet px per rig unit (an icon is 100 across), as the old atlas's
+const SYM_HEADROOM = 1.25;            // sheet px per screen px at rest: crisp at rest, through the lit pop and the hit
+const SYM_IDLE_STAGGER = 2400;        // ms over which a resting board's idles start up, each symbol at its own moment
+const SYMF = { man: null, density: "d16", sheets: new Map() };   // sheets: "<ID>_<clip>" -> { img, ok, ready }
+const CLIP_OF = { drop: "land", win: "hit" };   // the board's own names for the moments, and the clips that play
+let symReady = null;
+// sheet px per rig unit the biggest symbol needs at rest on this screen, times the headroom -> the density to load
+function symWantDensity() {
   const c = cellEls[0] && cellEls[0][0], dpr = window.devicePixelRatio || 1;
-  let px = dpr;   // no board laid out yet: about a css px per unit
+  let px = dpr;
   if (c && c.offsetWidth && c.offsetHeight) {
-    const bw = c.clientWidth * .88, bh = c.clientHeight * .88;   // the rig's box (measureRigBox)
-    let unit = 0;
-    for (const r of Object.values(RIGS)) unit = Math.max(unit, Math.min(bw / r.w, bh / r.h));
-    if (!unit) unit = Math.max(bw, bh) / 100;   // before the rigs are baked: the widest a 100-unit icon can be drawn
-    const fit = c.getBoundingClientRect().width / c.offsetWidth;   // #app's fit-to-screen scale (and the board's)
+    const unit = Math.min(c.clientWidth * .88, c.clientHeight * .88) / 100;   // css px per rig unit (measureRigBox)
+    const fit = c.getBoundingClientRect().width / c.offsetWidth;              // #app's fit-to-screen scale
     px = unit * (fit > 0 ? fit : 1) * dpr;
   }
-  const force = +new URLSearchParams(location.search).get("atlas");   // QA: ?atlas=1.6 pins a density
-  if (RIG_DENSITY.includes(force)) return force;
-  const need = px * RIG_HEADROOM;
-  return RIG_DENSITY.find(d => d >= need - 1e-6) || RIG_DENSITY[RIG_DENSITY.length - 1];
+  const force = +new URLSearchParams(location.search).get("symd");            // QA: ?symd=3.2 pins a density
+  const list = (SYMF.man && SYMF.man.densities) || SYM_DENSITY;
+  const pick = list.includes(force) ? force : (list.find(d => d >= px * SYM_HEADROOM - 1e-6) || list[list.length - 1]);
+  return "d" + Math.round(pick * 10);
 }
-// A new window size can call for another density: fetch and decode its pages first, then point
-// every symbol (the templates and the cells on the board) at them in one go.
-let rigDensityBusy = false;
-async function rigCheckDensity() {
-  if (rigDensityBusy || !rigPageNames.length) return;
-  const want = rigWantDensity();
-  if (want === rigDensity) return;
-  rigDensityBusy = true;
-  try {
-    const pics = rigPageNames.map(n => { const im = new Image(); im.src = rigPageUrl(n, want); return im; });
-    await Promise.all(pics.map(im => im.decode().catch(() => {})));
-    const from = rigDensity;
-    rigDensity = want;
-    const swap = el => { const b = el.style.backgroundImage; if (b) el.style.backgroundImage = b.replace(/assets\/icons\/(?:d\d+\/)?/, "assets/icons/" + (want >= 6.4 ? "" : "d" + Math.round(want * 10) + "/")); };
-    for (const r of Object.values(RIGS)) {
-      r.parts.forEach(pt => { if (pt.bg) pt.bg = pt.bg.replace(rigPageUrl("", from), rigPageUrl("", want)); });
-      if (r.tpl) r.tpl.querySelectorAll(".part").forEach(swap);
-    }
-    document.querySelectorAll(".rig .part").forEach(swap);
-    rigPages.length = 0; rigPages.push(...pics);
-  } finally { rigDensityBusy = false; }
-  rigCheckDensity();   // the window may have moved on while the pages loaded
+// One clip's sheet, fetched and decoded once and held for as long as the page is up
+function symSheet(id, clip) {
+  const key = id + "_" + clip;
+  let s = SYMF.sheets.get(key);
+  if (!s) {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = `assets/sym/${SYMF.density}/${key}.webp`;
+    s = { img, ok: false, ready: null };
+    s.ready = img.decode().then(() => { s.ok = true; }, e => { SYMF.sheets.delete(key); throw e; });
+    SYMF.sheets.set(key, s);
+  }
+  return s.ready;
 }
-let rigDensityTimer = 0;
-addEventListener("resize", () => { clearTimeout(rigDensityTimer); rigDensityTimer = setTimeout(rigCheckDensity, 400); });
-function loadRigs() {
-  if (rigsReady) return rigsReady;
-  rigsReady = (async () => {
-    if (REDUCED_MOTION || typeof spine === "undefined" || !spine.SkeletonJson) return false;
-    const [atlasText, bundle] = await Promise.all([
-      fetch("assets/icons/icons.atlas").then(r => r.ok ? r.text() : Promise.reject(new Error("atlas " + r.status))),
-      fetch("assets/icons/icons.json").then(r => r.ok ? r.json() : Promise.reject(new Error("rigs " + r.status))),
-    ]);
-    const atlas = new spine.TextureAtlas(atlasText);
-    rigPageNames = atlas.pages.map(p => p.name);
-    rigDensity = rigWantDensity();
-    // the pages are drawn by CSS, not by Spine: have them decoded before a cell shows them, and
-    // keep hold of them so the decoded pictures are never let go and fetched in again mid-spin
-    await Promise.all(rigPageNames.map(n => { const im = new Image(); im.src = rigPageUrl(n); rigPages.push(im); return im.decode().catch(() => {}); }));
-    const json = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas));
-    for (const [name, data] of Object.entries(bundle)) {
-      try { RIGS[name] = bakeRig(json.readSkeletonData(data)); }
-      catch (e) { console.warn("rig " + name + " skipped:", e); }
-      await new Promise(r => setTimeout(r, 0));   // one symbol per task: the loading screen keeps moving
-    }
-    return Object.keys(RIGS).length > 0;
+function loadSymFrames() {
+  if (symReady) return symReady;
+  symReady = (async () => {
+    if (REDUCED_MOTION) return false;
+    const man = await fetch("assets/sym/manifest.json").then(r => r.ok ? r.json() : Promise.reject(new Error("manifest " + r.status)));
+    SYMF.man = man;
+    SYMF.density = symWantDensity();
+    const ids = Object.keys(man.symbols);
+    // the landings hold the rest pose and play as every tile drops in: the board waits on them. The wins
+    // follow behind the loading screen, then the idles every resting symbol loops, then the multipliers - a
+    // clip at a time, every symbol's at once.
+    await Promise.all(ids.map(id => symSheet(id, "land")));
+    (async () => {
+      for (const clip of ["hit", "idle", "multi"]) await Promise.all(ids.map(id => symSheet(id, clip).catch(() => {})));
+    })();
+    return ids.length > 0;
   })().catch(e => { console.warn("animated symbols unavailable:", e); return false; });
-  return rigsReady;
+  return symReady;
 }
-// 2D affines as CSS writes them: [a, b, c, d, e, f] maps (x, y) to (a x + c y + e, b x + d y + f)
-const rigAff = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3],
-                       m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
-const rigMat = m => `matrix(${m.map(v => +v.toFixed(4)).join(",")})`;
-function bakeRig(data) {
-  const sk = new spine.Skeleton(data);
-  const physics = spine.Physics ? spine.Physics.update : undefined;
-  const W = data.width, H = data.height;
-  // skeleton space (origin at the centre) -> the rig box. spine-pixi switches the runtime to
-  // y-down world coordinates (Skeleton.yDown), which is already the box's orientation.
-  const yDown = !!((spine.Skeleton && spine.Skeleton.yDown) || (spine.Bone && spine.Bone.yDown));
-  const toRig = [1, 0, 0, yDown ? 1 : -1, W / 2, H / 2];
-  const pose = () => sk.slots.map(slot => {                       // every slot's part: its matrix and opacity right now
-    const att = slot.getAttachment();
-    if (!att || !att.region) return { m: "matrix(0,0,0,0,0,0)", a: 0 };
-    const b = slot.bone, r = (att.rotation || 0) * Math.PI / 180, co = Math.cos(r), si = Math.sin(r);
-    const sx = att.scaleX ?? 1, sy = att.scaleY ?? 1;
-    let m = [1, 0, 0, -1, -att.width / 2, att.height / 2];      // the part's own box (y down) -> centred, y up
-    m = rigAff([co * sx, si * sx, -si * sy, co * sy, att.x, att.y], m);   // the attachment's place on its bone
-    m = rigAff([b.a, b.c, b.b, b.d, b.worldX, b.worldY], m);       // the bone's world transform
-    return { m: rigMat(rigAff(toRig, m)), a: +(slot.color.a * (att.color ? att.color.a : 1)).toFixed(3) };
-  });
-  sk.setToSetupPose(); sk.updateWorldTransform(physics);
-  const rest = pose();
-  const parts = sk.slots.map((slot, i) => {
-    const att = slot.data.attachmentName ? sk.getAttachment(i, slot.data.attachmentName) : null;
-    const reg = att && att.region;
-    if (!reg) return { w: 0, h: 0, bg: "", ...rest[i] };
-    const k = att.width / reg.width;                              // skeleton units per atlas pixel
-    return { w: att.width, h: att.height, ...rest[i],
-      bg: `url("${rigPageUrl(reg.page.name)}") ${(-reg.x * k).toFixed(3)}px ${(-reg.y * k).toFixed(3)}px / ${(reg.page.width * k).toFixed(3)}px ${(reg.page.height * k).toFixed(3)}px no-repeat` };
-  });
-  const clips = {};
-  for (const anim of data.animations) {
-    const dur = Math.max(anim.duration, 1 / RIG_FPS), n = Math.max(2, Math.round(dur * RIG_FPS) + 1);
-    const tracks = parts.map(() => []);
-    for (let f = 0; f < n; f++) {
-      const t = dur * f / (n - 1);
-      sk.setToSetupPose();
-      anim.apply(sk, 0, t, false, null, 1, spine.MixBlend.setup, spine.MixDirection.mixIn);
-      sk.updateWorldTransform(physics);
-      pose().forEach((p, i) => tracks[i].push({ offset: f / (n - 1), transform: p.m, opacity: p.a }));
-    }
-    // a part that never moves in this clip is left alone rather than animated in place; one
-    // that does keeps only the keyframes the browser cannot blend its own way to (rigThin)
-    const kf = tracks.map((tr, i) => tr.every(k => k.transform === rest[i].m && k.opacity === rest[i].a) ? null : rigThin(tr, parts[i], rest[i]));
-    // ...and is parsed ONCE, here, into an effect every play of it copies (rigPlay)
-    const fx = kf.map(tr => tr && RIG_FX ? new KeyframeEffect(null, tr, { duration: dur * 1000, easing: "linear" }) : null);
-    clips[anim.name] = { ms: dur * 1000, kf, fx };
-    // The drop-in performance: the idle's opening RIG_DROP_S seconds, then an eased glide back to
-    // rest. A whole board drops in within about a second, so playing every symbol's full idle
-    // kept 49 of them animating at once for three; this keeps the move and gives the board back.
-    const step = dur / (n - 1), cut = Math.round(RIG_DROP_S / step);   // the frames are `step` s apart
-    if (anim.name === "idle" && RIG_DROP_S > 0 && cut < n - 1 - .3 / step) {
-      const D = cut * step + RIG_SETTLE_S;
-      const dkf = tracks.map((tr, i) => {
-        const head = tr.slice(0, cut + 1).map((k, f) => ({ offset: f * step / D, transform: k.transform, opacity: k.opacity }));
-        // a part that hardly moves in the opening (under RIG_DROP_MIN rig units at any corner,
-        // and no real fade) is left still: no one sees a pixel of motion on a falling tile, and
-        // every animated part is work for the compositor on every frame of the reveal
-        if (rigReach(head, parts[i], rest[i]) < RIG_DROP_MIN) return null;
-        const out = rigThin(head, parts[i], rest[i]);
-        out[out.length - 1] = { ...out[out.length - 1], easing: "cubic-bezier(.45,0,.55,1)" };
-        out.push({ offset: 1, transform: rest[i].m, opacity: rest[i].a });
-        return out;
-      });
-      clips.drop = { ms: D * 1000, kf: dkf, fx: dkf.map(tr => tr && RIG_FX ? new KeyframeEffect(null, tr, { duration: D * 1000, easing: "linear" }) : null) };
-    }
-  }
-  sk.setToSetupPose();
-  const rig = { w: W, h: H, parts, clips };
-  rig.tpl = rigBuild(rig);   // the symbol's elements, built once; every cell that shows it gets a copy
-  return rig;
-}
-// Clips are baked at RIG_FPS, which is far more keyframes than the motion needs: most of them
-// sit on the straight line (as the browser blends it) between their neighbours. rigThin keeps,
-// greedily, only the ones that line misses by more than a quarter of a rig unit at any corner of
-// the part (a quarter of a pixel on a 100 px icon), a fifth of a degree or 0.01 of opacity -
-// transform and opacity each on their own track. CSS blends matrix() keyframes by decomposing
-// them (translate, rotation, scale, skew) rather than element by element, so that is what the
-// error is measured against. Typically a fifth of the keyframes are left; nothing visible moves.
-const RIG_TOL = { px: .25, deg: .2, op: .01 };
-const RIG_DROP_MIN = 1.5;
-// How far a track ever takes its part from rest: the furthest any corner gets, in rig units, with
-// a fade counted as a big move (a part fading in or out is always seen).
-function rigReach(tr, part, rest) {
-  const pm = s => s.slice(s.indexOf("(") + 1, -1).split(",").map(Number);
-  const R = pm(rest.m), at = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
-  let far = 0;
-  for (const k of tr) {
-    if (Math.abs(k.opacity - rest.a) > .1) return Infinity;
-    if (k.transform === rest.m) continue;
-    const M = pm(k.transform);
-    for (const [x, y] of [[0, 0], [part.w, 0], [0, part.h], [part.w, part.h]]) {
-      const P = at(M, x, y), Q = at(R, x, y);
-      far = Math.max(far, Math.hypot(P[0] - Q[0], P[1] - Q[1]));
-    }
-  }
-  return far;
-}
-function rigThin(tr, part, rest) {
-  const pm = s => { const v = s.slice(s.indexOf("(") + 1, -1).split(",").map(Number); return v.length === 6 ? v : [1, 0, 0, 1, 0, 0]; };
-  const dec2 = m => {   // CSS Transforms 1, "decomposing a 2D matrix"
-    let [r0x, r0y, r1x, r1y, tx, ty] = m;
-    let s0 = Math.hypot(r0x, r0y), s1 = Math.hypot(r1x, r1y);
-    if (r0x * r1y - r0y * r1x < 0) { if (r0x < r1y) s0 = -s0; else s1 = -s1; }
-    if (s0) { r0x /= s0; r0y /= s0; }
-    if (s1) { r1x /= s1; r1y /= s1; }
-    const a = Math.atan2(r0y, r0x);
-    if (a) {
-      const sn = -r0y, cs = r0x, m11 = r0x, m12 = r0y, m21 = r1x, m22 = r1y;
-      r0x = cs * m11 + sn * m21; r0y = cs * m12 + sn * m22; r1x = -sn * m11 + cs * m21; r1y = -sn * m12 + cs * m22;
-    }
-    return { tx, ty, s0, s1, a: a * 180 / Math.PI, m11: r0x, m12: r0y, m21: r1x, m22: r1y };
-  };
-  const lerp2 = (A, B, q) => {   // ... and blending two of them, recomposed
-    A = { ...A }; B = { ...B };
-    if ((A.s0 < 0 && B.s1 < 0) || (A.s1 < 0 && B.s0 < 0)) { A.s0 = -A.s0; A.s1 = -A.s1; A.a += A.a < 0 ? 180 : -180; }
-    if (!A.a) A.a = 360;
-    if (!B.a) B.a = 360;
-    if (Math.abs(A.a - B.a) > 180) { if (A.a > B.a) A.a -= 360; else B.a -= 360; }
-    const o = {};
-    for (const k in A) o[k] = A[k] + (B[k] - A[k]) * q;
-    const r = o.a * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r);
-    const k0x = o.m11 * o.s0, k0y = o.m12 * o.s0, k1x = o.m21 * o.s1, k1y = o.m22 * o.s1;
-    return [c * k0x - sn * k0y, sn * k0x + c * k0y, c * k1x - sn * k1y, sn * k1x + c * k1y, o.tx, o.ty];
-  };
-  const at = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
-  const ang = m => Math.atan2(m[1], m[0]) * 180 / Math.PI;
-  const off = (a, b) => {
-    let px = 0, deg = 0;
-    for (const [x, y] of [[0, 0], [part.w, 0], [0, part.h], [part.w, part.h]]) {
-      const P = at(a, x, y), Q = at(b, x, y);
-      px = Math.max(px, Math.hypot(P[0] - Q[0], P[1] - Q[1]));
-    }
-    if (Math.hypot(a[0], a[1]) > 1e-3 && Math.hypot(b[0], b[1]) > 1e-3) { deg = Math.abs(ang(a) - ang(b)); if (deg > 180) deg = 360 - deg; }
-    return px > RIG_TOL.px || deg > RIG_TOL.deg;
-  };
-  const n = tr.length, M = tr.map(k => pm(k.transform)), D = M.map(dec2);
-  const q = (i, j, k) => (tr[k].offset - tr[i].offset) / (tr[j].offset - tr[i].offset);
-  const okT = (i, j) => { for (let k = i + 1; k < j; k++) if (off(lerp2(D[i], D[j], q(i, j, k)), M[k])) return false; return true; };
-  const okO = (i, j) => { for (let k = i + 1; k < j; k++) if (Math.abs(tr[i].opacity + (tr[j].opacity - tr[i].opacity) * q(i, j, k) - tr[k].opacity) > RIG_TOL.op) return false; return true; };
-  const greedy = ok => { const keep = [0]; let i = 0; while (i < n - 1) { let j = i + 1; while (j + 1 < n && ok(i, j + 1)) j++; keep.push(j); i = j; } return keep; };
-  const keepT = tr.every(k => k.transform === rest.m) ? [] : greedy(okT);
-  const keepO = tr.every(k => k.opacity === rest.a) ? [] : greedy(okO);
-  const out = new Map();
-  for (const k of keepT) out.set(k, Object.assign(out.get(k) || { offset: tr[k].offset }, { transform: tr[k].transform }));
-  for (const k of keepO) out.set(k, Object.assign(out.get(k) || { offset: tr[k].offset }, { opacity: tr[k].opacity }));
-  return [...out.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1]);
-}
-// A cell's rig is a copy of its symbol's template (rigBuild, made when the rig is baked):
-// cloning the elements costs a tenth of building them, and every reveal fills 49 cells.
+// A symbol on the board: its box is the icon's own footprint in rig units (fitted to the cell like the flat
+// icon, see .rig), and the canvas inside sits on the box of the clip it is showing - wider than the icon, for
+// the glow and the effects round it.
 function rigEl(name, label) {
-  const rig = RIGS[name];
-  if (!rig) return null;
-  const el = rig.tpl.cloneNode(true);
-  el.setAttribute("aria-label", label || name);
-  el._rig = rig; el._name = name;
-  el._parts = [...el.firstChild.children];   // one <i> per slot, in slot order
-  return el;
-}
-function rigBuild(rig) {
+  const m = SYMF.man && SYMF.man.symbols[name];
+  if (!m || !SYMF.sheets.has(name + "_land")) return null;
   const el = document.createElement("span");
-  el.className = "rig"; el.setAttribute("role", "img");
-  el.style.setProperty("--rw", rig.w.toFixed(3)); el.style.setProperty("--rh", rig.h.toFixed(3));
-  const inner = document.createElement("span"); inner.className = "rigin"; el.append(inner);
-  for (const p of rig.parts) {
-    const i = document.createElement("i");
-    i.className = "part";
-    if (p.bg) i.style.cssText = `width:${p.w.toFixed(3)}px;height:${p.h.toFixed(3)}px;background:${p.bg};transform:${p.m};opacity:${p.a}`;
-    inner.append(i);
-  }
+  el.className = "rig"; el.setAttribute("role", "img"); el.setAttribute("aria-label", label || name);
+  el.style.setProperty("--rw", (m.icon[0] * 10).toFixed(2));
+  el.style.setProperty("--rh", (m.icon[1] * 10).toFixed(2));
+  const cv = document.createElement("canvas");
+  cv.className = "symc";
+  el.append(cv);
+  Object.assign(el, { _name: name, _m: m, _cv: cv, _ctx: cv.getContext("2d"), _clip: null, _box: null, _shown: "" });
+  symRest(el);
   return el;
 }
+// put the canvas on a clip's box (once per clip, not per frame)
+function symLay(el, clip) {
+  if (el._box === clip) return;
+  const m = el._m, b = m.clips[clip].box, sh = m.sheets[SYMF.density][clip];
+  const left = (b[0] + m.icon[0] / 2) * 10, top = (b[1] + m.icon[1] / 2) * 10;
+  el._cv.width = sh.w; el._cv.height = sh.h;
+  el._cv.style.cssText = `left:${left.toFixed(2)}px;top:${top.toFixed(2)}px;width:${(b[2] * 10).toFixed(2)}px;height:${(b[3] * 10).toFixed(2)}px`;
+  el._box = clip; el._shown = "";
+}
+function symDraw(el, clip, f) {
+  const key = clip + f;
+  if (el._shown === key) return;
+  const s = SYMF.sheets.get(el._name + "_" + clip);
+  if (!s || !s.ok) return;
+  symLay(el, clip);
+  const sh = el._m.sheets[SYMF.density][clip];
+  el._ctx.clearRect(0, 0, sh.w, sh.h);
+  el._ctx.drawImage(s.img, (f % sh.cols) * sh.w, Math.floor(f / sh.cols) * sh.h, sh.w, sh.h, 0, 0, sh.w, sh.h);
+  el._shown = key;
+}
+// the rest pose: the first frame of the landing (every clip starts and ends on it)
+const symRest = el => symDraw(el, "land", 0);
 const rigOf = cell => cell && cell.ico ? cell.ico.querySelector(".rig") : null;
-// How long the slowest of these cells' win performances runs, at tempo 1 (0 when none plays),
-// so a lit cluster or a Multi going off is held until every tile in it has played through.
-function winClipMs(cells) {
+const symPlaying = new Set();
+let symRaf = 0;
+function symStep(now) {
+  symRaf = 0;
+  for (const el of symPlaying) {
+    if (!el.isConnected) { symPlaying.delete(el); continue; }
+    const c = el._m.clips[el._clip];
+    let f = Math.floor((now - el._t0) * el._rate / 1000 * c.fps);
+    if (f >= c.frames) {
+      if (el._loop) f %= c.frames;
+      else if (SYMF.sheets.get(el._name + "_idle")?.ok) {
+        // straight back into the idle from the very moment the clip ended (both meet on the rest pose): a
+        // symbol never stands still between a landing, a hit or a Multi and its idle
+        const end = el._t0 + c.frames / c.fps / el._rate * 1000;
+        Object.assign(el, { _clip: "idle", _t0: end, _rate: 1 / tempo(), _loop: true });
+        const ci = el._m.clips.idle;
+        f = Math.floor((now - end) * el._rate / 1000 * ci.fps) % ci.frames;
+      }
+      else { symPlaying.delete(el); el._clip = null; symRest(el); continue; }
+    }
+    symDraw(el, el._clip, Math.max(0, f));
+  }
+  if (symPlaying.size) symRaf = requestAnimationFrame(symStep);
+}
+// How long these cells' performance of a clip runs, at tempo 1 (0 when none has one), so a lit cluster or a
+// Multi going off is held until every tile in it has played through.
+function winClipMs(cells, clip = "hit") {
   if (REDUCED_MOTION) return 0;
   let ms = 0;
-  for (const c of cells) { const el = rigOf(c), w = el && el._rig.clips.win; if (w) ms = Math.max(ms, w.ms); }
+  for (const cell of cells) {
+    const el = rigOf(cell), c = el && el._m.clips[clip];
+    if (c) ms = Math.max(ms, c.frames / c.fps * 1000);
+  }
   return ms;
 }
-// Play one of a symbol's clips. Clips start and end on the rest pose, so a finished one simply
-// hands the parts back to it; a new clip cuts the running one. Rapid and Skip speed them up.
+// Play one of a symbol's clips; Rapid and Skip speed it up. A clip whose sheet has not arrived yet is let go:
+// the symbol keeps its rest pose (only ever in the first seconds of a session).
 function rigPlay(cell, clip, { loop = false, speed = 1 } = {}) {
   const el = rigOf(cell);
   if (!el || REDUCED_MOTION) return null;
-  const c = el._rig.clips[clip];
-  if (!c) return null;
-  rigStop(el);
-  const rate = speed / tempo();
-  const anims = [];
-  el._parts.forEach((p, i) => {
-    if (!c.kf[i]) return;
-    let a;
-    if (c.fx[i]) {
-      // a copy of the effect parsed at load: starting a clip parses nothing
-      const fx = new KeyframeEffect(c.fx[i]);
-      fx.target = p;
-      if (loop) fx.updateTiming({ iterations: Infinity });
-      a = new Animation(fx, document.timeline);
-      a.play();
-    } else a = p.animate(c.kf[i], { duration: c.ms, iterations: loop ? Infinity : 1, easing: "linear" });
-    a.playbackRate = rate;
-    anims.push(a);
-  });
-  el._anims = anims; el._clip = clip;
-  // a win takes the symbol well off the outline its neon glow pictures: the glow steps aside
-  // while it plays (.perf) and the win's own glow, drawn round the moving parts, stands in
-  if (clip === "win" && anims.length) cell.classList.add("perf");
-  if (anims[0]) anims[0].onfinish = () => {
-    if (el._anims !== anims) return;
-    el._anims = null; el._clip = null;
-    if (rigOf(cell) === el) cell.classList.remove("perf");
-  };
-  return anims[0] || null;
+  clip = CLIP_OF[clip] || clip;
+  const c = el._m.clips[clip], s = SYMF.sheets.get(el._name + "_" + clip);
+  if (!c || !s || !s.ok) { if (c && !s) symSheet(el._name, clip).catch(() => {}); return null; }
+  Object.assign(el, { _clip: clip, _t0: performance.now(), _rate: speed / tempo(), _loop: loop });
+  symDraw(el, clip, 0);
+  symPlaying.add(el);
+  if (!symRaf) symRaf = requestAnimationFrame(symStep);
+  return el;
 }
 function rigStop(el) {
-  if (el && el._anims) el._anims.forEach(a => a.cancel());
-  if (el) { el._anims = null; el._clip = null; const cell = el.closest(".cell"); if (cell) cell.classList.remove("perf"); }
+  if (!el) return;
+  symPlaying.delete(el);
+  if (el._clip) { el._clip = null; symRest(el); }
 }
-// A tile starts performing the moment it lands - its own move (the lowrider's hydraulics, the
-// spray cloud, the marker's line...) plays out of the landing; in the air it is a blur. Every
-// drop-in sends it, timed to its landing (dropIn: the reveal, a skipped reveal, a tumble's
-// refill): from the drop's own clock, not from an animation event a busy frame can lose, and at
-// most a handful per frame, so a whole board landing at once never piles into one long frame. A
-// tile already performing (a skip re-dropping a landed column) carries on rather than restarting.
+// A tile starts performing the moment it lands - its own landing, out of the drop; in the air it is a blur.
+// Every drop-in sends it, timed to its landing (dropIn: the reveal, a skipped reveal, a tumble's refill), at
+// most a handful per frame, so a whole board landing at once never piles into one long frame. A tile already
+// landing (a skip re-dropping a landed column) carries on rather than restarting.
 const rigQueue = new Set();
 let rigQueueRaf = 0;
 function rigDrop(cell) {
   if (REDUCED_MOTION || !cell) return;
-  tierLand(cell);
   rigQueue.add(cell);
   if (!rigQueueRaf) rigQueueRaf = requestAnimationFrame(rigDrain);
-}
-// A neon symbol lands with a little more than the rest (owner, 2026-10-30: "glow more on special
-// icons ... and when they land"): it rocks on its base, glow and all (.ico carries both, so the glow
-// stays on its outline), and its halo blooms out and back. Web Animations on the box and on the
-// halo's own `rotate` and `scale`, which leave what runs on their `transform` going underneath
-// (the box's idle wander, the halo's breathing).
-const TIER_ROCK = [
-  { rotate: "0deg", easing: "ease-out" }, { rotate: "-3deg", offset: .16, easing: "ease-in-out" },
-  { rotate: "2.2deg", offset: .36, easing: "ease-in-out" }, { rotate: "-1.2deg", offset: .56, easing: "ease-in-out" },
-  { rotate: ".5deg", offset: .76, easing: "ease-in-out" }, { rotate: "0deg" },
-];
-const HALO_BLOOM = [{ scale: "1", easing: "ease-out" }, { scale: "1.2", offset: .22, easing: "ease-in-out" }, { scale: "1" }];
-function tierLand(cell) {
-  if (!cell.ico || !(cell.classList.contains("t1") || cell.classList.contains("t2"))) return;
-  const t = tempo();
-  cell.ico.animate(TIER_ROCK, { duration: 700 * t });
-  const halo = cell.ico.querySelector(".tglow.halo");
-  if (halo) halo.animate(HALO_BLOOM, { duration: 800 * t });
 }
 function rigDrain() {
   rigQueueRaf = 0;
@@ -3700,10 +3484,25 @@ function rigDrain() {
     if (n++ >= 6) break;
     rigQueue.delete(cell);
     const el = rigOf(cell);
-    if (!el || ((el._clip === "drop" || el._clip === "idle") && el._anims)) continue;
-    rigPlay(cell, "drop") || rigPlay(cell, "idle") || rigPlay(cell, "land");
+    if (!el || (el._clip === "land" && symPlaying.has(el))) continue;
+    rigPlay(cell, "land");
   }
   if (rigQueue.size) rigQueueRaf = requestAnimationFrame(rigDrain);
+}
+// The board is never still: every symbol loops its idle the whole time, through rounds too (owner, 2026-11-02:
+// always playing, no pauses). A landing, hit or Multi cuts in and hands straight back to the idle as it ends
+// (symStep). This only starts the loops on symbols showing their rest pose - the board as the game opens, a
+// symbol whose idle frames arrived late - each at its own moment within the stagger, so they never pulse as one.
+function symIdleTick() {
+  setTimeout(symIdleTick, 200);
+  if (document.hidden || REDUCED_MOTION) return;
+  const now = performance.now();
+  for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+    const cell = cellEls[r][y], el = rigOf(cell);
+    if (!el || symPlaying.has(el) || !SYMF.sheets.get(el._name + "_idle")?.ok) continue;
+    if (!el._idleAt) el._idleAt = now + Math.random() * SYM_IDLE_STAGGER;
+    else if (now >= el._idleAt) { el._idleAt = 0; rigPlay(cell, "idle", { loop: true }); }
+  }
 }
 // What a tile does as it drops in: its own clip as it lands (`hit`, the moment of contact), and -
 // for a bare Multi - the can, sent for the moment the drop is done (`ms`, its length). The
@@ -3738,15 +3537,15 @@ function measureRigBox() {
   if (w > 0 && h > 0) { $("board").style.setProperty("--boxw", w.toFixed(2)); $("board").style.setProperty("--boxh", h.toFixed(2)); }
 }
 function startRigs() {
-  loadRigs().then(ok => {
+  loadSymFrames().then(ok => {
     if (!ok) return;
     measureRigBox();
-    rigCheckDensity();   // the pick at load may have come before the board was fitted to the screen
     // the board is already showing flat icons: swap every cell for its animated self
     for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
       const sym = shownSym[r] && shownSym[r][y];
-      if (sym && RIGS[sym.name]) fillCell(cellEls[r][y], sym);
+      if (sym && SYMF.man.symbols[sym.name]) fillCell(cellEls[r][y], sym);
     }
+    symIdleTick();
   });
 }
 
@@ -5741,7 +5540,7 @@ const handlers = {
       const at = p => cellEls[p.reel][Math.min(Math.max(p.row - 1, 0), ROWS - 1)];
       const multi = at(b), hits = (b.cells || []).map(at).filter(c => c !== multi);
       multi.classList.add("boom", "winhit");
-      rigPlay(multi, "win", { speed: MULTI_RATE });
+      rigPlay(multi, "multi", { speed: MULTI_RATE });
       // the camera eases in on the biggest of them, once, and only on one worth it (CAM_PUNCH_MIN) -
       // it used to punch in on every Multi and jump from each to the next (owner, 2026-10-29: too
       // jumpy); a board cover's ripple of them is the wall event's quake instead
@@ -5754,9 +5553,9 @@ const handlers = {
       tick(`<b>MULTI x${fmtMult(b.mult)}</b> hits ${(b.cells || []).length} cells`);
       const lead = 360 / MULTI_RATE;   // the Multi's pop leads; its neighbours follow
       await hold(lead);
-      for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "win", { speed: MULTI_RATE }); }
+      for (const c of hits) { c.classList.add("hit", "winhit"); rigPlay(c, "multi", { speed: MULTI_RATE }); }
       // every performance - the Multi's and its neighbours' - plays through before anything moves on
-      await hold((Math.max(480, Math.max(winClipMs(hits), winClipMs([multi]) - 360) + 80)) / MULTI_RATE);
+      await hold((Math.max(480, Math.max(winClipMs(hits, "multi"), winClipMs([multi], "multi") - 360) + 80)) / MULTI_RATE);
     };
     // a board cover sets off a wall in every cell: those go in a quick ripple, not one by one
     const list = ev.boosters || [], stagger = list.length > 6 ? Math.max(24, MULTI_STAGGER * 6 / list.length) : MULTI_STAGGER;
@@ -7178,7 +6977,7 @@ function assetUrls() {
   for (const n of ["total_win", "big_win", "mega_win", "xtreme_win"]) urls.add("assets/" + n + ".webp");
   urls.add("assets/wall_tag.webp");   // the tag on the wall is an <img>, so no rule names it
   urls.add("assets/xbonus_text.webp");   // the Extreme Bonus intro's XTREME BONUS, an <img> too
-  for (const id of Object.keys(TIER)) for (const k of ["halo", "tube"]) urls.add(`assets/glow/${id}_${k}.webp`);   // set by tierGlow()
+  if (REDUCED_MOTION) for (const id of Object.keys(TIER)) for (const k of ["halo", "tube"]) urls.add(`assets/glow/${id}_${k}.webp`);   // set by tierGlow()
   return [...urls];
 }
 // Every preloaded picture is held on to, not dropped: while one is held, a new <img> of it is
@@ -7201,7 +7000,7 @@ function preloadAll(onProgress) {
   })));
   waits.push(...sounds.map(one));
   waits.push(one(prepareSpray()));   // the spray can, tinted for every Multi value
-  waits.push(one(loadRigs()));       // the animated symbols: atlas, skeletons, every clip baked
+  waits.push(one(loadSymFrames()));  // the animated symbols: Blender's frames (the landings; the rest follows)
   waits.push(one(charsLoaded));      // the two characters, every atlas page on the GPU
   waits.push(one(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()));
   // the bonus screen's faces are not on the page yet, so fonts.ready would not wait for them
@@ -8509,7 +8308,7 @@ async function bootReplay(p) {
   }
   // a replay has no loading screen: Play waits (at most 15 s) for what the round animates - the
   // symbol rigs, the spray can and the characters - so nothing swaps or uploads once it runs
-  await Promise.race([Promise.all([loadRigs(), prepareSpray(), charsLoaded]).catch(() => {}), new Promise(r => setTimeout(r, 15000))]);
+  await Promise.race([Promise.all([loadSymFrames(), prepareSpray(), charsLoaded]).catch(() => {}), new Promise(r => setTimeout(r, 15000))]);
   const cost = MODE_COST[state.mode] * bet();
   const payout = Math.round(round.payoutMultiplier * bet());
   meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet cost ${fmt(cost)} (x${MODE_COST[state.mode]} the bet of ${fmt(bet())})`);

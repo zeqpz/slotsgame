@@ -1,0 +1,33 @@
+{
+ "extremebonus": {
+  "books": 20000,
+  "identical": 20000,
+  "events": 2092714,
+  "mismatches": [],
+  "criteria": {
+   "extremegame": 19980,
+   "wincap": 20
+  },
+  "features": {
+   "reveal": 20000,
+   "booster": 20000,
+   "tumbleBoard": 20000,
+   "setTotalWin": 20000,
+   "freeSpinTrigger": 20000,
+   "extremeTrigger": 20000,
+   "enterBonus": 20000,
+   "updateFreeSpin": 20000,
+   "wallDrop": 18347,
+   "winInfo": 20000,
+   "updateTumbleWin": 20000,
+   "lineMults": 19987,
+   "setWin": 19987,
+   "freeSpinEnd": 20000,
+   "finalWin": 20000,
+   "bonus:extreme_direct": 12452,
+   "wallDrop:line": 49250,
+   "bonus:extreme_upgrade": 7548,
+   "wincap": 29
+  }
+ }
+}

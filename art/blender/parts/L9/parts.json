@@ -1,0 +1,25 @@
+{
+ "id": "L9",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "box": [
+    7,
+    296,
+    994,
+    672
+   ],
+   "pivot": [
+    495,
+    590
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 2
+  }
+ ]
+}

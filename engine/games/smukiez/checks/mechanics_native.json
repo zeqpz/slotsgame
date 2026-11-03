@@ -1,0 +1,491 @@
+{
+ "base": {
+  "books": 100000,
+  "checks": {
+   "Multi values in the value tables": {
+    "passed": 517457,
+    "failed": 0
+   },
+   "after the wincap only setTotalWin / freeSpinEnd / finalWin": {
+    "passed": 21,
+    "failed": 0
+   },
+   "anticipation": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "blast = the Multi + its edge neighbours, scatters immune": {
+    "passed": 431463,
+    "failed": 0
+   },
+   "bonus plays exactly the awarded spins (or stops at the wincap)": {
+    "passed": 9021,
+    "failed": 0
+   },
+   "booster gridMults = grid + every blast's value (values add)": {
+    "passed": 217064,
+    "failed": 0
+   },
+   "cluster multiplier = SUM of its cells' values": {
+    "passed": 99411,
+    "failed": 0
+   },
+   "cluster pay = paytable(size tier) x multiplier": {
+    "passed": 99411,
+    "failed": 0
+   },
+   "enterBonus reason": {
+    "passed": 9021,
+    "failed": 0
+   },
+   "event index = position (0-based)": {
+    "passed": 1506058,
+    "failed": 0
+   },
+   "every Multi on the board blows out, in board order": {
+    "passed": 217064,
+    "failed": 0
+   },
+   "every cluster of 5+ on the board is paid, nothing else": {
+    "passed": 94899,
+    "failed": 0
+   },
+   "every paid board drops line multipliers": {
+    "passed": 94878,
+    "failed": 0
+   },
+   "extreme: 2 Phantoms = direct, 1 + a standard trigger = upgrade": {
+    "passed": 2020,
+    "failed": 0
+   },
+   "finalWin = payout = min(total, 10,000x)": {
+    "passed": 100000,
+    "failed": 0
+   },
+   "free spins count 0..totalFs-1": {
+    "passed": 104333,
+    "failed": 0
+   },
+   "freeSpinEnd = the bonus win": {
+    "passed": 9021,
+    "failed": 0
+   },
+   "full wall covers every non-scatter cell, base game only": {
+    "passed": 200,
+    "failed": 0
+   },
+   "full wall values from cover_mult_values": {
+    "passed": 200,
+    "failed": 0
+   },
+   "line drop values x1.25 / x1.5 / x2": {
+    "passed": 100020,
+    "failed": 0
+   },
+   "line drops: one per 5 symbols of each paid cluster, on its own cells": {
+    "passed": 94878,
+    "failed": 0
+   },
+   "lineMults gridMults = grid + drops": {
+    "passed": 94878,
+    "failed": 0
+   },
+   "multis settle before the spin ends": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "newSymbols: one per removed cell (new top padding first)": {
+    "passed": 1806077,
+    "failed": 0
+   },
+   "no pays after the 12th tumble": {
+    "passed": 94899,
+    "failed": 0
+   },
+   "one tumble removes the paid clusters + the blast cells together": {
+    "passed": 258011,
+    "failed": 0
+   },
+   "refills come off the strip above the stop (padding slides in)": {
+    "passed": 1067436,
+    "failed": 0
+   },
+   "reveal = strip window at paddingPositions (incl. padding)": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "reveal shape: 7 reels x (1+7+1) with padding": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "setTotalWin = the round's win so far": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "setWin = the spin's win, winLevel": {
+    "passed": 84085,
+    "failed": 0
+   },
+   "the round ends on finalWin": {
+    "passed": 100000,
+    "failed": 0
+   },
+   "trigger: 3/4/5+ Crew Leaders -> 10/12/15 spins, 2+ Phantoms -> 17": {
+    "passed": 9021,
+    "failed": 0
+   },
+   "tumble budget (<= 12 paid tumbles, <= 16 board changes)": {
+    "passed": 204333,
+    "failed": 0
+   },
+   "updateTumbleWin = the spin's win so far": {
+    "passed": 94899,
+    "failed": 0
+   },
+   "wall cells are Multis on the revealed board": {
+    "passed": 20119,
+    "failed": 0
+   },
+   "wall line: 3-4 walls in a straight run": {
+    "passed": 19919,
+    "failed": 0
+   },
+   "winInfo totalWin = sum of the clusters": {
+    "passed": 94899,
+    "failed": 0
+   },
+   "wincap fires at 10,000x": {
+    "passed": 21,
+    "failed": 0
+   }
+  },
+  "failed": {},
+  "strips": {
+   "0/basegame:BR0": 35000,
+   "freegame/basegame:BR0": 7001,
+   "freegame/freegame:FR0": 74867,
+   "basegame/basegame:BR0": 55779,
+   "extremegame/basegame:BRE": 2000,
+   "extremegame/freegame:FRE": 29364,
+   "wallcover/basegame:BR0": 200,
+   "wincap/basegame:BRE": 20,
+   "wincap/freegame:FRWCAP": 102
+  }
+ },
+ "bonus": {
+  "books": 20000,
+  "checks": {
+   "Multi values in the value tables": {
+    "passed": 634555,
+    "failed": 0
+   },
+   "after the wincap only setTotalWin / freeSpinEnd / finalWin": {
+    "passed": 11,
+    "failed": 0
+   },
+   "anticipation": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "blast = the Multi + its edge neighbours, scatters immune": {
+    "passed": 533163,
+    "failed": 0
+   },
+   "bonus plays exactly the awarded spins (or stops at the wincap)": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "booster gridMults = grid + every blast's value (values add)": {
+    "passed": 250425,
+    "failed": 0
+   },
+   "cluster multiplier = SUM of its cells' values": {
+    "passed": 67897,
+    "failed": 0
+   },
+   "cluster pay = paytable(size tier) x multiplier": {
+    "passed": 67897,
+    "failed": 0
+   },
+   "enterBonus reason": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "event index = position (0-based)": {
+    "passed": 1602738,
+    "failed": 0
+   },
+   "every Multi on the board blows out, in board order": {
+    "passed": 250425,
+    "failed": 0
+   },
+   "every cluster of 5+ on the board is paid, nothing else": {
+    "passed": 65180,
+    "failed": 0
+   },
+   "every paid board drops line multipliers": {
+    "passed": 65169,
+    "failed": 0
+   },
+   "finalWin = payout = min(total, 10,000x)": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "free spins count 0..totalFs-1": {
+    "passed": 220482,
+    "failed": 0
+   },
+   "freeSpinEnd = the bonus win": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "line drop values x1.25 / x1.5 / x2": {
+    "passed": 68157,
+    "failed": 0
+   },
+   "line drops: one per 5 symbols of each paid cluster, on its own cells": {
+    "passed": 65169,
+    "failed": 0
+   },
+   "lineMults gridMults = grid + drops": {
+    "passed": 65169,
+    "failed": 0
+   },
+   "multis settle before the spin ends": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "newSymbols: one per removed cell (new top padding first)": {
+    "passed": 1955695,
+    "failed": 0
+   },
+   "no pays after the 12th tumble": {
+    "passed": 65180,
+    "failed": 0
+   },
+   "one tumble removes the paid clusters + the blast cells together": {
+    "passed": 279385,
+    "failed": 0
+   },
+   "refills come off the strip above the stop (padding slides in)": {
+    "passed": 1144800,
+    "failed": 0
+   },
+   "reveal = strip window at paddingPositions (incl. padding)": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "reveal shape: 7 reels x (1+7+1) with padding": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "setTotalWin = the round's win so far": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "setWin = the spin's win, winLevel": {
+    "passed": 58823,
+    "failed": 0
+   },
+   "the round ends on finalWin": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "trigger: 3/4/5+ Crew Leaders -> 10/12/15 spins, 2+ Phantoms -> 17": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "tumble budget (<= 12 paid tumbles, <= 16 board changes)": {
+    "passed": 240482,
+    "failed": 0
+   },
+   "updateTumbleWin = the spin's win so far": {
+    "passed": 65180,
+    "failed": 0
+   },
+   "wall cells are Multis on the revealed board": {
+    "passed": 37119,
+    "failed": 0
+   },
+   "wall line: 3-4 walls in a straight run": {
+    "passed": 37119,
+    "failed": 0
+   },
+   "winInfo totalWin = sum of the clusters": {
+    "passed": 65180,
+    "failed": 0
+   },
+   "wincap fires at 10,000x": {
+    "passed": 11,
+    "failed": 0
+   }
+  },
+  "failed": {},
+  "strips": {
+   "freegame/basegame:BR0": 19990,
+   "freegame/freegame:FR0": 220434,
+   "wincap/basegame:BR0": 10,
+   "wincap/freegame:FRWCAP": 48
+  }
+ },
+ "extremebonus": {
+  "books": 20000,
+  "checks": {
+   "Multi values in the value tables": {
+    "passed": 813453,
+    "failed": 0
+   },
+   "after the wincap only setTotalWin / freeSpinEnd / finalWin": {
+    "passed": 30,
+    "failed": 0
+   },
+   "anticipation": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "blast = the Multi + its edge neighbours, scatters immune": {
+    "passed": 681679,
+    "failed": 0
+   },
+   "bonus plays exactly the awarded spins (or stops at the wincap)": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "booster gridMults = grid + every blast's value (values add)": {
+    "passed": 323169,
+    "failed": 0
+   },
+   "cluster multiplier = SUM of its cells' values": {
+    "passed": 92225,
+    "failed": 0
+   },
+   "cluster pay = paytable(size tier) x multiplier": {
+    "passed": 92225,
+    "failed": 0
+   },
+   "enterBonus reason": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "event index = position (0-based)": {
+    "passed": 2094989,
+    "failed": 0
+   },
+   "every Multi on the board blows out, in board order": {
+    "passed": 323169,
+    "failed": 0
+   },
+   "every cluster of 5+ on the board is paid, nothing else": {
+    "passed": 88401,
+    "failed": 0
+   },
+   "every paid board drops line multipliers": {
+    "passed": 88371,
+    "failed": 0
+   },
+   "extreme: 2 Phantoms = direct, 1 + a standard trigger = upgrade": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "finalWin = payout = min(total, 10,000x)": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "free spins count 0..totalFs-1": {
+    "passed": 292157,
+    "failed": 0
+   },
+   "freeSpinEnd = the bonus win": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "line drop values x1.25 / x1.5 / x2": {
+    "passed": 92674,
+    "failed": 0
+   },
+   "line drops: one per 5 symbols of each paid cluster, on its own cells": {
+    "passed": 88371,
+    "failed": 0
+   },
+   "lineMults gridMults = grid + drops": {
+    "passed": 88371,
+    "failed": 0
+   },
+   "multis settle before the spin ends": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "newSymbols: one per removed cell (new top padding first)": {
+    "passed": 2527301,
+    "failed": 0
+   },
+   "no pays after the 12th tumble": {
+    "passed": 88401,
+    "failed": 0
+   },
+   "one tumble removes the paid clusters + the blast cells together": {
+    "passed": 361043,
+    "failed": 0
+   },
+   "refills come off the strip above the stop (padding slides in)": {
+    "passed": 1493223,
+    "failed": 0
+   },
+   "reveal = strip window at paddingPositions (incl. padding)": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "reveal shape: 7 reels x (1+7+1) with padding": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "setTotalWin = the round's win so far": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "setWin = the spin's win, winLevel": {
+    "passed": 80031,
+    "failed": 0
+   },
+   "the round ends on finalWin": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "trigger: 3/4/5+ Crew Leaders -> 10/12/15 spins, 2+ Phantoms -> 17": {
+    "passed": 20000,
+    "failed": 0
+   },
+   "tumble budget (<= 12 paid tumbles, <= 16 board changes)": {
+    "passed": 312157,
+    "failed": 0
+   },
+   "updateTumbleWin = the spin's win so far": {
+    "passed": 88401,
+    "failed": 0
+   },
+   "wall cells are Multis on the revealed board": {
+    "passed": 49072,
+    "failed": 0
+   },
+   "wall line: 3-4 walls in a straight run": {
+    "passed": 49072,
+    "failed": 0
+   },
+   "winInfo totalWin = sum of the clusters": {
+    "passed": 88401,
+    "failed": 0
+   },
+   "wincap fires at 10,000x": {
+    "passed": 30,
+    "failed": 0
+   }
+  },
+  "failed": {},
+  "strips": {
+   "extremegame/basegame:BRE": 19980,
+   "extremegame/freegame:FRE": 292027,
+   "wincap/basegame:BRE": 20,
+   "wincap/freegame:FRWCAP": 130
+  }
+ }
+}

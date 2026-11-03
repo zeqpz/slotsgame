@@ -1,0 +1,163 @@
+{
+ "id": "H7",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "flap_fl_rim",
+   "box": [
+    27,
+    208,
+    601,
+    530
+   ],
+   "pivot": [
+    354.5,
+    448.5
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 0,
+   "bones_of": "flap_fl"
+  },
+  {
+   "name": "flap_r_rim",
+   "box": [
+    553,
+    237,
+    963,
+    530
+   ],
+   "pivot": [
+    708.5,
+    463.5
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 1,
+   "bones_of": "flap_r"
+  },
+  {
+   "name": "body",
+   "box": [
+    96,
+    297,
+    875,
+    875
+   ],
+   "pivot": [
+    580,
+    836
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 2
+  },
+  {
+   "name": "flap_bl",
+   "box": [
+    19,
+    138,
+    396,
+    374
+   ],
+   "pivot": [
+    266.0,
+    329.0
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 3,
+   "chain": [
+    [
+     266.0,
+     329.0
+    ],
+    [
+     227.0,
+     196.0
+    ]
+   ]
+  },
+  {
+   "name": "flap_br",
+   "box": [
+    393,
+    138,
+    980,
+    431
+   ],
+   "pivot": [
+    610.5,
+    355.5
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 4,
+   "chain": [
+    [
+     610.5,
+     355.5
+    ],
+    [
+     658.0,
+     207.5
+    ]
+   ]
+  },
+  {
+   "name": "flap_fl",
+   "box": [
+    50,
+    231,
+    578,
+    507
+   ],
+   "pivot": [
+    354.5,
+    448.5
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 5,
+   "chain": [
+    [
+     354.5,
+     448.5
+    ],
+    [
+     272.0,
+     284.0
+    ]
+   ]
+  },
+  {
+   "name": "flap_r",
+   "box": [
+    576,
+    260,
+    940,
+    507
+   ],
+   "pivot": [
+    708.5,
+    463.5
+   ],
+   "parent": "body",
+   "hidden": false,
+   "draw": 6,
+   "chain": [
+    [
+     708.5,
+     463.5
+    ],
+    [
+     817.0,
+     300.5
+    ]
+   ]
+  }
+ ]
+}

@@ -1,0 +1,217 @@
+{
+ "id": "L2",
+ "size": [
+  1000,
+  1000
+ ],
+ "parts": [
+  {
+   "name": "s01",
+   "box": [
+    334,
+    45,
+    782,
+    238
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 0
+  },
+  {
+   "name": "s02",
+   "box": [
+    131,
+    105,
+    399,
+    296
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 1
+  },
+  {
+   "name": "s03",
+   "box": [
+    129,
+    236,
+    361,
+    411
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 2
+  },
+  {
+   "name": "s04",
+   "box": [
+    308,
+    227,
+    562,
+    392
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 3
+  },
+  {
+   "name": "s05",
+   "box": [
+    392,
+    233,
+    825,
+    485
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 4
+  },
+  {
+   "name": "s06",
+   "box": [
+    218,
+    348,
+    537,
+    591
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 5
+  },
+  {
+   "name": "s07",
+   "box": [
+    131,
+    478,
+    309,
+    701
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 6
+  },
+  {
+   "name": "s08",
+   "box": [
+    226,
+    552,
+    482,
+    749
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 7
+  },
+  {
+   "name": "s09",
+   "box": [
+    443,
+    423,
+    707,
+    740
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 8
+  },
+  {
+   "name": "s10",
+   "box": [
+    635,
+    336,
+    880,
+    720
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 9
+  },
+  {
+   "name": "s11",
+   "box": [
+    597,
+    645,
+    863,
+    802
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 10
+  },
+  {
+   "name": "s12",
+   "box": [
+    248,
+    689,
+    654,
+    926
+   ],
+   "pivot": [
+    500,
+    500
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 11
+  },
+  {
+   "name": "marker",
+   "box": [
+    162,
+    67,
+    923,
+    967
+   ],
+   "pivot": [
+    545,
+    515
+   ],
+   "parent": null,
+   "hidden": false,
+   "draw": 12
+  }
+ ]
+}
