@@ -122,10 +122,13 @@
   /* The game frame never scrolls: fitToScreen() scales #app to the window instead.
      touch-action: manipulation is what turns off double-tap-to-zoom on phones. */
   html, body { height: 100%; overflow: hidden; touch-action: manipulation; }
+  img { -webkit-user-drag: none; }   /* nor drags a ghost of a picture off */
   body {
     margin: 0; color: var(--ink); background: var(--bg);
     font-family: "Jraot Hollow", "Archivo", "Helvetica Neue", Arial, sans-serif;
     position: relative;
+    /* a game, not a page: a drag across it never highlights the icons, wall or figures like text */
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   }
   /* The wall: an old charcoal brick wall at night (the same wall the bonus intro stands on;
      art/wall-src), with the SMUKIEZ tag laid over it as a piece of its own - it wanders about
@@ -271,6 +274,27 @@
   @media (max-width: 760px) {
     :root { --char-height: 34.5vh; --char-inset: -12vw; }
   }
+  /* A small landscape window (800x600, 1024x576, 1024x768 - not a phone on its side, which keeps
+     its own rule below): each figure is sized to the room beside the board and centred in it.
+     The board is fitted to the height, about .87 of it wide, so that room is about
+     50vw - 43.5vh; a figure is about .6 of its box's height wide. On a squarer screen (to 3:2)
+     the HUD runs as wide as the board, so the pair stands up off the bottom, clear of it and of
+     the Bonus button (2026-11-03 QA: faces behind the frame, shoes under the HUD and BONUS). */
+  @media (max-width: 1080px) and (orientation: landscape) and (min-height: 501px) {
+    :root {
+      --char-height: clamp(26vh, calc((47vw - 43.5vh) / .6), 42.5vh);
+      --char-inset: calc((50vw - 43.5vh - var(--char-height) * .94) / 2);
+    }
+    #charfx { right: calc(var(--char-inset) - 3vw); }   /* the skull stands further in in its box: out a little more */
+  }
+  @media (max-width: 1080px) and (orientation: landscape) and (min-height: 501px) and (max-aspect-ratio: 3/2) {
+    :root { --char-drop: -12vh; }
+  }
+  /* Wider screens: the boy stands a little in and up, so the Bonus button in the corner is clear
+     of his sneakers (2026-11-03 QA, 1920x1080) */
+  @media (min-width: 1101px), (min-width: 1081px) and (orientation: landscape) {
+    #charfx2 { left: calc(var(--char-inset) + 4vw); --char-lift: 14%; }
+  }
   /* Portrait phone: the scenery takes the top of the screen and the game the bottom. The pair
      stands BEHIND the board - head, body and hands above its top edge, legs behind it, cut off
      along the frame's top band (--char-cut: the board is see-through, so uncut legs would show
@@ -282,8 +306,10 @@
      each figure's --char-cut from that, so every phone shape gives the same picture. Sized so
      the two stand either side of the lettering, out towards the screen's edges (the boxes run
      a little past them; the figures themselves stay on screen). */
-  @media (max-width: 760px) and (orientation: portrait) {
-    :root { --char-height: 22vh; --char-inset: -4vw; --char-drop: -46vh; }
+  /* (up to 1100px wide: a tablet or a tall narrow window stands upright too - 2026-11-03 QA,
+     the landscape rules put the heads behind the board and the feet under the HUD there) */
+  @media (max-width: 1100px) and (orientation: portrait) {
+    :root { --char-height: min(22vh, 48vw); --char-inset: -4vw; --char-drop: -46vh; }
     #charfx { right: -2vw; }   /* the skull's figure sits further out in its box than the boy's: this evens their margins */
     .charfx { clip-path: inset(0 0 var(--char-cut, 0px) 0); }
     .charshadow { display: none; }   /* their feet are behind the board here */
@@ -750,7 +776,7 @@
   }
   /* percentages here are of the plate itself, so the band and the frayed edge stay clear */
   .fbox .fin {
-    position: absolute; left: 13%; right: 13%; top: 10%; bottom: 10%; overflow: hidden;
+    position: absolute; left: 17%; right: 17%; top: 11%; bottom: 13%; overflow: hidden;   /* inside the drawn rim (2026-11-03 QA) */
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center;
     translate: calc(var(--mx) * 10px) calc(var(--my) * 8px);   /* the contents ride a little above the plate */
   }
@@ -782,6 +808,19 @@
     color: #fff; -webkit-text-stroke: .75cqw #000; paint-order: stroke fill; text-shadow: 0 .4cqw 0 rgba(0,0,0,.55);
   }
   .fbox p b { font-family: "Fredoka", var(--num); font-weight: 700; color: var(--gold); font-size: 1.08em; letter-spacing: .1em; }
+  /* the copy fits inside the rim at any size (the box is narrower since 2026-11-03), and on a
+     card too small to read it (a phone: it came out at 6px) only the icon and the title stay -
+     the whole text is in the game information */
+  .fbox p { font-size: 3.75cqw; line-height: 1.4; }
+  /* upright screens have the height for bigger plates (two rows): a tablet's are big enough to
+     read again, a phone's still only show the icon and title */
+  @media (orientation: portrait) { .fbox { width: clamp(150px, 40vw, 340px); } }
+  @container (max-width: 230px) {
+    .fbox .fin { justify-content: center; }
+    .fbox p { display: none; }
+    .fbox .ficon { width: 64%; }
+    .fbox h3 { font-size: 7.4cqw; margin-top: 4cqw; }
+  }
   .features .fcont {
     position: absolute; left: 0; right: 0; bottom: 4vh; text-align: center;
     font-family: var(--disp); font-size: clamp(16px, 2.6vh, 24px); letter-spacing: .14em; text-transform: uppercase;
@@ -908,40 +947,17 @@
   }
   .popover.right::after { left: auto; right: 10px; margin-left: 0; }
   .popover[hidden] { display: none; }
-  /* The auto play picker (owner, 2026-10-27: to the bonus menu's standard). It stands on its own
-     sprayed plate - the charcoal auto_box art, its violet band the border, cut at the 9% it
-     occupies, with its live rim - and carries a lime title plate, the rules line, the rounds as
-     four option cards (.autoopts, below: the chosen one burns with a neon tube and stands a little
-     proud) and START, drawn like the bonus menu's PLAY. It lives inside the page, which a phone or
-     a short window shrinks to fit (--fit): it grows back by as much (scale, about its arrow), so it
-     is as big on screen there as on a full HD one, and never smaller than it was. */
-  #autoPop {
-    background: none; box-shadow: none;
-    border: 0 solid transparent; border-width: 22px;
-    border-image: url("assets/auto_box.webp") 9% fill / 22px stretch;
-    width: 304px; padding: 6px 10px 10px;
-    filter: drop-shadow(0 10px 22px rgba(0,0,0,.6));
-    scale: clamp(1, calc(.86 / var(--fit, 1)), 2.6);
-    transform-origin: 100% 100%;   /* grown about its right edge: about the arrow, it ran off a phone's edge */
-  }
-  #autoPop::after { border-top-color: #B454E4; }   /* the little arrow, in the plate's violet */
-  /* the info panel's lettering: Fredoka in white with a black outline, everything centred */
-  #autoPop, #autoPop .poptitle, #autoPop .popsub, #autoPop button { font-family: "Fredoka", var(--read); }
-  #autoPop { text-align: center; }
+  /* The auto play picker (HUD v3, 2026-11-03): plain UI in the HUD's own paint - 0.5 black, the
+     greyish-purple outline (.hudpop, with the bar's rules) - rising out of the bar over the Auto
+     tab (placePop), its pointer on the tab: a title, the rules line, the counts as a plain row of
+     choices (.autoopts) and Start. */
+  #autoPop { width: 300px; min-width: 0; padding: 14px 16px 16px; text-align: center; }
   #autoPop .poptitle {
-    display: inline-block; margin: 0 auto 8px; padding: 4px 18px 5px; border-radius: 999px;
-    background: linear-gradient(180deg, #E4FC84, #9CE424 46%, #3C6C0C);
-    border: 2px solid #0b0a0d; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .5), 0 3px 0 rgba(0, 0, 0, .55);
-    font-weight: 700; font-size: 15px; line-height: 1.1; letter-spacing: .1em; text-transform: uppercase;
-    color: #fff; -webkit-text-stroke: 3.5px #0b0a0d; paint-order: stroke fill;   /* the stroke is painted under the letter */
-    text-shadow: 0 2px 0 rgba(0, 0, 0, .45);
+    margin: 0 0 6px; font-family: var(--hud-font); font-weight: 600; font-size: 14px; line-height: 1.2;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--hud-soft);
   }
-  #autoPop .popsub {
-    margin: 0 2px 12px; font-size: 13px; font-weight: 500; line-height: 1.45; color: #fff;
-    -webkit-text-stroke: 2.5px #000; paint-order: stroke fill;
-    text-shadow: 0 1px 0 rgba(0,0,0,.6);
-  }
-  #autoPop .popsub b { color: var(--gold); font-weight: 700; letter-spacing: .03em; -webkit-text-stroke-width: 3px; }
+  #autoPop .popsub { margin: 0 0 12px; font-family: var(--hud-font); font-size: 13px; font-weight: 400; line-height: 1.45; color: var(--hud-ink); }
+  #autoPop .popsub b { color: #fff; font-weight: 700; }
   .poptitle { font-family: var(--disp); font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--orange); margin-bottom: 6px; }
   .popsub { font-size: 11.5px; color: var(--ink-soft); margin-bottom: 8px; line-height: 1.5; }
   .popover .infoclose { font-size: 13px; padding: 10px 20px 9px; }
@@ -970,90 +986,44 @@
   .uibtn:disabled::before { filter: grayscale(1) drop-shadow(0 1.5px 0 rgba(0,0,0,.6)); }
   .uibtn.off::before { filter: grayscale(1) brightness(.5); }   /* that bus is at zero */
 
-  /* the drag bar rides above its own button and only exists while it is open */
-  .vpop {
-    /* left and bottom are both set from JS: the bar wraps, so how far the pop has to rise
-       to clear what is stacked over its button is only knowable at open time */
-    position: absolute; bottom: calc(100% + 10px); z-index: 30;
-    transform: translateX(-50%); transform-origin: 50% 100%;
-    animation: vpopin .34s cubic-bezier(.2,.9,.3,1.35);
-  }
+  /* The volume panel (HUD v3, 2026-11-03): one panel over the speaker tab with a plain slider per
+     bus - Sound and Music - each with its name and its level, in the HUD's paint (.hudpop). Placed
+     from JS (placePop) like the auto play picker. Zero on a slider is that bus's mute; the speaker
+     tab shows the muted speaker only when both are at zero. */
   .vpop[hidden] { display: none; }   /* a display rule outranks the hidden attribute */
-  @keyframes vpopin {   /* display toggles restart it, so every open grows out of the button */
-    0%   { transform: translateX(-50%) scaleY(.3); opacity: 0; }
-    60%  { transform: translateX(-50%) scaleY(1.07); opacity: 1; }
-    100% { transform: translateX(-50%) scaleY(1); }
+  #volPop { width: 300px; padding: 12px 18px 10px; display: grid; gap: 2px; }
+  #volPop[hidden] { display: none; }
+  #volPop.leaving[hidden] { display: grid; }
+  .vrow { display: grid; grid-template-columns: 62px minmax(0, 1fr) 34px; align-items: center; gap: 12px; }
+  .vpop .vlbl {
+    margin: 0; text-align: left; white-space: nowrap; text-shadow: none;
+    font-family: var(--hud-font); font-weight: 600; font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--hud-soft);
   }
-  /* The bar is the hollow of the sprayed capsule: the box the drag measures and the box the
-     liquid lives in, so the level always sits under the finger. The frame hangs outside it,
-     wider and taller by exactly the band the art carries (17% across, 6% down), which keeps
-     the capsule at its own proportions instead of stretching it. */
-  .vbar {
-    position: relative; width: 26px; height: 112px;
-    cursor: pointer;
-    touch-action: none;   /* a vertical drag is the control, not a page scroll */
-    --vdur: .46s;         /* set per change: a rush up takes longer than a drain down */
-  }
+  .vnum { font-family: var(--hud-font); font-weight: 700; font-size: 16px; color: #fff; text-align: right; font-variant-numeric: tabular-nums; }
+  /* the slider's box is the hit area and the box the drag measures; the track runs its full width */
+  .vbar { position: relative; height: 36px; cursor: pointer; touch-action: none; }
   .vbar:focus-visible { outline: none; }
-  .vbar:focus-visible .vframe { filter: drop-shadow(0 0 6px rgba(108,252,84,.9)); }
   .vwell {
-    position: absolute; inset: 0; border-radius: 999px; overflow: hidden;
-    background: rgba(6, 9, 16, .85);
-    box-shadow: inset 0 3px 8px rgba(0,0,0,.8);
+    position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px;
+    border-radius: 999px; overflow: hidden; background: rgba(255, 255, 255, .16);
   }
-  .vframe {
-    position: absolute; inset: -6.6% -26.7%; pointer-events: none;
-    background: url("assets/vol_frame.webp") center / 100% 100% no-repeat;
-    filter: drop-shadow(0 6px 12px rgba(0,0,0,.6));
-    transform-origin: 50% 90%;   /* it rocks about its foot, the way a filled tube would */
-  }
-  /* the liquid. The texture is pinned to the bottom of the well, so raising the level uncovers
-     more of it rather than stretching what is already there */
   .vfill {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 0;
-    background: url("assets/vol_fill.webp") center bottom / 100% 150px no-repeat;
-    pointer-events: none;   /* every pointer event belongs to the bar itself */
-    transition: height var(--vdur) cubic-bezier(.18, 1.3, .32, 1);
+    position: absolute; left: 0; top: 0; bottom: 0; width: var(--v, 0%);
+    background: var(--hud-on); border-radius: inherit; pointer-events: none; transition: width .14s ease-out;
   }
-  /* its surface: a bright meniscus that swells as the level moves and settles flat after */
-  .vfill::after {
-    content: ""; position: absolute; left: -10%; right: -10%; top: -5px; height: 10px;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at 50% 60%, rgba(228, 252, 132, .95), rgba(156, 228, 36, .5) 60%, transparent 72%);
+  .vknob {
+    position: absolute; top: 50%; left: var(--v, 0%); width: 20px; height: 20px; margin: -10px 0 0 -10px;
+    border-radius: 50%; background: #fff; border: 2px solid var(--hud-line); box-shadow: 0 2px 6px rgba(0, 0, 0, .45);
+    pointer-events: none; transition: left .14s ease-out, transform .12s ease;
   }
-  .vfill::before {   /* a sheen down one side, so the tube reads as glass with something in it */
-    content: ""; position: absolute; left: 14%; top: 0; bottom: 0; width: 22%;
-    background: linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,0));
-    border-radius: 999px;
-  }
-  /* a drag tracks the finger: no spring while it is held, the spring comes back on release */
-  .vbar.dragging .vfill { transition: height .07s linear; }
-  /* the slosh: the surface swells and rocks, and the capsule rocks a little with it */
-  .vbar.slosh .vfill::after { animation: vmeniscus calc(var(--vdur) * 1.5) cubic-bezier(.2,.8,.3,1); }
-  .vbar.slosh .vframe { animation: vrock calc(var(--vdur) * 1.5) cubic-bezier(.2,.8,.3,1); }
-  @keyframes vmeniscus {
-    0%   { transform: scaleY(2.2) scaleX(1.06); opacity: 1; }
-    40%  { transform: scaleY(.55) scaleX(1.02); }
-    70%  { transform: scaleY(1.35) scaleX(1); }
-    100% { transform: none; }
-  }
-  @keyframes vrock {
-    0%   { transform: rotate(0deg) translateY(0); }
-    25%  { transform: rotate(1.6deg) translateY(-1.5px); }
-    55%  { transform: rotate(-1.1deg) translateY(.5px); }
-    80%  { transform: rotate(.5deg) translateY(0); }
-    100% { transform: none; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .vfill { transition: none; }
-    .vbar.slosh .vfill::after, .vbar.slosh .vframe { animation: none; }
-  }
+  .vbar.dragging .vfill, .vbar.dragging .vknob { transition: transform .12s ease; }
+  .vbar:hover .vknob, .vbar.dragging .vknob { transform: scale(1.12); }
+  .vbar:focus-visible .vknob { box-shadow: 0 0 0 3px rgba(255, 255, 255, .55), 0 2px 6px rgba(0, 0, 0, .45); }
+  @media (prefers-reduced-motion: reduce) { .vfill, .vknob { transition: none; } }
   @media (max-width: 620px) {
     .bottom { gap: 10px; padding: 12px 12px; }
     .uibtn { width: 34px; height: 34px; }
     .sidebtn { width: 36px; height: 36px; }
-    .vbar { width: 30px; height: 104px; }
-    .spinbtn { width: 152px; height: 74px; }
     .betbox button { width: 38px; height: 38px; }
     #betVal { min-width: 104px; font-size: 14px; }
     .stat .val { font-size: 14px; }
@@ -1126,154 +1096,140 @@
   table td em { font-style: normal; color: var(--ink-soft); }
   @media (max-width: 640px) { .paytable, .kvgrid { grid-template-columns: 1fr; } }
 
-  /* ---------- the rules panel, redone (2026-10-24) ----------
-     The sprayed charcoal plate and its live violet outline stay; on it, every category sits in a
-     rounded box of its own (a smoky dark glass, so white copy reads on the grey), headed by a
-     rounded tab. All the copy is Fredoka - round, friendly, cartoon - in white with a black
-     outline, like the game's own lettering; the accents (the pays, the costs) are the game's
-     lime and gold. The tables become rounded rows, the paytable rounded cards. */
+  /* ---------- the rules panel (HUD v3, 2026-11-03) ----------
+     In the HUD's paint: 0.5 black with a blur behind it, the greyish-purple outline, plain white
+     Fredoka copy (no black outline on the letters any more), the headings and figures in Fredoka's
+     bold. Every category is a quiet outlined box; the paytable cards and the tables follow. The
+     replay and error panels share it. The rules panel itself rises out of the bar (#infoWrap, with
+     the bar's rules). */
   html .infopanel {
-    --ink: #fff; --ink-soft: #e4e2ea; --line: rgba(255, 255, 255, .18);
-    --gold: #ffd23c; --green: #a8f000; --spray: #E4B4FC;   /* the labels in the violet's pale highlight */
-    font-family: "Fredoka", var(--read); color: #fff;
-    padding: 22px 24px 18px;
+    --ink: #f4f1f8; --ink-soft: #c4bcd2; --line: rgba(196, 188, 210, .16);
+    --gold: #ffd23c; --green: #B8F23A; --spray: #d2bff5; --panel: rgba(255, 255, 255, .05); --panel2: rgba(255, 255, 255, .08);
+    background: var(--hud-fill); border: 2px solid var(--hud-line); border-image: none; border-radius: 22px;
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .45);
+    font-family: var(--hud-font); color: var(--ink); padding: 22px 22px 18px;
+    scrollbar-width: thin; scrollbar-color: rgba(196, 188, 210, .35) transparent;
   }
   html .infopanel, html .infopanel p, html .infopanel td, html .infopanel th, html .infopanel .prow, html .infopanel .ptext, html .infopanel .kvgrid, html .infopanel .kvgrid small, html .infopanel .fine, html .infopanel .legal, html .infopanel .replaymeta, html .infopanel table.hist td, html .infopanel table.hist th {
-    font-family: "Fredoka", var(--read); font-weight: 500; color: #fff;
-    -webkit-text-stroke: 3px #000; paint-order: stroke fill; letter-spacing: .01em;
-    text-shadow: 0 2px 0 rgba(0, 0, 0, .55);
+    font-family: var(--hud-font); font-weight: 400; color: var(--ink);
+    -webkit-text-stroke: 0; paint-order: normal; letter-spacing: .005em; text-shadow: none;
   }
   html .infopanel h3 {
-    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 30px; letter-spacing: .03em; text-transform: uppercase;
-    color: #fff; -webkit-text-stroke: 6px #000; paint-order: stroke fill; text-shadow: 0 4px 0 rgba(0,0,0,.6), 0 0 20px rgba(180,84,228,.7);
-    text-align: center; margin: 0 0 16px;
+    font-family: var(--hud-font); font-weight: 700; font-size: 24px; letter-spacing: .14em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 0; text-shadow: none; text-align: center; margin: 2px 0 16px;
   }
   html .infopanel section {
-    position: relative; margin: 0 0 16px; padding: 30px 16px 14px;
-    background: linear-gradient(180deg, rgba(14, 12, 22, .62), rgba(14, 12, 22, .5));
-    border: 2px solid rgba(0, 0, 0, .75); border-radius: 20px;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .1), 0 4px 0 rgba(0, 0, 0, .35);
+    position: relative; margin: 0 0 14px; padding: 14px 16px 12px;
+    background: rgba(255, 255, 255, .035); border: 1.5px solid var(--hud-line); border-radius: 16px; box-shadow: none;
   }
-  /* the category's tab: a rounded pill hung on the box's top edge */
   html .infopanel section > h4 {
-    position: absolute; top: -14px; left: 16px; margin: 0;
-    padding: 4px 16px 5px; border-radius: 999px; border: 2px solid #000;
-    background: linear-gradient(180deg, #B454E4, #6C24B4);
-    box-shadow: inset 0 2px 0 rgba(255,255,255,.35), 0 3px 0 rgba(0,0,0,.55);
-    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase;
-    color: #fff; -webkit-text-stroke: 3.5px #000; paint-order: stroke fill; text-shadow: 0 2px 0 rgba(0,0,0,.5);
+    position: static; margin: 0 0 10px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+    font-family: var(--hud-font); font-weight: 600; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--spray); -webkit-text-stroke: 0; text-shadow: none;
   }
-  html .infopanel section:has(> .legal:only-child) { background: rgba(14, 12, 22, .38); padding-top: 14px; }
-  html .infopanel b, html .infopanel strong { font-family: "Fredoka", var(--read); font-weight: 700; }
-  html .infopanel p { font-size: 15px; line-height: 1.55; margin: 0 0 10px; }
+  html .infopanel section:has(> .legal:only-child) { background: none; padding-top: 12px; }
+  html .infopanel b, html .infopanel strong { font-family: var(--hud-font); font-weight: 700; }
+  html .infopanel p { font-size: 14.5px; line-height: 1.6; margin: 0 0 10px; }
   html .infopanel p b, html .infopanel td b { color: var(--green); font-weight: 700; }
   html .infopanel .fine { font-size: 13px; color: var(--ink-soft); }
-  html .infopanel .legal { font-size: 12px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
-  /* the headline numbers: three rounded tiles */
+  html .infopanel .legal { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin: 0; }
+  /* the headline numbers: three outlined tiles */
   html .infopanel .kvgrid { gap: 10px; margin: 12px 0; }
   html .infopanel .kvgrid > div {
-    border: 2px solid #000; border-radius: 16px; padding: 10px 12px; text-align: center;
-    background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04)), rgba(30, 26, 44, .7);
-    box-shadow: inset 0 2px 0 rgba(255,255,255,.18);
+    border: 1.5px solid var(--hud-line); border-radius: 14px; padding: 10px 12px; text-align: center;
+    background: rgba(255, 255, 255, .04); box-shadow: none;
   }
-  html .infopanel .kvgrid span { font-family: "Fredoka", var(--read); font-weight: 600; font-size: 12px; letter-spacing: .12em; color: var(--spray); -webkit-text-stroke: 2.5px #000; paint-order: stroke fill; }
-  html .infopanel .kvgrid b { font-family: "Fredoka", var(--read); font-weight: 700; font-size: 26px; color: var(--gold); -webkit-text-stroke: 4px #000; paint-order: stroke fill; }
-  html .infopanel .kvgrid small { font-size: 12px; }
-  /* tables become rounded rows */
-  html .infopanel table.modes, html .infopanel table.guide, html .infopanel table.hist { border-collapse: separate; border-spacing: 0 6px; }
+  html .infopanel .kvgrid span { font-family: var(--hud-font); font-weight: 600; font-size: 11.5px; letter-spacing: .14em; color: var(--ink-soft); -webkit-text-stroke: 0; }
+  html .infopanel .kvgrid b { font-family: var(--hud-font); font-weight: 700; font-size: 26px; color: #fff; -webkit-text-stroke: 0; }
+  html .infopanel .kvgrid small { font-size: 12px; color: var(--ink-soft); }
+  /* tables: rounded rows */
+  html .infopanel table.modes, html .infopanel table.guide, html .infopanel table.hist { border-collapse: separate; border-spacing: 0 5px; }
   html .infopanel table.modes td, html .infopanel table.guide td, html .infopanel table.hist td {
-    border: 0; padding: 9px 12px; font-size: 14.5px; line-height: 1.45;
-    background: rgba(255, 255, 255, .08); border-top: 2px solid rgba(0,0,0,.6); border-bottom: 2px solid rgba(0,0,0,.6);
+    border: 0; padding: 9px 12px; font-size: 14px; line-height: 1.45;
+    background: rgba(255, 255, 255, .04); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
   }
-  html .infopanel table td:first-child { border-left: 2px solid rgba(0,0,0,.6); border-radius: 14px 0 0 14px; }
-  html .infopanel table td:last-child { border-right: 2px solid rgba(0,0,0,.6); border-radius: 0 14px 14px 0; }
+  html .infopanel table td:first-child { border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; }
+  html .infopanel table td:last-child { border-right: 1px solid var(--line); border-radius: 0 12px 12px 0; }
   html .infopanel table.guide td:first-child { width: 22%; white-space: nowrap; }
-  html .infopanel table.guide td:first-child b { color: var(--gold); }
+  html .infopanel table.guide td:first-child b { color: #fff; }
   html .infopanel table.modes th, html .infopanel table.hist th {
-    border: 0; padding: 2px 12px; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: var(--spray);
-    -webkit-text-stroke: 2.5px #000; paint-order: stroke fill;
+    border: 0; padding: 2px 12px; font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-soft); -webkit-text-stroke: 0;
   }
   html .infopanel table td em { color: var(--gold); font-style: normal; }
-  html .infopanel table.hist td.win { color: var(--green); }
+  html .infopanel table.hist td { font-variant-numeric: tabular-nums; }
+  html .infopanel table.hist td.win { color: var(--green); font-weight: 600; }
   html .infopanel table.hist td.zero { color: var(--ink-soft); }
   html .infopanel .tbl { overflow-x: auto; }
-  /* the paytable: each symbol on a rounded card, its six pays as little rounded chips */
-  html .infopanel .paytable { gap: 10px; margin-top: 10px; }
+  /* the paytable: each symbol on an outlined card, its six pays as little chips */
+  html .infopanel .paytable { gap: 10px; margin-top: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   html .infopanel .prow {
-    grid-template-columns: 58px 1fr; gap: 6px 12px; padding: 10px 12px;
-    border: 2px solid #000; border-radius: 16px;
-    background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03)), rgba(30, 26, 44, .66);
-    box-shadow: inset 0 2px 0 rgba(255,255,255,.14);
+    grid-template-columns: 56px 1fr; gap: 6px 12px; padding: 10px 12px;
+    border: 1.5px solid var(--hud-line); border-radius: 14px; background: rgba(255, 255, 255, .04); box-shadow: none;
     font-size: 14px;
   }
   html section > .prow + .prow { margin-top: 10px; }
   html .infopanel .ptile {
-    width: 58px; height: 58px; border: 2px solid #000; border-radius: 14px;
-    background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.3), rgba(255,255,255,.08) 70%), rgba(40, 36, 56, .8);
-    padding: 3px;
+    width: 56px; height: 56px; border: 1.5px solid var(--hud-line); border-radius: 12px;
+    background: rgba(255, 255, 255, .07); padding: 3px;
   }
-  html .infopanel .pname { font-weight: 700; font-size: 16px; -webkit-text-stroke: 3.5px #000; }
-  html .infopanel .pname small { color: var(--spray); font-weight: 600; font-size: 11px; -webkit-text-stroke: 2.5px #000; }
+  html .infopanel .pname { font-weight: 700; font-size: 16px; -webkit-text-stroke: 0; }
+  html .infopanel .pname small { color: var(--spray); font-weight: 600; font-size: 11px; -webkit-text-stroke: 0; }
   html .infopanel .pvals { gap: 5px 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   html .infopanel .pvals > div {
     border-radius: 999px; padding: 3px 8px; text-align: center; white-space: nowrap; font-size: 13px; overflow: hidden;
-    background: rgba(0, 0, 0, .35); border: 1.5px solid rgba(0,0,0,.7);
+    background: rgba(255, 255, 255, .06); border: 1px solid var(--line);
   }
   html .infopanel .pvals b { color: var(--spray); margin-right: 3px; }
   html .infopanel .pvals em { color: var(--gold); margin-left: 3px; }
-  html .infopanel .ptext { font-size: 14.5px; line-height: 1.5; }
-  /* the Close button: a fat rounded pill */
+  html .infopanel .ptext { font-size: 14px; line-height: 1.5; }
+  /* the special symbols' Multi tiles: the intro plate's Multi - the brick with its value climbing
+     and warming, round and round (cycleMult) - in place of the flat picture */
+  html .infopanel .ptile.livemult { position: relative; container-type: inline-size; padding: 2px; }
+  .ptile.livemult img { display: block; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+  html .infopanel .ptile.livemult .fmult {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: var(--num); font-weight: 400; font-size: 44cqw; line-height: 1; letter-spacing: 0; white-space: nowrap;
+    color: var(--heat, var(--fs-green)); -webkit-text-stroke: 0;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .9), 0 0 3px rgba(0, 0, 0, .9), 0 0 8px var(--heat, var(--fs-green));
+    transition: color .35s ease, text-shadow .35s ease;
+  }
+  .ptile.livemult .fmult.tick { animation: fmultpop .38s cubic-bezier(.2, .9, .3, 1.3); }
+  @media (prefers-reduced-motion: reduce) { .ptile.livemult .fmult.tick { animation: none; } }
+  /* Close (and the replay's Play, the error's Reload): a plain outlined pill */
   html .infopanel .infoclose, html #infoClose {
-    font-family: "Fredoka", var(--disp); font-weight: 700; font-size: 18px; letter-spacing: .08em; text-transform: uppercase;
-    color: #fff; -webkit-text-stroke: 4px #000; paint-order: stroke fill;
+    display: block; margin: 8px auto 2px; min-width: 170px; padding: 13px 30px;
+    border: 2px solid var(--hud-line); border-image: none; border-radius: 999px; background: rgba(255, 255, 255, .08);
+    font-family: var(--hud-font); font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: .16em; text-transform: uppercase;
+    color: #fff; -webkit-text-stroke: 0; text-shadow: none;
+    transition: background-color .15s, border-color .15s, transform .12s;
   }
+  html .infopanel .infoclose:hover:not(:disabled), html #infoClose:hover:not(:disabled) { background: rgba(255, 255, 255, .15); border-color: var(--hud-hi); filter: none; transform: none; }
+  html .infopanel .infoclose:active:not(:disabled), html #infoClose:active:not(:disabled) { transform: scale(.96); }
   html .infopanel::-webkit-scrollbar { width: 10px; }
-  html .infopanel::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, .55); border-radius: 99px; border: 2px solid rgba(255,255,255,.25); }
-  html .infopanel .paytable { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  @media (max-width: 640px) { .infopanel .paytable { grid-template-columns: 1fr; } }
-  /* autoplay count picker: the rounds as four option cards (owner, 2026-10-27), each a dark slab
-     like the bonus menu's cards, the figure large in white over ROUNDS in lime. The chosen one
-     burns with the bonus cards' neon tube (its stutter and its breathing halo: ncardTube,
-     ncardHalo) and stands a little proud; the others are dimmed until the pointer is on them,
-     which half-lights their tube. Keyboard focus is a white ring outside the tube. */
-  .autoopts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin: 0 3px 16px; }
+  html .infopanel::-webkit-scrollbar-thumb { background: rgba(196, 188, 210, .32); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; }
+  @media (max-width: 640px) { html .infopanel .paytable, html .infopanel .kvgrid { grid-template-columns: 1fr; } }
+  /* auto play counts (HUD v3, 2026-11-03): a plain row of choices, the chosen one outlined in lime */
+  .autoopts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
   .autoopts button {
-    --acchi: #E4FC84; --glow: 108, 252, 84;
-    position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    height: 62px; padding: 0; border: 2px solid #0b0a0d; border-radius: 14px; cursor: pointer;
-    background: linear-gradient(180deg, rgba(58, 54, 66, .96), rgba(24, 22, 30, .97) 56%, rgba(14, 13, 18, .98));
-    box-shadow: inset 0 2px 0 rgba(255, 255, 255, .09), inset 0 -3px 0 rgba(0, 0, 0, .35), 0 4px 0 rgba(0, 0, 0, .45);
-    color: #fff; text-shadow: none;
-    transition: transform .16s cubic-bezier(.3, .9, .4, 1.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    height: 54px; padding: 0; cursor: pointer; color: var(--hud-ink); text-shadow: none;
+    background: rgba(255, 255, 255, .05); border: 2px solid var(--hud-line); border-radius: 12px;
+    transition: background-color .15s, border-color .15s, transform .12s;
   }
-  .autoopts button b {
-    font-family: "Fredoka", var(--num); font-weight: 700; font-size: 23px; line-height: 1; letter-spacing: .02em;
-    color: #fff; -webkit-text-stroke: 4.5px #0b0a0d; paint-order: stroke fill;
-  }
+  .autoopts button b { font-family: var(--hud-font); font-weight: 700; font-size: 20px; line-height: 1; }
   .autoopts button small {
-    font-family: "Fredoka", var(--label); font-weight: 700; font-size: 9.5px; line-height: 1; letter-spacing: .14em; text-transform: uppercase;
-    color: #9CE424; -webkit-text-stroke: 2.5px #0b0a0d; paint-order: stroke fill;
+    font-family: var(--hud-font); font-weight: 600; font-size: 9.5px; line-height: 1; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--hud-soft);
   }
-  .autoopts button :is(b, small) { transition: opacity .2s ease; }
-  .autoopts button:not(.on) :is(b, small) { opacity: .6; }
-  .autoopts button::before, .autoopts button::after { content: ""; position: absolute; pointer-events: none; opacity: 0; transition: opacity .25s ease; }
-  .autoopts button::after { inset: -9px; border-radius: 22px; z-index: -1; border: 9px solid rgba(var(--glow), .42); filter: blur(7px); }
-  .autoopts button::before {
-    inset: -5px; border-radius: 18px; border: 2.5px solid var(--acchi);
-    box-shadow: 0 0 3px rgba(var(--glow), 1), 0 0 9px rgba(var(--glow), .9), 0 0 18px rgba(var(--glow), .5),
-      inset 0 0 4px rgba(var(--glow), .9), inset 0 0 10px rgba(var(--glow), .4);
-  }
-  .autoopts button.on { transform: translateY(-2px) scale(1.06); }
-  .autoopts button.on::before { opacity: 1; animation: ncardTube 5.3s linear infinite; }
-  .autoopts button.on::after { opacity: 1; animation: ncardHalo 3.1s ease-in-out infinite; }
-  .autoopts button:not(.on):hover::before { opacity: .45; }
-  .autoopts button:not(.on):hover :is(b, small) { opacity: 1; }
-  /* scoped to the picker: the bar's `.hud button:focus { outline: none }` comes later and would win */
-  #autoPop .autoopts button:focus-visible { outline: 2px solid #fff; outline-offset: 7px; filter: none; }
-  .autoopts button:focus-visible:not(.on) :is(b, small) { opacity: 1; }
-  .autoopts button:active { transform: translateY(1px) scale(.95); }
+  .autoopts button:hover:not(:disabled) { background: rgba(255, 255, 255, .1); border-color: var(--hud-hi); }
+  .autoopts button.on, .autoopts button.on:hover:not(:disabled) { border-color: var(--hud-on); background: rgba(184, 242, 58, .14); color: #fff; }
+  .autoopts button.on small { color: var(--hud-on); }
+  .autoopts button:active:not(:disabled) { transform: scale(.95); }
   .autoopts button:disabled { opacity: .4; cursor: default; }
-  @media (prefers-reduced-motion: reduce) { .autoopts button, .autoopts button::before, .autoopts button::after { animation: none !important; transition: none !important; } }
+  #autoPop .autoopts button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { .autoopts button { transition: none !important; } }
   /* autoplay: the twin-arrow icon button; while running it shows the rounds left and turns */
   .info.auto { width: auto; min-width: 34px; height: 34px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; }
   .info.auto svg { width: 18px; height: 18px; fill: currentColor; stroke: currentColor; stroke-width: 2.6; stroke-linecap: butt; }
@@ -1342,6 +1298,7 @@
   /* no tinted panel behind the reels — the wall art shows straight through the board */
   .board {
     position: relative; display: flex; gap: var(--cell-gap); padding: 36px 41px;   /* the frame's bands never touch an icon */
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;   /* the icons never highlight like text */
     /* the lean-in for a third Crew Leader (boardZoom): a touch bigger, about a point part way
        toward the held column (--zx), reaching full size as that column's last icon lands
        (--zoomms, set per reveal) and letting go again in a beat, hit or miss */
@@ -1368,36 +1325,16 @@
   html.sprayfx .bonuspanel { background-image: url("assets/rim/bonus_panel.webp"); }
   html.sprayfx .fbox { background-image: url("assets/rim/feature_box.webp"); }
   html.sprayfx .fbox::after { -webkit-mask-image: url("assets/rim/feature_box.webp"); mask-image: url("assets/rim/feature_box.webp"); }
-  html.sprayfx .infopanel, html.sprayfx .bonusintro .bhow { border-image-source: url("assets/rim/info_panel.webp"); }
-  html.sprayfx #autoPop { border-image-source: url("assets/rim/auto_box.webp"); }   /* its option cards carry a neon tube, not a rim (2026-10-27) */
+  html.sprayfx .bonusintro .bhow { border-image-source: url("assets/rim/info_panel.webp"); }
   html.sprayfx .winpop::before { background-image: url("assets/rim/win_box.webp"); }
-  html.sprayfx .vframe { background-image: url("assets/rim/vol_frame.webp"); }
-  html.sprayfx .hudbar { border-image-source: url("assets/rim/hud_bar.webp"); }
-  html.sprayfx .hudbtn.menu { background-image: url("assets/rim/hud_menu.webp"); }
-  html.sprayfx .hudbtn.audio { background-image: url("assets/rim/hud_audio.webp"); }
-  html.sprayfx .sidebtn.rapid { background-image: url("assets/rim/hud_rapid.webp"); }
-  html.sprayfx .sidebtn.rapid.on, html.sprayfx .sidebtn.rapid.on:hover { background-image: url("assets/rim/hud_rapid_on.webp"); }
-  html.sprayfx .sidebtn.auto { background-image: url("assets/rim/hud_auto.webp"); }
-  html.sprayfx #betUp, html.sprayfx #bonusBetUp { background-image: url("assets/rim/hud_plus.webp"); }
-  html.sprayfx #betDown, html.sprayfx #bonusBetDown { background-image: url("assets/rim/hud_minus.webp"); }
-  html.sprayfx .spinbtn::before { background-image: url("assets/rim/hud_hex.webp"); }
+  html.sprayfx #bonusBetUp { background-image: url("assets/rim/hud_plus.webp"); }
+  html.sprayfx #bonusBetDown { background-image: url("assets/rim/hud_minus.webp"); }
   html.rimmeasure .sprayrim { display: none !important; }
   /* No CSS drop-shadow on anything carrying a live rim: Chromium paints a drop-shadow-filtered
      element that holds one of these canvases in the wrong place (the whole HUD came out a few
      hundred px off). The rims draw the shadow themselves; the other filters stay. */
-  html.sprayfx .hudbtn, html.sprayfx .sidebtn, html.sprayfx .hudbar, html.sprayfx .betstep button, html.sprayfx .bonusbet button,
-  html.sprayfx #autoPop, html.sprayfx .bonuspanel, html.sprayfx .fbox, html.sprayfx .vframe, html.sprayfx .winpop, html.sprayfx .spinwrap { filter: none; }
-  html.sprayfx .hudbtn:hover:not(:disabled), html.sprayfx .sidebtn:hover:not(:disabled) { filter: brightness(1.12); }
-  html.sprayfx .hudbtn.open, html.sprayfx .hudbtn.open:hover { filter: brightness(1.18) saturate(1.08); }
-  html.sprayfx .hudbtn.off, html.sprayfx .hudbtn.off:hover { filter: grayscale(1) brightness(.6); }
-  html.sprayfx .sidebtn.on, html.sprayfx .sidebtn.on:hover { filter: brightness(1.25) saturate(1.2); }
-  html.sprayfx .sidebtn.rapid.on, html.sprayfx .sidebtn.rapid.on:hover { filter: none; }
-  html.sprayfx .sidebtn.rapid.on:hover:not(:disabled) { filter: brightness(1.12); }
-  html.sprayfx .sidebtn.rapid.on:disabled { filter: none; }
-  html.sprayfx .hudbtn:disabled, html.sprayfx .sidebtn:disabled { filter: none; }
-  html.sprayfx .sidebtn.on:disabled { filter: brightness(1.25) saturate(1.2); }
-  html.sprayfx .betstep button:hover:not(:disabled), html.sprayfx .bonusbet button:hover:not(:disabled) { filter: brightness(1.15); }
-  html.sprayfx .vbar:focus-visible .vframe { filter: brightness(1.25); }
+  html.sprayfx .bonusbet button, html.sprayfx .bonuspanel, html.sprayfx .fbox, html.sprayfx .winpop { filter: none; }
+  html.sprayfx .bonusbet button:hover:not(:disabled) { filter: brightness(1.15); }
   html.sprayfx .fbox:hover { filter: none; }
   /* the win popup's plate wanders on --p*: its outline goes with it */
   .winpop > .sprayrim.winbox { translate: var(--px, 0) var(--py, 0); rotate: var(--pr, 0deg); scale: var(--ps, 1); }
@@ -1634,7 +1571,9 @@
     55%  { scale: 1.2; filter: brightness(1.5); }
     100% { scale: 1; filter: brightness(1); }
   }
-  @media (prefers-reduced-motion: reduce) { .multlayer .gmult.bare { animation: none; } }
+  /* and a value a Multi has just set on a cell pops in the same way, still faint behind the tile */
+  .multlayer .gmult.arrive { animation: gmultIn calc(.42s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.2,.9,.3,1.35); }
+  @media (prefers-reduced-motion: reduce) { .multlayer .gmult.bare, .multlayer .gmult.arrive { animation: none; } }
   /* a line drop (math v5): a winning cluster's small multiplier drops into its cell from just
      above and lands with a bounce, on translate so the idle stretch and the pop ride on top */
   .multlayer .gmult.drop { animation: gmultDrop calc(.5s * var(--tempo, 1) / var(--multi-rate, 1)) cubic-bezier(.3,.9,.35,1.3); }
@@ -2032,8 +1971,10 @@
   @keyframes fsIn { 0% { translate: 0 70px; opacity: 0; } 100% { translate: 0 0; opacity: 1; } }
   @keyframes fsOut { 0% { translate: 0 0; opacity: 1; } 100% { translate: 0 80px; opacity: 0; } }
   .fsplate {
-    position: relative; display: inline-flex; align-items: center; height: 74px; box-sizing: border-box;
-    padding: 0 26px; border: 0 solid transparent; border-width: 0 20px;
+    /* 86px tall (it was 74): the rim bands are drawn to the plate's height, and at 74 the BONUS WIN
+       figures sat on the bottom one (2026-11-03 QA) */
+    position: relative; display: inline-flex; align-items: center; height: 86px; box-sizing: border-box;
+    padding: 0 30px; border: 0 solid transparent; border-width: 0 20px;
     border-image: url("assets/hud_bar.webp") 0 6% 0 6% fill / 0 20px stretch;
   }
   html.sprayfx .fsplate { border-image-source: url("assets/rim/hud_bar.webp"); }
@@ -2079,7 +2020,7 @@
   /* a phone in portrait shrinks the whole game to its width (about 0.4): the plate is drawn about
      twice the size there, so its labels and figures still read at a glance */
   @media (max-width: 760px) and (orientation: portrait) {
-    .fsplate { height: 150px; padding: 0 44px; border-width: 0 40px; border-image-width: 0 40px; }
+    .fsplate { height: 174px; padding: 0 50px; border-width: 0 40px; border-image-width: 0 40px; }
     .fscount, .fswinbox { gap: 8px; padding: 0 30px; }
     .fswinbox { min-width: 300px; border-left-width: 4px; }
     .fslbl { font-size: 26px; -webkit-text-stroke-width: 6px; }
@@ -2277,7 +2218,7 @@
        content inside is what sets the height. */
     width: min(560px, 92vw); border: 0; position: relative;
     background: url("assets/bonus_panel.webp") center / 100% 100% no-repeat;
-    padding: 36px 46px 60px; filter: drop-shadow(0 18px 44px rgba(0,0,0,.6));
+    padding: 36px 46px 86px; filter: drop-shadow(0 18px 44px rgba(0,0,0,.6));   /* the foot clears PLAY of the frayed rim (2026-11-03 QA) */
     animation: bonusdrift 9s ease-in-out infinite;
   }
   @keyframes bonusdrift {   /* a few px of wander, never enough to be hard to click */
@@ -2529,7 +2470,7 @@
   }
   /* a short window: the heading and the scatters give up some height first */
   @media (max-height: 760px) {
-    .bonuspanel { padding-top: 26px; padding-bottom: 46px; }
+    .bonuspanel { padding-top: 26px; padding-bottom: 66px; }
     .bonuspanel h3 { width: 150px; height: 96px; margin-bottom: 6px; }
     .bonustotal { margin: 6px 0 10px; }
   }
@@ -2537,6 +2478,13 @@
   @media (max-width: 560px) and (orientation: portrait) and (max-height: 760px) {
     .bonuspanel { padding-bottom: 58px; }
   }
+  /* The note stands inside the plate, between the total it speaks of and PLAY (2026-11-03 QA: under
+     PLAY it printed over the plate's frayed bottom rim on desktop and phone - the rim is drawn to
+     the plate's height, so no fixed padding clears it everywhere). The sideways layout below is a
+     grid with its own places and keeps the note across the foot. */
+  .bonuspanel { display: flex; flex-direction: column; }
+  .bonuspanel > .bonusnote { order: 1; margin: 0 0 12px; }
+  .bonuspanel > .bonusgo { order: 2; }
   /* A short, wide window - a laptop's 576-680 px, the 800x450 and 400x225 popouts, a phone on its
      side - lays the buy out sideways (2026-10-27): the two cards on the left; the bet, the total and
      PLAY on the right; the heading over both and the note under both. It needs half the height, so
@@ -2546,7 +2494,7 @@
     .bonuspanel {
       width: 720px; padding: 22px 40px 42px;
       display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); column-gap: 24px; align-items: center;
-      grid-template-areas: "head head" "cards bet" "cards total" "cards go" "note note";
+      grid-template-areas: "head head" "cards bet" "cards total" "cards note" "cards go";   /* the note over PLAY, inside the plate */
     }
     .bonuspanel h3 { grid-area: head; width: 132px; height: 86px; margin: -10px auto 4px; }
     .bonusgrid { grid-area: cards; margin: 0; align-self: stretch; }
@@ -2599,11 +2547,16 @@
     content: ""; position: absolute; inset: 5% 6%;
     background: url("assets/bonus_btn_text.webp") center/contain no-repeat;
     filter: drop-shadow(0 3px 5px rgba(0,0,0,.45));
-    animation: btnFloat 4s ease-in-out infinite;
-    transition: scale .18s cubic-bezier(.3,.9,.4,1.3);
   }
-  .bonusbtn:hover:not(:disabled)::after { scale: 1.14; }
-  .bonusbtn:hover:not(:disabled)::before, .bonusbtn:hover:not(:disabled) .bglow { scale: 1.04; }
+  /* The whole button drifts as one piece - the plate, the lettering and the neon glow together
+     (owner, 2026-11-03: the lettering used to float on its own off a plate and a glow that stood
+     still) - and only a little, slowly. The pointer lifts the whole of it a touch, too. */
+  .bonusbtn { animation: bonusFloat 9s ease-in-out infinite; transition: scale .2s ease; }
+  .bonusbtn:hover:not(:disabled) { scale: 1.04; }
+  @keyframes bonusFloat {
+    0%, 100% { translate: 0 0; rotate: 0deg; } 25% { translate: 1px -1.5px; rotate: .25deg; }
+    50% { translate: -.5px 1px; rotate: -.2deg; } 75% { translate: -1.5px -.5px; rotate: .15deg; }
+  }
   /* the plate's cyan outline lit like a neon sign: the tube buzzing on and off at random beats,
      a slow breath through it, and a brighter pulse as the gas catches - over the plate, screened */
   .bonusbtn .bglow, .bonuspanel h3 .bglow {
@@ -2624,9 +2577,9 @@
   }
   .bonusbtn:disabled .bglow { animation: none; opacity: .3; }
   @media (prefers-reduced-motion: reduce) { .bonusbtn .bglow, .bonuspanel h3 .bglow { animation: none; opacity: .85; } }
-  .bonusbtn.clicked { animation: btnBounce2 .34s cubic-bezier(.3,.7,.4,1.4); }
-  .bonusbtn:disabled { opacity: .5; }
-  .bonusbtn:disabled::after { animation-play-state: paused; }
+  /* the press's bounce rides on the drift (same first name, so the drift carries on unbroken) */
+  .bonusbtn.clicked { animation: bonusFloat 9s ease-in-out infinite, btnBounce2 .34s cubic-bezier(.3,.7,.4,1.4); }
+  .bonusbtn:disabled { opacity: 1; }   /* nothing greys during a round: the panel itself gates what is affordable */
 
   @keyframes btnFloat {
     0% { translate: 0 0; rotate: 0deg; } 25% { translate: 2px -3px; rotate: .8deg; }
@@ -2636,154 +2589,229 @@
   @keyframes spin360 { from { rotate: 0deg; } to { rotate: 360deg; } }
   @keyframes btnBounce2 { 0% { scale: 1; } 30% { scale: .9; } 65% { scale: 1.07; } 100% { scale: 1; } }
   @media (prefers-reduced-motion: reduce) {
-    .spinbtn::after, .bonusbtn::after { animation: none !important; }
+    .spinbtn::after, .bonusbtn::after, .bonusbtn { animation: none !important; }
     .skipbtn { transition: opacity .12s ease !important; }
   }
-  /* ---------- the bar ---------- */
-  /* One row, as the reference: info and audio stacked on the far left, the Bonus button, the
-     long plate carrying the balance and the bet with its stepper, the spin hexagon, and Rapid
-     and Auto stacked on the far right. Every piece is its own sprayed plate; the glyphs are
-     painted in the art, so the buttons carry no glyph of their own any more. */
+  /* ---------- the bar (HUD v3, 2026-11-03) ----------
+     The owner's reference, made simple: one long bar with a pointed left end and the spin hexagon
+     over its right end - ONE vector silhouette (.hudshape; buildHud() in the controls script writes
+     its path) - with two tabs hugging each end, menu and sound on the left, Rapid and Auto on the
+     right, each its own vector shape (.tabshape) a few units clear of it, so the gaps follow the
+     silhouette. All of it 0.5 black with a thin greyish-purple outline; the icons and figures white,
+     lime for what is on; the numbers and the BALANCE / BET labels in Fredoka. The geometry is in
+     design units: buildHud() sets the frame's size (--hud-fw / --hud-fh, one unit = 1px x --hs) and
+     every piece's box in % of the frame, so the whole HUD scales as one and stays crisp. The pop-ups
+     it opens (.hudpop: auto play, volume) and the rules panel rise out of it in the same paint. */
+  :root {
+    --hud-fill: rgba(38, 37, 41, .5);   /* a slightly greyish black, half see-through (owner, 2026-11-03) */
+    --hud-line: #000;           /* the outline: black */
+    --hud-hi: #57535e;          /* the outline under the pointer, or with its pop-up open */
+    --hud-on: #B8F23A;          /* Rapid / Auto on, the chosen option (the spin's pressed ring is white) */
+    --hud-ink: #f4f1f8;
+    --hud-soft: #c4bcd2;
+    --hud-font: "Fredoka", "Segoe UI", Roboto, Arial, sans-serif;
+    /* the glyphs, drawn as masks so they take the button's colour */
+    --i-menu: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.8' stroke-linecap='round'><path d='M4 6.5h16M4 12h16M4 17.5h16'/></svg>");
+    --i-sound: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23000' stroke-linecap='round' stroke-linejoin='round'><path d='M3.5 9.2h3.6L12 5v14l-4.9-4.2H3.5z' stroke-width='1.6'/><path d='M15.6 8.8a4.6 4.6 0 0 1 0 6.4M18.4 6a8.6 8.6 0 0 1 0 12' fill='none' stroke-width='2.2'/></svg>");
+    --i-mute: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23000' stroke-linecap='round' stroke-linejoin='round'><path d='M3.5 9.2h3.6L12 5v14l-4.9-4.2H3.5z' stroke-width='1.6'/><path d='M15.5 9.5l5 5M20.5 9.5l-5 5' fill='none' stroke-width='2.4'/></svg>");
+    --i-bolt: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'><path d='M13.6 2.5 5 13.7h6.3L10.2 21.5l8.8-11.4h-6.4z'/></svg>");
+    --i-play: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' stroke='%23000' stroke-width='2.2' stroke-linejoin='round'><path d='M7.5 4.8v14.4L19.6 12z'/></svg>");
+    --i-stop: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='6' y='6' width='12' height='12' rx='2.6'/></svg>");
+    --i-plus: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'><path d='M12 5v14M5 12h14'/></svg>");
+    --i-minus: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'><path d='M5 12h14'/></svg>");
+    --i-spin: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M19.5 12.6A7.6 7.6 0 1 1 17.4 6.6'/><path d='M18.4 2.6v4.6h-4.6'/></svg>");
+    /* the spin hexagon's inner ring, and the same lit while a round plays */
+    --spin-hex: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 148 128'><path d='M39 4h70l35 60-35 60H39L4 64z' fill='%23fff' fill-opacity='.05' stroke='%23fff' stroke-opacity='.2' stroke-width='3' stroke-linejoin='round'/></svg>");
+    --spin-hex-on: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 148 128'><path d='M39 4h70l35 60-35 60H39L4 64z' fill='%23fff' fill-opacity='.08' stroke='%23fff' stroke-opacity='.95' stroke-width='3.5' stroke-linejoin='round'/></svg>");   /* pressed: a white outline, glowing (owner, 2026-11-03) */
+  }
   .bottom { justify-content: center; padding: 10px 16px 16px; }
-  /* the pieces touch: the two left plates sit on each other and on the long plate, the spin
-     hexagon rides over the plate's right end, and Rapid and Auto sit on each other against it;
-     only the Bonus button, first on the row, keeps a little air */
-  /* --hs sizes the whole bar. It is 1 on a full HD screen; on smaller windows, where the page's
-     fit-to-screen scale would shrink the readouts past reading, fitToScreen() raises it so the
-     bar keeps a legible size - the art and its proportions are unchanged, only its scale. */
-  .hud { display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap; width: 100%; max-width: calc(1060px * var(--hs, 1)); }
-  /* the Bonus button sits in the corner, out of the row, so the bar itself is what is
-     centred on the screen rather than the row plus a button on one side of it */
+  .hud { display: flex; justify-content: center; width: 100%; }
+  /* the Bonus button sits in the corner, out of the row, so the HUD itself is what is centred */
   .hud .bonusbtn { position: absolute; left: 16px; bottom: 14px; margin: 0; }
-  .hudstack { display: flex; flex-direction: column; gap: 0; }
-  .hudstack.left { align-items: flex-end; margin-right: calc(-52px * var(--hs, 1)); position: relative; z-index: 1; }   /* over the plate's left end */
-  .hudstack.right { align-items: flex-start; margin-left: calc(-32px * var(--hs, 1)); }   /* its notch on the hexagon's point */
-  /* the outer plates are slanted: stacked, the two on each side make a chevron - the point
-     outward, the notch nesting against the long plate or the hexagon */
-  .hudbtn, .sidebtn {
-    position: relative; width: calc(82px * var(--hs, 1)); height: calc(37px * var(--hs, 1)); padding: 0; border: 0; font-size: 0; color: transparent;
-    background: none; background-size: contain; background-repeat: no-repeat; background-position: center;
-    cursor: pointer; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5));
-    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+  .hudframe {
+    position: relative; flex: none;
+    width: calc(var(--hud-fw, 790) * var(--hs, 1) * 1px);
+    aspect-ratio: var(--hud-fw, 790) / var(--hud-fh, 136);
   }
-  .hudbtn.menu   { background-image: url("assets/hud_menu.webp");  background-position: right center; }
-  .hudbtn.audio  { background-image: url("assets/hud_audio.webp"); background-position: right center; }
-  .sidebtn.rapid { background-image: url("assets/hud_rapid.webp"); background-position: left center; }
-  .sidebtn.auto  { background-image: url("assets/hud_auto.webp");  background-position: left center; }
-  .sidebtn::before { content: none; }   /* the bolt and the play arrow are in the art */
-  .hudbtn:hover:not(:disabled), .sidebtn:hover:not(:disabled) { transform: scale(1.07); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
-  .hudbtn:active:not(:disabled), .sidebtn:active:not(:disabled) { transform: scale(.93); }
-  /* The bar's buttons are slanted art: a rectangular focus outline round them looked like a
-     glitch (it showed after the info panel handed focus back). Keyboard focus is a glow that
-     follows the art instead. */
-  .hud button:focus { outline: none; }
-  .hud button:focus-visible { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) drop-shadow(0 0 7px rgba(108, 252, 84, .95)); }
-  .hudbtn.open, .hudbtn.open:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.18) saturate(1.08); }
-  /* sound and music both at zero. Named with :hover too, or the plainer hover rule - which is
-     the more specific of the two and sets the same property - lights the plate back up */
-  .hudbtn.off, .hudbtn.off:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) grayscale(1) brightness(.6); }
-  .sidebtn.on, .sidebtn.on:hover { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(108,252,84,.85)); }
-  /* Rapid has a lit plate of its own - the bolt in neon lime - so it swaps the art rather than
-     tinting the one it has; same box, so nothing shifts as it changes */
-  .sidebtn.rapid.on, .sidebtn.rapid.on:hover { background-image: url("assets/hud_rapid_on.webp"); filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
-  .sidebtn.rapid.on:hover:not(:disabled) { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.12); }
-  .sidebtn.rapid.on:disabled { filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
+  .hudframe > * { position: absolute; }   /* every piece is placed by buildHud(), in % of the frame */
+  .hudshape, .tabshape { inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  .tabshape { position: absolute; }
+  .hudshape path, .tabshape path {
+    fill: var(--hud-fill); stroke: var(--hud-line); stroke-width: 3; stroke-linejoin: round;
+    transition: fill .15s ease, stroke .15s ease;
+  }
+  /* the four tabs: the shape, and the glyph in the middle of it */
+  .hudframe .hudbtn, .hudframe .sidebtn {
+    z-index: 2; padding: 0; border: 0; background: none; font-size: 0; color: var(--hud-ink);
+    cursor: pointer; filter: none; opacity: 1;
+    transition: transform .12s cubic-bezier(.3, .8, .4, 1);
+  }
+  .hudframe .hudbtn::before, .hudframe .sidebtn::before {
+    content: ""; position: absolute; left: 50%; top: 50%; z-index: 1;
+    width: calc(30px * var(--hs, 1)); height: calc(30px * var(--hs, 1)); transform: translate(-50%, -50%);
+    background: currentColor; filter: none;
+    -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+    transition: background-color .15s ease, opacity .15s ease;
+  }
+  .hudframe .hudbtn.menu   { --icon: var(--i-menu); }
+  .hudframe .hudbtn.audio  { --icon: var(--i-sound); }
+  .hudframe .hudbtn.audio.off { --icon: var(--i-mute); }   /* sound and music both at zero */
+  .hudframe .hudbtn.audio.off::before { opacity: .55; }
+  .hudframe .sidebtn.rapid { --icon: var(--i-bolt); }
+  .hudframe .sidebtn.auto  { --icon: var(--i-play); }
+  .hudframe .sidebtn.auto.on { --icon: var(--i-stop); }      /* running: the press stops it */
+  .hudframe :is(.hudbtn, .sidebtn):hover:not(:disabled) .tabshape path,
+  .hudframe .hudbtn.open .tabshape path { fill: rgba(30, 26, 40, .62); stroke: var(--hud-hi); }
+  .hudframe :is(.hudbtn, .sidebtn):active:not(:disabled) { transform: scale(.93); }
+  /* Rapid armed, Auto running: the glyph and the outline in lime */
+  .hudframe .sidebtn.on, .hudframe .sidebtn.on:disabled { color: var(--hud-on); }
+  .hudframe .sidebtn.on .tabshape path { stroke: var(--hud-on); }
+  .hudframe .sidebtn.on::before { filter: drop-shadow(0 0 5px rgba(184, 242, 58, .75)); }
   /* nothing greys during a round: a button that cannot act simply does not act */
-  .hudbtn:disabled, .sidebtn:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)); }
-  .sidebtn.on:disabled { cursor: default; opacity: 1; filter: drop-shadow(0 3px 5px rgba(0,0,0,.5)) brightness(1.25) saturate(1.2) drop-shadow(0 0 8px rgba(108,252,84,.85)); }
-  .bonusbtn:disabled { opacity: 1; }
-  .bonusbtn:disabled::after { animation-play-state: running; }
-  .sidebtn #autoN { right: calc(-8px * var(--hs, 1)); top: calc(-12px * var(--hs, 1)); }
-  /* the long plate: its rounded ends are cut from the art and kept at their own width, the
-     middle stretches to whatever the figures need */
+  .hudframe button:disabled, .hudframe .sidebtn:disabled, .hudframe .sidebtn.on:disabled, .hudframe .hudbtn:disabled { opacity: 1; cursor: default; filter: none; }
+  .hudframe .sidebtn:disabled::before { filter: none; }
+  .hudframe .sidebtn.on:disabled::before { filter: drop-shadow(0 0 5px rgba(184, 242, 58, .75)); }
+  .hud button:focus { outline: none; }
+  .hud button:focus-visible { outline: none; }
+  .hudframe :is(.hudbtn, .sidebtn):focus-visible .tabshape path { stroke: #fff; }
+  /* the rounds left: a lime bubble on the Auto tab's corner */
+  .hudframe .sidebtn #autoN {
+    position: absolute; right: 4%; top: -16%; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+    min-width: calc(26px * var(--hs, 1)); height: calc(26px * var(--hs, 1)); padding: 0 calc(7px * var(--hs, 1));
+    font-family: var(--hud-font); font-weight: 700; font-size: calc(15px * var(--hs, 1)); line-height: 1;
+    color: #15131a; background: var(--hud-on); border: calc(2px * var(--hs, 1)) solid rgba(0, 0, 0, .55); border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .4);
+  }
+  .hudframe .sidebtn #autoN[hidden] { display: none; }
+  /* inside the bar: BALANCE on the left; BET and its stepper on the right */
   .hudbar {
-    --u: var(--hs, 1);
-    position: relative; display: flex; align-items: center; justify-content: space-between; gap: calc(18px * var(--u));
-    height: calc(74px * var(--u)); flex: 1 1 calc(440px * var(--u)); min-width: calc(440px * var(--u)); max-width: calc(640px * var(--u)); box-sizing: border-box;
-    /* the left end is under the chevron, the right end under the hexagon */
-    padding: calc(9px * var(--u)) calc(44px * var(--u)) calc(9px * var(--u)) calc(72px * var(--u));
-    border: 0 solid transparent; border-width: 0 calc(20px * var(--u));
-    border-image: url("assets/hud_bar.webp") 0 6% 0 6% fill / 0 calc(20px * var(--u)) stretch;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
+    z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: calc(12px * var(--hs, 1));
+    padding: 0 0 0 calc(8px * var(--hs, 1)); border: 0; filter: none;
   }
-  .hudstat { display: flex; flex-direction: column; justify-content: center; gap: calc(4px * var(--hs, 1)); line-height: 1; }
-  /* the labels were 11px on a 74px plate - unreadable once the page scales down; now they
-     read at a glance, and the currency code beside Balance is set apart by space, not by a
-     middle dot the label face has no glyph for */
-  .hudstat .lbl {
-    font-family: var(--label); font-size: calc(14px * var(--hs, 1)); letter-spacing: .12em; text-transform: uppercase;
-    color: #e6e2dc; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
+  .hudstat { display: flex; flex-direction: column; justify-content: center; gap: calc(4px * var(--hs, 1)); line-height: 1; min-width: 0; }
+  .hudstat .lbl, #balanceLbl {
+    font-family: var(--hud-font); font-weight: 600; font-size: calc(14px * var(--hs, 1)); letter-spacing: .16em; text-transform: uppercase;
+    color: var(--hud-soft); text-shadow: none; white-space: nowrap;
   }
-  .hudstat .lbl .cur { margin-left: .55em; opacity: .72; }
+  .hudstat .lbl .cur { margin-left: .5em; opacity: .7; }
   .hudstat .val, #balance, #betVal {
-    font-family: var(--num) !important; font-size: calc(30px * var(--hs, 1)); font-weight: 400; letter-spacing: .03em; text-indent: 0;
-    min-width: 0; text-align: left; color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px rgba(0,0,0,.85);
-    font-variant-numeric: tabular-nums;
+    font-family: var(--hud-font) !important; font-weight: 700; font-size: calc(34px * var(--hs, 1)); line-height: 1;
+    letter-spacing: .01em; text-indent: 0; min-width: 0; text-align: left; white-space: nowrap;
+    color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .3); font-variant-numeric: tabular-nums;
   }
   /* long figures step down so a seven-figure balance never crowds the bet */
-  #balance.long, #betVal.long { font-size: calc(26px * var(--hs, 1)); }
-  #balance.vlong, #betVal.vlong { font-size: calc(21px * var(--hs, 1)); }
+  #balance.long, #betVal.long { font-size: calc(28px * var(--hs, 1)); }
+  #balance.vlong, #betVal.vlong { font-size: calc(22px * var(--hs, 1)); }
   .hudstat.bet { align-items: flex-end; }
   .hudstat.bet .val, #betVal { text-align: right; }
-  /* the balance flashes green on the way up and red on the way down; the id rule above sets
-     the figure white, so these outrank it by id too */
-  #balance.up   { color: var(--fs-green); text-shadow: 0 2px 0 #000, 0 0 10px rgba(168,240,0,.7); }
-  #balance.down { color: #ff3b3b;         text-shadow: 0 2px 0 #000, 0 0 10px rgba(255,59,59,.7); }
-  .hudbar .chip.juris { background: rgba(0,0,0,.35); padding: 4px 9px; }
-  .hudbet { display: flex; align-items: center; gap: calc(9px * var(--hs, 1)); }
-  .betstep { display: flex; flex-direction: column; gap: calc(3px * var(--hs, 1)); }
+  /* the balance flashes green on the way up and red on the way down */
+  #balance.up   { color: var(--fs-green); text-shadow: 0 0 10px rgba(168, 240, 0, .55); }
+  #balance.down { color: #ff4d4d;         text-shadow: 0 0 10px rgba(255, 59, 59, .55); }
+  .hudbar .chip.juris { background: rgba(255, 255, 255, .06); border: 1px solid var(--hud-line); box-shadow: none; padding: 4px 9px; }
+  .hudbet { display: flex; align-items: center; gap: calc(12px * var(--hs, 1)); }
+  .betstep { display: flex; flex-direction: column; gap: calc(6px * var(--hs, 1)); }
   .betstep button {
-    width: calc(31px * var(--hs, 1)); height: calc(31px * var(--hs, 1)); padding: 0; border: 0; font-size: 0; color: transparent;
-    background: center / contain no-repeat; cursor: pointer;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,.5));
-    transition: transform .12s cubic-bezier(.3,.8,.4,1), filter .12s linear;
+    position: relative; width: calc(40px * var(--hs, 1)); height: calc(40px * var(--hs, 1)); padding: 0; font-size: 0; color: var(--hud-ink);
+    border: calc(2px * var(--hs, 1)) solid var(--hud-line); border-radius: calc(10px * var(--hs, 1));
+    background: rgba(255, 255, 255, .05); filter: none; cursor: pointer;
+    transition: transform .12s cubic-bezier(.3, .8, .4, 1), background-color .15s ease, border-color .15s ease;
   }
-  #betUp   { background-image: url("assets/hud_plus.webp"); }
-  #betDown { background-image: url("assets/hud_minus.webp"); }
-  .betstep button:hover:not(:disabled) { transform: scale(1.1); filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)) brightness(1.15); }
+  #betUp::before, #betDown::before {
+    content: ""; position: absolute; left: 22%; top: 22%; width: 56%; height: 56%; transform: none;
+    background: currentColor; filter: none;
+    -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+  }
+  #betUp   { --icon: var(--i-plus); background-image: none; }
+  #betDown { --icon: var(--i-minus); background-image: none; }
+  .betstep button:hover:not(:disabled) { background: rgba(255, 255, 255, .12); border-color: var(--hud-hi); transform: none; filter: none; }
   .betstep button:active:not(:disabled) { transform: scale(.9); }
   .betstep button:disabled { cursor: default; opacity: 1; }   /* the page-wide disabled dimming does not apply here */
-  /* the spin hexagon, our arrows inside it; while the reels are in the air the arrows light up
-     lime, because the press is a skip until the board is in */
-  .spinwrap {
-    margin-left: calc(-40px * var(--hs, 1)); position: relative; z-index: 2;   /* over the plate's right end */
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));        /* outside the clip, so the plate keeps its shadow */
-    pointer-events: none;   /* the wrapper's corners are over the chevrons: only the hexagon catches a press */
-  }
+  .betstep button:focus-visible { border-color: #fff; }
+  /* The spin hexagon: the silhouette's own right end, an inner ring and the circular arrow in it.
+     The arrow turns once on every press (spun) and keeps turning slowly while a round plays out
+     (spinArrows drives --arrows); while the reels are in the air the press is a skip, and the ring
+     and the arrow light up lime (armed). The button kicks on every press (.spin.punch). */
+  .spinwrap { z-index: 3; display: block; margin: 0; filter: none; pointer-events: none; }
   .spinwrap .spinbtn { pointer-events: auto; }
-  /* the corners of this box lie over the Rapid and Auto plates: clip the button to the
-     hexagon so a press on their art is theirs, not a spin */
-  .spinbtn {
-    width: calc(108px * var(--hs, 1)); height: calc(94px * var(--hs, 1));
-    clip-path: polygon(24.4% 0, 75.6% 0, 100% 50%, 75.6% 100%, 24.4% 100%, 0 50%);
+  .spinwrap .spinbtn {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);   /* the corners are the tabs' */
+    color: #fff;
   }
-  .spinbtn::before { background: url("assets/hud_hex.webp") center / contain no-repeat; }
+  .spinbtn::before {
+    inset: 8%; background: var(--spin-hex) center / 100% 100% no-repeat; filter: none;
+    transition: scale .18s ease, filter .2s ease;
+  }
   .spinbtn::after {
-    inset: 26% 27%;
-    background: url("assets/spin_btn_arrows.webp") center / contain no-repeat;
-    /* off-white while the game waits (the bar's glyphs are all white on the charcoal), neon lime
-       and slowly turning while a round is running (spinArrows drives --arrows); the press's own
-       quick turn is the spin360 animation on top */
-    filter: grayscale(1) brightness(1.32) drop-shadow(0 2px 3px rgba(0,0,0,.55));
+    inset: 25% 28%; background: currentColor; filter: none;
+    -webkit-mask: var(--i-spin) center / contain no-repeat; mask: var(--i-spin) center / contain no-repeat;
     rotate: var(--arrows, 0deg);
     animation: none;
-    transition: scale .18s cubic-bezier(.3,.9,.4,1.3), filter .2s ease;
+    transition: scale .18s cubic-bezier(.3, .9, .4, 1.3), background-color .2s ease;
   }
-  .spinbtn.armed::after {
-    filter: drop-shadow(0 0 8px rgba(108,252,84,.85)) drop-shadow(0 3px 5px rgba(0,0,0,.45));
-  }
-  .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55,.05,.15,1); }
-  /* the two volume bars sit side by side over the speaker, each with its name under it */
-  .vpop .vlbl {
-    display: block; margin-top: 8px; text-align: center; white-space: nowrap;
-    font-family: var(--label); font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
-    color: #fff; text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,.85);
-  }
-  /* the viewer has no spin button, so the wrapper goes with it - its pull would drag the
-     Rapid plate over the bar's end - and the right stack sits against the bar instead */
+  .spinbtn:hover:not(:disabled)::after { scale: 1.1; }
+  .spinbtn.armed { color: #fff; }
+  .spinbtn.armed::before { background-image: var(--spin-hex-on); filter: drop-shadow(0 0 7px rgba(255, 255, 255, .7)); }
+  .spinbtn.spun::after { animation: spin360 .8s cubic-bezier(.55, .05, .15, 1); }
+  .spinbtn:focus-visible::before { filter: drop-shadow(0 0 5px rgba(255, 255, 255, .9)); }
+  /* the viewer has no spin button and no stake */
   body.replay .betstep, body.replay .spinwrap { display: none; }
-  body.replay .hudstack.right { margin-left: 0; }
-  body.replay .hudbar { padding-right: 24px; }
+  /* The pop-ups the bar opens (auto play, volume) rise out of it in its own paint, with a pointer
+     on the tab that opened them; placePop() puts them over their tab (left/bottom, --ax). On a
+     phone or a short window, where the page is shrunk to fit (--fit), they grow back at least to
+     the bar's own scale. */
+  .hudpop {
+    position: absolute; z-index: 30; left: 50%; bottom: calc(100% + 14px); min-width: 0;
+    /* centred on `left` by the translate property, not by transform: translate is applied outside
+       the scale, so a pop grown for a phone stays centred where placePop put it */
+    transform: none; translate: -50% 0; transform-origin: 50% 100%;
+    scale: clamp(var(--hs, 1), calc(.86 / var(--fit, 1)), 2.6);
+    background: var(--hud-fill); border: 2px solid var(--hud-line); border-radius: 18px;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .4); filter: none;
+    color: var(--hud-ink); font-family: var(--hud-font);
+    animation: hudpopin .26s cubic-bezier(.2, .9, .3, 1.2);
+  }
+  .hudpop::after {
+    content: ""; position: absolute; top: auto; bottom: -8px; left: var(--ax, 50%); margin: 0;
+    width: 14px; height: 14px; background: var(--hud-fill);
+    border: 0; border-right: 2px solid var(--hud-line); border-bottom: 2px solid var(--hud-line);
+    clip-path: polygon(100% 0, 100% 100%, 0 100%);   /* only the half below the panel */
+    transform: translateX(-50%) rotate(45deg);
+  }
+  /* beside the HUD (placePop, data-side): the pointer on the right edge, level with its tab */
+  .hudpop.side::after { left: auto; right: -8px; bottom: auto; top: var(--ay, 50%); transform: translateY(-50%) rotate(-45deg); }
+  @keyframes hudpopin {
+    0%   { opacity: 0; transform: translateY(10px) scale(.94); }
+    100% { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hudpop { animation: none !important; } }
+  /* START in the auto play picker: a plain lime button */
+  #autoPop #autoYes, #autoPop #autoYes:not(:disabled) {
+    display: block; width: 100%; height: 48px; aspect-ratio: auto; margin: 0; padding: 0; overflow: visible;
+    background: var(--hud-on); border: 2px solid rgba(0, 0, 0, .35); border-radius: 12px; box-shadow: none;
+    font-family: var(--hud-font); font-weight: 700; font-size: 17px; line-height: 1; letter-spacing: .16em; text-transform: uppercase;
+    color: #15131a; -webkit-text-stroke: 0; text-shadow: none;
+    transition: transform .12s ease, filter .15s ease, box-shadow .15s ease;
+  }
+  #autoPop #autoYes:not(:disabled)::before { content: none; animation: none; }
+  #autoPop #autoYes:hover:not(:disabled) { transform: none; filter: brightness(1.08); border-color: rgba(0, 0, 0, .35); box-shadow: 0 0 0 3px rgba(184, 242, 58, .25); }
+  #autoPop #autoYes:active:not(:disabled) { transform: scale(.97); box-shadow: none; }
+  #autoPop #autoYes:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+  /* The rules panel rises out of the bar too, standing just over the HUD's top edge (--hud-top,
+     set when it opens). No dim behind it (owner, 2026-11-03: just the HUD and the panel): the
+     wrap stays a clear layer over the page, so a press anywhere outside the panel closes it. */
+  #infoWrap {
+    align-items: flex-end; padding: 16px 16px calc(var(--hud-top, 150px) + 12px);
+    background: none;
+  }
+  #infoWrap .infopanel {
+    max-height: calc(100vh - var(--hud-top, 150px) - 44px); transform-origin: 50% 100%;
+    animation: infoRise .3s cubic-bezier(.2, .9, .3, 1.1);
+  }
+  @keyframes infoRise { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #infoWrap .infopanel { animation: none; } }
   /* Portrait phone layout (the characters' own rules are up with the other character rules):
      the tag on the wall moves up to the top quarter so the pair stands in front of it, the
      board drops to the bottom of its column so it sits just above the controls, and the
@@ -2796,7 +2824,7 @@
      and the tag floating on nothing - so there it covers the screen and loses a little off the
      sides instead. Wider than 16:9 keeps the whole picture in view, pavement at the foot. */
   @media (max-aspect-ratio: 16/9) { :root { --wall-scale: cover; } }
-  @media (max-width: 760px) and (orientation: portrait) {
+  @media (max-width: 1100px) and (orientation: portrait) {
     #walltag, .tagfx { top: var(--tag-top, 24%); }   /* placeScenery() puts it behind the characters' heads */
     .main { justify-content: flex-end; }
     .bottom { padding-bottom: calc(12vh / max(var(--fit, 1), .2)); }   /* bounded: a tiny scale must never blow it up */
@@ -2810,6 +2838,12 @@
       bottom: calc((7vh + env(safe-area-inset-bottom, 0px) * .4) / max(var(--fit, 1), .2) - 37px * var(--hs, 1));
       left: calc((14px + env(safe-area-inset-left, 0px)) / max(var(--fit, 1), .2));
     }
+  }
+  /* an upright tablet (or a tall narrow window): its board is big, so the band under the bar is
+     halved to give the pair more room over the board, the Bonus button riding in it the same way */
+  @media (min-width: 761px) and (max-width: 1100px) and (orientation: portrait) {
+    .bottom { padding-bottom: calc(6vh / max(var(--fit, 1), .2)); }
+    .hud .bonusbtn { bottom: calc(3.5vh / max(var(--fit, 1), .2) - 37px * var(--hs, 1)); }
   }
 </style>
 </head>
@@ -2834,59 +2868,61 @@
 </div>
 
 <div class="bottom">
-  <!-- The bar, as the reference: info and audio stacked on the far left, the Bonus button,
-       the long plate carrying the balance and the bet with its stepper, the spin hexagon,
-       and Rapid and Auto stacked on the far right. Every piece is its own sprayed plate. -->
+  <!-- The HUD (v3, 2026-11-03), as the owner's reference: one silhouette - the bar with its
+       pointed left end and the spin hexagon over its right end - with menu and sound stacked on
+       the left and Rapid and Auto stacked on the right. The shapes are vector, drawn by
+       buildHud(); the Bonus button sits apart in the corner. -->
   <div class="hud">
     <button class="buy bonusbtn" id="bonusBtn"><i class="bglow" aria-hidden="true"></i>Bonus</button>
-    <div class="hudstack left">
+    <div class="hudframe">
+      <svg class="hudshape" aria-hidden="true" focusable="false"><path/></svg>
       <button class="hudbtn menu" id="menuBtn" aria-label="Game information">Info</button>
       <button class="hudbtn audio" id="audioBtn" aria-label="Sound and music volume" aria-expanded="false">Audio</button>
-    </div>
-    <div class="hudbar">
-      <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">0.00</span></div>
-      <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
-      <div class="hudbet">
-        <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">1.00</span></div>
-        <div class="betstep">
-          <button id="betUp" aria-label="Raise bet">+</button>
-          <button id="betDown" aria-label="Lower bet">−</button>
+      <div class="hudbar">
+        <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">0.00</span></div>
+        <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
+        <div class="hudbet">
+          <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">1.00</span></div>
+          <div class="betstep">
+            <button id="betUp" aria-label="Raise bet">+</button>
+            <button id="betDown" aria-label="Lower bet">−</button>
+          </div>
         </div>
       </div>
-    </div>
-    <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button></span>
-    <div class="hudstack right">
+      <span class="spinwrap"><button class="spin spinbtn" id="spinBtn">Spin</button></span>
       <button class="sidebtn rapid" id="rapidBtn" type="button" aria-pressed="false" aria-label="Rapid spins" title="Rapid spins">Rapid</button>
-      <div class="popanchor">
-        <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
-        <div class="popover right" id="autoPop" hidden role="dialog" aria-label="Auto play">
-            <div class="poptitle">Auto play</div>
-            <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
-            <div class="autoopts" id="autoOpts">
-              <button type="button" data-n="10" class="on" aria-pressed="true"><b>10</b><small>rounds</small></button>
-              <button type="button" data-n="25" aria-pressed="false"><b>25</b><small>rounds</small></button>
-              <button type="button" data-n="50" aria-pressed="false"><b>50</b><small>rounds</small></button>
-              <button type="button" data-n="100" aria-pressed="false"><b>100</b><small>rounds</small></button>
-            </div>
-            <button class="wordbtn" id="autoYes">Start</button>
-          </div>
-      </div>
+      <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
     </div>
   </div>
   <!-- the round total still counts here, unseen: the popup over the icons is the win text -->
   <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">0.00</span></div>
 
-  <!-- The drag bars hang off the bar itself, not off the speaker button: both open together
-       over it, sound to the left and music to the right, and are placed from JS. -->
-  <div class="vpop" id="sfxPop" hidden>
-    <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
-         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vwell"><i class="vfill"></i></i><i class="vframe"></i></div>
-    <span class="vlbl">Sound</span>
+  <!-- The pop-ups hang off the bar itself (placed from JS over the tab that opens them), so they
+       read as part of the HUD: the auto play picker over Auto, the volume panel over the speaker. -->
+  <div class="popover hudpop" id="autoPop" hidden role="dialog" aria-label="Auto play">
+    <div class="poptitle">Auto play</div>
+    <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
+    <div class="autoopts" id="autoOpts">
+      <button type="button" data-n="10" class="on" aria-pressed="true"><b>10</b><small>rounds</small></button>
+      <button type="button" data-n="25" aria-pressed="false"><b>25</b><small>rounds</small></button>
+      <button type="button" data-n="50" aria-pressed="false"><b>50</b><small>rounds</small></button>
+      <button type="button" data-n="100" aria-pressed="false"><b>100</b><small>rounds</small></button>
+    </div>
+    <button class="wordbtn" id="autoYes">Start</button>
   </div>
-  <div class="vpop" id="musicPop" hidden>
-    <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
-         aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vwell"><i class="vfill"></i></i><i class="vframe"></i></div>
-    <span class="vlbl">Music</span>
+  <div class="vpop hudpop" id="volPop" data-side="left" hidden role="group" aria-label="Volume">
+    <div class="vrow">
+      <span class="vlbl">Sound</span>
+      <div class="vbar" id="sfxBar" role="slider" tabindex="0" aria-label="Sound effects volume"
+           aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80"><i class="vwell"><i class="vfill"></i></i><i class="vknob"></i></div>
+      <span class="vnum" id="sfxNum" aria-hidden="true">80</span>
+    </div>
+    <div class="vrow">
+      <span class="vlbl">Music</span>
+      <div class="vbar" id="musicBar" role="slider" tabindex="0" aria-label="Music volume"
+           aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70"><i class="vwell"><i class="vfill"></i></i><i class="vknob"></i></div>
+      <span class="vnum" id="musicNum" aria-hidden="true">70</span>
+    </div>
   </div>
 
   <!-- Rapid is a button now, but half the timing code still reads this checkbox, so it stays
@@ -2971,13 +3007,11 @@
 </div>
 
 <script src="assets/spine/pixi.min.js"></script>
-<script src="assets/spine/spine-pixi-v8.min.js"></script>
 <script src="strips.js"></script>
 <script src="rgs.js"></script>
 <script src="rules.js"></script>
 <script src="sprayrim.js"></script>
 <script src="wallfx.js"></script>
-<script src="smoke.js"></script>
 <script>
 "use strict";
 
@@ -3088,7 +3122,10 @@ function buildBoard() {
   // a line drop falls in once: the class goes when it has landed (or was cut short), so a slot
   // that is hidden and shown again later doesn't fall in a second time
   for (const t of ["animationend", "animationcancel"]) {
-    layer.addEventListener(t, e => { if (e.animationName === "gmultDrop") e.target.classList.remove("drop"); });
+    layer.addEventListener(t, e => {
+      if (e.animationName === "gmultDrop") e.target.classList.remove("drop");
+      if (e.animationName === "gmultIn") e.target.classList.remove("arrive");
+    });
   }
   for (let r = 0; r < REELS; r++) {
     multEls.push([]);
@@ -3124,9 +3161,26 @@ function buildBoard() {
   // a Multi that dropped in bare gets its value sprayed on the moment it has landed
   board.addEventListener("animationend", e => { if (e.animationName === "tumbleDrop") sprayDue(e.target); });
   prepareSpray();   // normally already under way behind the loading screen
+  multIdle();
   startRims();
   frameIdle();
   startRigs();
+}
+// The multiplier values idle with a slight stretch of their own, sprayed haze and figure together
+// (owner, 2026-11-03: "the old idle effect that slowly changes shape / wiggles around slowly" - the
+// symbols' own idles are Blender's now, the values keep this one): a slow random wander in width,
+// height and lean that never repeats, played by the compositor (wander, below).
+function multIdle() {
+  if (REDUCED_MOTION) return;
+  const AMP = [.07, .07, 2.5];   // up to 7% wider or narrower, 7% taller or shorter, 2.5 degrees of lean
+  for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+    // each channel is a slow wander with a quicker, smaller one laid over it, so the motion
+    // never stalls at the slow one's turning points - there is always something moving
+    const ch = [0, 1, 2].map(() => { const slow = drift(1.3, 2.4), quick = drift(.5, 1); return t => .7 * slow(t) + .3 * quick(t); });
+    wander(() => [multEls[r][y]], t => ({
+      transform: `rotate(${(AMP[2] * ch[2](t)).toFixed(2)}deg) scale(${(1 + AMP[0] * ch[0](t)).toFixed(4)}, ${(1 + AMP[1] * ch[1](t)).toFixed(4)})`,
+    }));
+  }
 }
 // A random drift: a value between -1 and 1 that wanders through random stops `stepLo`-`stepHi`
 // seconds apart, eased along a Catmull-Rom curve, starting from rest and never repeating.
@@ -3195,29 +3249,20 @@ function wander(targets, frames, { seg = 6, rate = 8 } = {}) {
 // The sprayed outline round the board idles the same way, a little slower and smaller than an
 // icon for its size: it drifts a few pixels, leans a fraction of a degree and stretches only a
 // hair - 0.4% each way, a few pixels on a frame this wide - on a path of its own that never repeats.
-// Every sprayed outline (a violet band with neon-lime fire) is drawn live (sprayrim.js): the board's, the HUD's, the bet
-// steppers', the spin hexagon's, the bonus panel's, the intro plates', the rules panel's, the
-// autoplay picker's, the win popup's, the volume tubes'. Sharp at any size, the edges boiling like
+// Every sprayed outline (a violet band with neon-lime fire) is drawn live (sprayrim.js): the board's, the bonus
+// panel's and its bet steppers', the intro plates', the win popup's, the free-spin counter's. (The HUD, its
+// pop-ups and the rules panel are plain vector shapes since HUD v3, 2026-11-03.) Sharp at any size, the edges boiling like
 // a redrawn cartoon line, spray-paint flames licking up off them. Where WebGL is missing the
 // art keeps its painted outlines.
 const RIM_SLICE_INFO = [.049, .0625, .049, .0625], RIM_SLICE_AUTO = [.09, .09, .09, .09];
 const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art had in CSS
   { sel: ".bonuspanel", art: "bonus_panel", fit: "stretch", flameK: 1.7, shadow: [18, 40, .6] },
   { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7 },   // stoked under the mouse (runFeatures)
-  { sel: ".infopanel", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, host: el => el.parentElement, flameK: 1.9, shadow: [14, 30, .55] },   // it scrolls: its rim lives beside it
   { sel: ".bonusintro .bhow", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, flameK: 1.9, shadow: [14, 30, .55] },
-  { sel: "#autoPop", art: "auto_box", fit: "slice", slice: RIM_SLICE_AUTO, shadow: [10, 22, .6] },   // its option cards wear neon tubes instead (2026-10-27)
   { sel: ".winpop", art: "win_box", fit: "stretch", cls: "winbox", shadow: [5, 8, .35], flameK: 1.2 },
-  { sel: ".vframe", art: "vol_frame", fit: "stretch", shadow: [6, 12, .6] },
-  { sel: ".hudbar", art: "hud_bar", fit: "slice", slice: [0, .06, 0, .06], shadow: [4, 8, .5] },
   { sel: "#fsCard .fsplate", art: "hud_bar", fit: "slice", slice: [0, .06, 0, .06], shadow: [4, 8, .5] },   // the free-spin counter wears the bar's slab
-  { sel: ".hudbtn.menu", art: "hud_menu", fit: "contain", pos: [1, .5], shadow: [3, 5, .5] },
-  { sel: ".hudbtn.audio", art: "hud_audio", fit: "contain", pos: [1, .5], shadow: [3, 5, .5] },
-  { sel: ".sidebtn.rapid", art: "hud_rapid", fit: "contain", pos: [0, .5], shadow: [3, 5, .5] },
-  { sel: ".sidebtn.auto", art: "hud_auto", fit: "contain", pos: [0, .5], shadow: [3, 5, .5] },
-  { sel: "#betUp, #bonusBetUp", art: "hud_plus", fit: "contain", shadow: [2, 3, .5] },
-  { sel: "#betDown, #bonusBetDown", art: "hud_minus", fit: "contain", shadow: [2, 3, .5] },
-  { sel: "#spinBtn", art: "hud_hex", fit: "contain", host: el => el.parentElement, shadow: [4, 8, .5] },   // it is clipped to the hexagon
+  { sel: "#bonusBetUp", art: "hud_plus", fit: "contain", shadow: [2, 3, .5] },
+  { sel: "#bonusBetDown", art: "hud_minus", fit: "contain", shadow: [2, 3, .5] },
 ];
 function startRims() {
   if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
@@ -3322,7 +3367,17 @@ function setCell(r, y, sym) {
 const SYM_DENSITY = [1.6, 2.4, 3.2];   // sheet px per rig unit (an icon is 100 across), as the old atlas's
 const SYM_HEADROOM = 1.25;            // sheet px per screen px at rest: crisp at rest, through the lit pop and the hit
 const SYM_IDLE_STAGGER = 2400;        // ms over which a resting board's idles start up, each symbol at its own moment
-const SYMF = { man: null, density: "d16", sheets: new Map() };   // sheets: "<ID>_<clip>" -> { img, ok, ready }
+const SYMF = { man: null, density: "d16", sheets: new Map(), k: 1 };   // sheets: "<ID>_<clip>" -> { img, ok, ready, frames }
+// The clips every symbol plays all the time - its landing and its idle - are held as ready frames (perf,
+// 2026-11-03). Drawn straight from the sheets, the board needed every sheet decoded at once (~480 MB at
+// the smallest density, ~1.1 GB on a phone), more than the browser keeps decoded, so it kept throwing
+// sheets away and decoding them again - up to a second of decoding every second, and frames held back
+// waiting for it. Each held clip is cut out of its sheet once, frame by frame, at the size the screen
+// shows it (SYM_HOLD_HEADROOM over a pixel per screen pixel, for the biggest window this screen can
+// give the board), and kept. The rest (the hit, the Multi) still play straight off their sheets: only a
+// few of those are ever playing at once, which the browser keeps decoded happily.
+const SYM_HOLD = ["land", "idle"];
+const SYM_HOLD_HEADROOM = 1.1;
 const CLIP_OF = { drop: "land", win: "hit" };   // the board's own names for the moments, and the clips that play
 let symReady = null;
 // sheet px per rig unit the biggest symbol needs at rest on this screen, times the headroom -> the density to load
@@ -3339,19 +3394,56 @@ function symWantDensity() {
   const pick = list.includes(force) ? force : (list.find(d => d >= px * SYM_HEADROOM - 1e-6) || list[list.length - 1]);
   return "d" + Math.round(pick * 10);
 }
+// How far the held frames are scaled from the sheet: to what the board's biggest symbol needs at rest -
+// for the biggest window this screen gives it, so a window made bigger later is still drawn sharp
+function symHoldScale() {
+  const c = cellEls[0] && cellEls[0][0], dpr = window.devicePixelRatio || 1;
+  if (!c || !c.offsetWidth || !c.offsetHeight) return 1;
+  const unit = Math.min(c.clientWidth * .88, c.clientHeight * .88) / 100;
+  const fit = c.getBoundingClientRect().width / c.offsetWidth;
+  const L = Math.max(screen.availWidth || 0, screen.availHeight || 0);
+  const grow = Math.max(1, Math.min(L / innerWidth, L / innerHeight) || 1);
+  const k = unit * (fit > 0 ? fit : 1) * dpr * grow * SYM_HOLD_HEADROOM / (parseInt(SYMF.density.slice(1), 10) / 10);
+  return k >= .85 || !isFinite(k) ? 1 : Math.max(.3, k);
+}
 // One clip's sheet, fetched and decoded once and held for as long as the page is up
 function symSheet(id, clip) {
   const key = id + "_" + clip;
   let s = SYMF.sheets.get(key);
   if (!s) {
-    const img = new Image();
+    const img = new Image(), url = `assets/sym/${SYMF.density}/${key}.webp`, hold = SYM_HOLD.includes(clip);
     img.decoding = "async";
-    img.src = `assets/sym/${SYMF.density}/${key}.webp`;
-    s = { img, ok: false, ready: null };
-    s.ready = img.decode().then(() => { s.ok = true; }, e => { SYMF.sheets.delete(key); throw e; });
+    s = { img, ok: false, ready: null, frames: null, blob: null };
+    // a held clip's file is fetched as it is, so its frames can be cut from it without fetching it twice
+    const load = hold && typeof createImageBitmap === "function"
+      ? fetch(url).then(r => r.ok ? r.blob() : Promise.reject(new Error(url + " -> HTTP " + r.status))).then(b => { s.blob = b; img.src = URL.createObjectURL(b); })
+      : Promise.resolve(img.src = url);
+    s.ready = load.then(() => img.decode()).then(() => { s.ok = true; if (s.blob) symHold(id, clip, s); }, e => { SYMF.sheets.delete(key); throw e; });
     SYMF.sheets.set(key, s);
   }
   return s.ready;
+}
+// Cut a held clip out of its sheet (decoded off the main thread, once), one sheet at a time so only one
+// whole sheet is ever decoded for it, in short slices so no frame of the game waits on it. Until its
+// frames are in, the clip plays off the sheet as before.
+let symHoldQ = Promise.resolve();
+function symHold(id, clip, s) {
+  symHoldQ = symHoldQ.then(async () => {
+    const m = SYMF.man.symbols[id], sh = m.sheets[SYMF.density][clip], n = m.clips[clip].frames, k = SYMF.k;
+    const sheet = await createImageBitmap(s.blob);
+    s.blob = null;
+    const w = Math.max(1, Math.round(sh.w * k)), h = Math.max(1, Math.round(sh.h * k));
+    const opt = k < 1 ? { resizeWidth: w, resizeHeight: h, resizeQuality: "high" } : {};
+    const frames = [];
+    try {
+      for (let f = 0; f < n; f++) {
+        frames.push(await createImageBitmap(sheet, (f % sh.cols) * sh.w, Math.floor(f / sh.cols) * sh.h, sh.w, sh.h, opt));
+        if (f % 12 === 11) await new Promise(r => setTimeout(r, 0));
+      }
+    } catch (e) { frames.forEach(b => b.close()); throw e; }
+    finally { sheet.close(); }
+    s.frames = frames;
+  }).catch(e => console.warn("symbol frames:", id, clip, e.message));
 }
 function loadSymFrames() {
   if (symReady) return symReady;
@@ -3360,6 +3452,7 @@ function loadSymFrames() {
     const man = await fetch("assets/sym/manifest.json").then(r => r.ok ? r.json() : Promise.reject(new Error("manifest " + r.status)));
     SYMF.man = man;
     SYMF.density = symWantDensity();
+    SYMF.k = symHoldScale();
     const ids = Object.keys(man.symbols);
     // the landings hold the rest pose and play as every tile drops in: the board waits on them. The wins
     // follow behind the loading screen, then the idles every resting symbol loops, then the multipliers - a
@@ -3389,24 +3482,34 @@ function rigEl(name, label) {
   symRest(el);
   return el;
 }
-// put the canvas on a clip's box (once per clip, not per frame)
-function symLay(el, clip) {
-  if (el._box === clip) return;
-  const m = el._m, b = m.clips[clip].box, sh = m.sheets[SYMF.density][clip];
-  const left = (b[0] + m.icon[0] / 2) * 10, top = (b[1] + m.icon[1] / 2) * 10;
-  el._cv.width = sh.w; el._cv.height = sh.h;
-  el._cv.style.cssText = `left:${left.toFixed(2)}px;top:${top.toFixed(2)}px;width:${(b[2] * 10).toFixed(2)}px;height:${(b[3] * 10).toFixed(2)}px`;
+// put the canvas on a clip's box (once per clip, not per frame), at the size of what it is drawn from:
+// a held clip's frames, or the sheet's
+function symLay(el, clip, w, h) {
+  if (el._box === clip && el._cv.width === w && el._cv.height === h) return;
+  if (el._box !== clip) {
+    const m = el._m, b = m.clips[clip].box;
+    const left = (b[0] + m.icon[0] / 2) * 10, top = (b[1] + m.icon[1] / 2) * 10;
+    el._cv.style.cssText = `left:${left.toFixed(2)}px;top:${top.toFixed(2)}px;width:${(b[2] * 10).toFixed(2)}px;height:${(b[3] * 10).toFixed(2)}px`;
+  }
+  el._cv.width = w; el._cv.height = h;
   el._box = clip; el._shown = "";
 }
 function symDraw(el, clip, f) {
-  const key = clip + f;
+  const fr = SYMF.sheets.get(el._name + "_" + clip), held = fr && fr.frames && fr.frames[f];
+  const key = clip + f + (held ? "h" : "");
   if (el._shown === key) return;
-  const s = SYMF.sheets.get(el._name + "_" + clip);
+  const s = fr;
   if (!s || !s.ok) return;
-  symLay(el, clip);
-  const sh = el._m.sheets[SYMF.density][clip];
-  el._ctx.clearRect(0, 0, sh.w, sh.h);
-  el._ctx.drawImage(s.img, (f % sh.cols) * sh.w, Math.floor(f / sh.cols) * sh.h, sh.w, sh.h, 0, 0, sh.w, sh.h);
+  if (held) {
+    symLay(el, clip, held.width, held.height);
+    el._ctx.clearRect(0, 0, held.width, held.height);
+    el._ctx.drawImage(held, 0, 0);
+  } else {
+    const sh = el._m.sheets[SYMF.density][clip];
+    symLay(el, clip, sh.w, sh.h);
+    el._ctx.clearRect(0, 0, sh.w, sh.h);
+    el._ctx.drawImage(s.img, (f % sh.cols) * sh.w, Math.floor(f / sh.cols) * sh.h, sh.w, sh.h, 0, 0, sh.w, sh.h);
+  }
   el._shown = key;
 }
 // the rest pose: the first frame of the landing (every clip starts and ends on it)
@@ -4857,7 +4960,10 @@ function fitFsCard(retry) {
   const waiting = [...card.querySelectorAll("#fsWin img")].filter(i => !i.complete);
   if (waiting.length && tries < 3) Promise.all(waiting.map(i => i.decode().catch(() => {}))).then(() => fitFsCard(tries + 1));
   const fit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fit")) || 1;
-  const room = innerWidth * .96 / fit, need = plate.offsetWidth;   // the page's px: it is scaled by --fit
+  // the page's px (it is scaled by --fit); never wider than the board it hangs under either, so a
+  // five- or six-figure win shrinks the plate rather than running it out past the frame
+  const board = $("board");
+  const room = Math.min(innerWidth * .96 / fit, board ? board.offsetWidth : Infinity), need = plate.offsetWidth;
   card.style.scale = need > room ? (room / need).toFixed(3) : "";
 }
 addEventListener("resize", () => requestAnimationFrame(fitFsCard));   // after fitToScreen has the new --fit
@@ -5435,10 +5541,11 @@ const handlers = {
     order.forEach(([r, y], i) => {
       const go = () => {
         burstIcon(geo[i]);   // the icon strains, then comes apart
-        cellEls[r][y].classList.add("explode"); multEls[r][y].classList.add("bare");
-        // every pop its own pitch, drifting up through a run - on the blow, not as the strain starts
+        cellEls[r][y].classList.add("explode");
+        // every pop its own pitch, drifting up through a run - on the blow, not as the strain starts;
+        // the value under it pops forward on the blow too, not while the tile still covers it
         const rate = .8 + Math.random() * .55 + i * .01;
-        setTimeout(() => sfx("pop", rate), BURST_AT * tempo());
+        setTimeout(() => { sfx("pop", rate); multEls[r][y].classList.add("bare"); }, BURST_AT * tempo());
       };
       timers.push(setTimeout(go, i * gap));
     });
@@ -5566,8 +5673,14 @@ const handlers = {
       runs.push(one(b));
     }
     await Promise.all(runs);
+    const was = state.grid;
     state.grid = (ev.gridMults || []).map(col => col.slice());
     paintGrid();
+    // the values the Multis just made pop in where they land (.arrive), now that the shows are through
+    if (!REDUCED_MOTION) for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
+      const v = (state.grid[r] || [])[y] || 0;
+      if (v > 0 && v !== ((was[r] || [])[y] || 0)) { const g = multEls[r][y]; g.classList.remove("arrive"); restyle(g); g.classList.add("arrive"); }
+    }
     await hold(200 / MULTI_RATE);   // the values sit on the lit tiles a beat before they pop
     eachCell(el => el.classList.remove("boom", "hit"));
     clearFxWins();
@@ -6078,7 +6191,7 @@ function confirmAuto() {
     closeBars();   // the picker opens over the bar: the volume bars go with it
     openPop("autoPop");
     sfx("menuOpen");
-    $("autoYes").focus();
+    $("autoYes").focus({ preventScroll: true });   // the board's rim overhangs a phone: a scroll here shifted the page
     const pick = e => {
       const b = e.target.closest("button[data-n]");
       if (!b) return;
@@ -6179,6 +6292,88 @@ $("autoBtn").addEventListener("click", async () => {
 });
 
 /* ---------- controls ---------- */
+// The HUD's shape (HUD v3, 2026-11-03): the bar with its pointed left end and the spin hexagon over
+// its right end, as one vector silhouette, and the four tabs hugging it - their inner edges run
+// parallel to the faces they sit against, G units clear, and each pair stacks into a chevron
+// pointing outward. Design units (the hexagon is 128 high); the frame takes its size from them
+// (--hud-fw / --hud-fh, x --hs in the stylesheet) and every piece is placed in % of the frame.
+// Rebuilt when a phone turns, since the bar runs shorter upright.
+function buildHud() {
+  const frame = document.querySelector(".hudframe");
+  if (!frame) return;
+  const upright = matchMedia("(max-width: 1100px) and (orientation: portrait)").matches;
+  const T60 = Math.sqrt(3), S60 = Math.sqrt(3) / 2;
+  const M = 4, H = 128, TOP = M, BOT = M + H, CY = M + H / 2;   // M: room for the outline
+  const S = 74;                                    // the hexagon's half-width
+  const BH = 100, BT = CY - BH / 2, BB = CY + BH / 2;   // the bar, its top and bottom
+  const LEN = upright ? 380 : 460;                 // the bar's straight run
+  const G = 6, GX = G / S60, TW = 72, TG = 6;      // tab gap (square to the face), its run across, tab width, gap within a pair
+  const run = (BH / 2) / T60;                      // the pointed end's reach
+  const Y1 = CY - TG / 2, Y2 = CY + TG / 2;
+  const X0 = M + TW + GX - (CY - Y1) / T60;        // the bar's point: the left tabs' outer corner lands on M
+  const XI = X0 + run + LEN;                       // where the bar's edges meet the hexagon's faces
+  const HX = XI - run + S;                         // the hexagon's centre
+  const li = y => X0 + Math.abs(CY - y) / T60 - GX;      // the left tabs' inner edge
+  const ri = y => HX + S - Math.abs(y - CY) / T60 + GX;  // the right tabs' inner edge
+  const FW = ri(Y1) + TW + M, FH = BOT + M;
+  const tabs = {
+    menuBtn:  [[li(TOP) - TW, TOP], [li(TOP), TOP], [li(Y1), Y1], [li(Y1) - TW, Y1]],
+    audioBtn: [[li(Y2) - TW, Y2], [li(Y2), Y2], [li(BOT), BOT], [li(BOT) - TW, BOT]],
+    rapidBtn: [[ri(TOP), TOP], [ri(TOP) + TW, TOP], [ri(Y1) + TW, Y1], [ri(Y1), Y1]],
+    autoBtn:  [[ri(Y2), Y2], [ri(Y2) + TW, Y2], [ri(BOT) + TW, BOT], [ri(BOT), BOT]],
+  };
+  const body = [[X0, CY], [X0 + run, BT], [XI, BT], [HX - S / 2, TOP], [HX + S / 2, TOP], [HX + S, CY],
+                [HX + S / 2, BOT], [HX - S / 2, BOT], [XI, BB], [X0 + run, BB]];
+  const n2 = v => +v.toFixed(2);
+  // a polygon with its corners rounded (radius per corner, or one for all)
+  const round = (pts, rad) => {
+    let d = "";
+    pts.forEach(([vx, vy], i) => {
+      const [px, py] = pts[(i + pts.length - 1) % pts.length], [nx, ny] = pts[(i + 1) % pts.length];
+      const ax = px - vx, ay = py - vy, bx = nx - vx, by = ny - vy;
+      const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+      const ang = Math.acos(Math.max(-1, Math.min(1, (ax * bx + ay * by) / (la * lb))));
+      const r = Array.isArray(rad) ? rad[i] : rad;
+      const t = Math.min(r / Math.tan(ang / 2), la / 2, lb / 2), rr = t * Math.tan(ang / 2);
+      const sweep = ax * by - ay * bx < 0 ? 1 : 0;
+      d += `${i ? "L" : "M"}${n2(vx + ax / la * t)} ${n2(vy + ay / la * t)}A${n2(rr)} ${n2(rr)} 0 0 ${sweep} ${n2(vx + bx / lb * t)} ${n2(vy + by / lb * t)}`;
+    });
+    return d + "Z";
+  };
+  const pct = (v, of) => (v / of * 100).toFixed(4) + "%";
+  const put = (el, x, y, w, h) => {
+    if (!el) return;
+    el.style.left = pct(x, FW); el.style.top = pct(y, FH); el.style.width = pct(w, FW); el.style.height = pct(h, FH);
+  };
+  frame.style.setProperty("--hud-fw", n2(FW));
+  frame.style.setProperty("--hud-fh", n2(FH));
+  const shape = frame.querySelector(".hudshape");
+  shape.setAttribute("viewBox", `0 0 ${n2(FW)} ${n2(FH)}`);
+  shape.querySelector("path").setAttribute("d", round(body, [16, 10, 10, 12, 12, 14, 12, 12, 10, 10]));
+  const NS = "http://www.w3.org/2000/svg";
+  for (const [id, pts] of Object.entries(tabs)) {
+    const btn = $(id);
+    if (!btn) continue;
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const x = Math.min(...xs), y = Math.min(...ys), w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+    put(btn, x, y, w, h);
+    let svg = btn.querySelector(":scope > svg.tabshape");
+    if (!svg) {
+      svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "tabshape"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("focusable", "false");
+      svg.appendChild(document.createElementNS(NS, "path"));
+      btn.prepend(svg);
+    }
+    svg.setAttribute("viewBox", `${n2(x)} ${n2(y)} ${n2(w)} ${n2(h)}`);
+    svg.firstChild.setAttribute("d", round(pts, 10));
+  }
+  // the readouts between the point and the hexagon (whose left corner reaches `run` into the bar)
+  put(frame.querySelector(".hudbar"), X0 + run + 2, BT, LEN - run - 16, BH);
+  put(frame.querySelector(".spinwrap"), HX - S, TOP, 2 * S, H);
+}
+buildHud();
+matchMedia("(max-width: 1100px) and (orientation: portrait)").addEventListener?.("change", buildHud);
+
 function setButtons(on) {
   // off with no round running (not connected yet, a replay waiting for Play) is just Spin, greyed
   $("spinBtn").textContent = (on || !state.playing) ? T("Spin") : (state.noSkip ? T("Spinning\u2026") : T("Skip >>"));
@@ -6235,119 +6430,119 @@ function refreshBet() {
 }
 
 /* ---------- character ---------- */
-const CHAR_IDLE_RATE = .8;    // idle clips run at 80% speed
-const CHAR_BONUS_RATE = .8;   // bonus reels too — kept separate so they can diverge later
-// The two characters are Spine 4.2 skeletons (exported at 4.2.43) rendered on their own
-// canvas inside .charfx, so all the sizing and responsive CSS above still governs them.
-// They replaced eight looping mp4s: better quality, real alpha instead of a black
-// background keyed out with mix-blend-mode, and they react to what the round does.
+// The two characters are made and animated in Blender (tools/blender/chars/<char>/: a cutout rig, every clip
+// keyed there, the skull's smoke drawn there too), rendered to frames and packed by tools/blender/pack_chars.py:
+// each clip one file of small WebP frames back to back (assets/chars/<char>/<density>/<clip>.bin). A figure is
+// big on screen, so its frames are never all decoded at once - only the few about to show, a handful ahead,
+// then let go. They are drawn on their own Pixi canvas inside .charfx, so all the sizing and responsive CSS
+// above still governs them, the tag's neon still lights them (neonRim) and their shoes still throw shadows.
 //
-// Each rig runs one body track (0) plus its ambient loops on higher tracks. The body track
-// sits on "idle" and is interrupted by two kinds of clip: FLAVOUR, an idle break on a random
-// timer, and a REACTION driven by the game. Both queue "idle" straight after, so the rig
-// always falls back to resting on its own.
+// Each figure plays one clip at a time. It rests on "idle", which loops, and is interrupted by two kinds of
+// clip: FLAVOUR, an idle break on a random timer, and a REACTION driven by the game. Every clip starts and
+// ends on the idle's first pose, so a clip cuts in where the idle passes through that pose (its cues) and
+// hands straight back to the idle's first frame.
 const CHARACTERS = [
   // #charfx is the right-hand slot, #charfx2 the left
   {
-    el: "charfx", base: "assets/spine/smoke-skull", name: "smoke-skull",
-    ambient: ["ember_loop"],
-    // the painted plume comes off the figure and live smoke rises from the ember (smoke.js)
-    smoke: { from: "ember", hide: ["smoke", "wisp_a", "wisp_b"] },
-    unlit: ["cigar", "shoe_left", "shoe_right"],   // the neon from behind leaves the cigar and the laces alone (owner, 2026-10-25)
+    el: "charfx", name: "skull",
     flavour: [["ash_break"]],
     swap: { big_win: "win" },   // the skull's big-win clip is retired: its normal win plays for both
   },
   {
-    el: "charfx2", base: "assets/spine/smukiez", name: "smukiez",
-    ambient: [],
-    // one entry per idle break, so the three read equally often; the toss picks one of its
-    // four interchangeable takes so it never looks like the same loop twice
-    flavour: [["cash_show"], ["cash_count"]],   // the cash-toss clips (and their three variants) are retired
+    el: "charfx2", name: "boy",
+    flavour: [["cash_show"], ["cash_count"]],
   },
 ];
-const CHAR_RATE = .8;                     // both rigs play at 80% speed, as the clips did
 // The pair redraw at most about 60 times a second: on the owner's 165 Hz screen each figure - its
-// rig, rim light, cigar smoke and shadow - was drawn 165 times a second, the heaviest thing on an
-// idle page. 63 rather than 60 because Pixi rounds the time since its last frame down to whole ms
-// before it compares: at exactly 60 a 60 Hz screen would now and then lose a frame; at 63 it never
-// does, and a faster screen is held near 63.
+// frame, rim light and shadow - was drawn 165 times a second, the heaviest thing on an idle page.
+// 63 rather than 60 because Pixi rounds the time since its last frame down to whole ms before it
+// compares: at exactly 60 a 60 Hz screen would now and then lose a frame; at 63 it never does.
 const CHAR_FPS = 63;
 const CHAR_FLAVOUR_GAP = [7000, 16000];   // how long idle runs before the next break
+const CHAR_AHEAD = 10;                    // frames kept decoded ahead of the one showing
+const CHAR_DECODES = 6;                   // decodes under way at once, per figure (charFrames)
+const CHAR_CUE_WAIT = 900;                // ms a reaction waits for the idle's next cue before it cuts in anyway
+const CHAR_XFADE = 6;                     // frames a cut blends over, unless it is at the idle's first frame (the smoke never jumps)
 
-// How hard each moment grabs the body track. A bigger moment cuts off a smaller one; a
-// smaller one waits its turn rather than stamping on the celebration.
+// How hard each moment grabs the figure. A bigger moment cuts off a smaller one; a smaller one
+// waits its turn rather than stamping on the celebration.
 const CHAR_RANK = { flavour: 0, anticipation: 1, win: 1, lose: 2, big_win: 3, enter: 4, exit: 9 };
 
-// Replaced once the rigs load. Declared up front so the handlers can call them either way -
-// a rig that fails to load must never take the game down with it.
+// Replaced once the figures load. Declared up front so the handlers can call them either way -
+// a figure that fails to load must never take the game down with it.
 let charReact = () => {}, charEnter = () => {}, charExit = () => {};
 
-async function loadSpine(base, name) {
-  const grab = async (ext, as) => {
-    const r = await fetch(`${base}/${name}.${ext}`);
-    if (!r.ok) throw new Error(`${name}.${ext} -> HTTP ${r.status}`);
-    return as === "json" ? r.json() : r.text();
+// A figure's frames: its manifest, the density that suits this screen, each clip's file (fetched whole,
+// kept compressed) and the frames decoded from it. get() hands a decoded frame or null (and starts its
+// decode); keep() lets go of every frame not in the set it is given.
+async function charFrames(name, figurePx) {
+  const base = `assets/chars/${name}`;
+  const r = await fetch(`${base}/manifest.json`);
+  if (!r.ok) throw new Error(`${name} manifest -> HTTP ${r.status}`);
+  const man = await r.json();
+  // the smallest density that still draws the standing figure at a pixel per screen pixel
+  const want = figurePx / man.rest_height;
+  const dd = man.densities.find(d => parseInt(d.slice(1), 10) / 10 >= want) || man.densities[man.densities.length - 1];
+  const d = parseInt(dd.slice(1), 10) / 10;
+  const files = new Map(), frames = new Map();
+  const file = (kind, clip) => {   // kind: "art" or "unlit"
+    const key = kind + ":" + clip;
+    if (!files.has(key)) {
+      const url = kind === "art" ? `${base}/${dd}/${clip}.bin` : `${base}/unlit/${clip}.bin`;
+      files.set(key, fetch(url).then(r => { if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`); return r.blob(); }));
+    }
+    return files.get(key);
   };
-  const [atlasText, skeletonJson] = await Promise.all([grab("atlas", "text"), grab("json", "json")]);
-  if (!skeletonJson.animations || !Object.keys(skeletonJson.animations).length) {
-    throw new Error(`${name}.json carries no animations`);
-  }
-  const atlas = new spine.TextureAtlas(atlasText);
-  // each atlas page is its own PNG; decode before handing it to Pixi or the first frame
-  // renders untextured
-  // Decoded off the main thread where the browser can (createImageBitmap): an <img> handed to
-  // WebGL is decoded again, on the main thread, inside the upload - 0.3 s a page on a slow laptop.
-  const pages = [];
-  await Promise.all(atlas.pages.map(async page => {
-    const url = `${base}/${page.name}`;
-    let pic = null;
-    if (typeof createImageBitmap === "function") {
-      try {
-        const r = await fetch(url);
-        if (r.ok) pic = await createImageBitmap(await r.blob(), { premultiplyAlpha: "premultiply" });
-      } catch (e) { pic = null; }
+  const info = (kind, clip) => { const c = man.clips[clip]; return kind === "art" ? c.files[dd] : c.unlit; };
+  // A frame that will not decode (a file cut short in transit, or swapped under a page that had the old
+  // manifest) is not asked for again every tick: its clip's file is fetched afresh and the frame retried a
+  // couple of seconds later, a few times at most, with one warning per clip.
+  const failed = new Map(), warned = new Set();
+  // Only a few decodes run at once (perf, 2026-11-03), asked for in the order they will show. With no
+  // limit a slow phone fell behind for good: every tick asked for ten frames ahead, the frames it had
+  // asked for went past before they were decoded and were thrown away half done, and it asked again -
+  // ~540 decodes a second, and the figures never showed at all. A decode under way is let finish too
+  // (keep() only lets go of finished frames), so no work is thrown away.
+  let inflight = 0;
+  const get = (kind, clip, i) => {
+    const key = kind + ":" + clip + ":" + i;
+    let f = frames.get(key);
+    if (!f) {
+      const inf = info(kind, clip), fail = failed.get(key);
+      if (!inf || (fail && (fail.n >= 4 || performance.now() < fail.at + 2000))) return null;
+      if (inflight >= CHAR_DECODES) return null;
+      f = { bmp: null, busy: true };
+      frames.set(key, f);
+      inflight++;
+      file(kind, clip)
+        .then(b => createImageBitmap(b.slice(inf.offsets[i], inf.offsets[i + 1], "image/webp")))
+        .finally(() => { inflight--; f.busy = false; })
+        .then(bmp => { failed.delete(key); if (frames.get(key) === f) f.bmp = bmp; else bmp.close(); })
+        .catch(e => {
+          if (frames.get(key) === f) frames.delete(key);
+          failed.set(key, { n: ((failed.get(key) || {}).n || 0) + 1, at: performance.now() });
+          files.delete(kind + ":" + clip);
+          if (!warned.has(kind + ":" + clip)) { warned.add(kind + ":" + clip); console.warn("character frames:", name, kind, clip, e.message); }
+        });
     }
-    if (!pic) {
-      pic = new Image();
-      pic.src = url;
-      await pic.decode();
+    return f.bmp;
+  };
+  const keep = wanted => {
+    for (const [key, f] of frames) if (!wanted.has(key) && !f.busy) { if (f.bmp) f.bmp.close(); frames.delete(key); }
+  };
+  // decoded the moment they are asked for: every frame of a clip's first stretch, all at once
+  const ready = async (kind, clip, n) => {
+    await file(kind, clip);
+    const inf = info(kind, clip);
+    if (!inf) return;
+    for (let t = 0; t < 400; t++) {   // up to ~4 s
+      let all = true;
+      for (let i = 0; i < Math.min(n, inf.offsets.length - 1); i++) if (!get(kind, clip, i)) all = false;
+      if (all) return;
+      await new Promise(r => setTimeout(r, 10));
     }
-    const source = PIXI.Texture.from(pic).source;
-    source.autoGarbageCollect = false;   // a page a rare clip uses must never be dropped and uploaded again mid-game
-    pages.push(source);
-    page.setTexture(spine.SpineTexture.from(source));
-    // Trilinear (mipmapped) sampling: on a 1080p screen the rigs are drawn at a third to a half
-    // of their atlas size, and plain bilinear sampling skipped texels - outlines shimmered as
-    // the figures moved. Set after setTexture, whose atlas filter (Linear) turns mipmaps off.
-    // The pages are 2048 px squares (power of two), so WebGL1 can mip them too.
-    source.autoGenerateMipmaps = true;
-    source.style.minFilter = "linear";
-    source.style.magFilter = "linear";
-    source.style.mipmapFilter = "linear";
-  }));
-  const data = new spine.SkeletonJson(new spine.AtlasAttachmentLoader(atlas)).readSkeletonData(skeletonJson);
-  return { data, pages };
-}
-// Pixi uploads a texture the first time something draws from it. A character page that only a
-// rare clip uses (the big win, the anticipation lean, a cash break) went up mid-game - decoded
-// and uploaded on the spot, a third of a second with nothing drawn. Every page is drawn once,
-// out of sight, the moment the character's renderer exists, so they all go up behind the
-// loading screen.
-function uploadPages(app, pages) {
-  try {
-    const tex = app.renderer.texture;
-    if (tex && typeof tex.initSource === "function") { pages.forEach(src => tex.initSource(src)); return; }
-    const warm = new PIXI.Container();   // no direct upload in this Pixi: draw each page once instead
-    for (const source of pages) {
-      const s = new PIXI.Sprite(new PIXI.Texture({ source }));
-      s.position.set(-8192, -8192); s.alpha = .01;
-      warm.addChild(s);
-    }
-    app.stage.addChild(warm);
-    app.renderer.render(app.stage);
-    app.stage.removeChild(warm);
-    warm.destroy({ children: true });   // the sprites only: the pages stay on the GPU for the rig
-  } catch (e) { /* a page that will not go up early just goes up when it is first drawn */ }
+  };
+  return { man, dd, d, file, get, keep, ready };
 }
 
 // The tag's neon lights the pair (owner, 2026-10-25; lit for real 2026-10-27): each figure takes a
@@ -6422,54 +6617,18 @@ void main(void) {
   rgb = 1.0 - (1.0 - rgb) * (1.0 - uColor * clamp(f, 0.0, 0.7));     // the wash is light on the paint (screened)
   finalColor = vec4(rgb * c.a, c.a);
 }`;
-// The slots the light leaves alone, posed with the rig: each is a Pixi mesh of its attachment (a
-// region's quad or a mesh's triangles, off its own atlas page), moved to the rig's pose after
-// every pose and drawn into `mask`, a texture the size of the stage that the filter reads. Drawn
-// in the same step that poses the rig, so the two never disagree by a frame.
-function unlitMask(app, actor, names, mask) {
-  const slots = names.map(n => actor.skeleton.findSlot(n)).filter(Boolean);
-  if (!slots.length) return null;
-  const stage = new PIXI.Container(), made = new Map(), wv = new Float32Array(4096), pt = { x: 0, y: 0 };
-  const meshOf = a => {   // one mesh per attachment, made the first time it shows
-    if (made.has(a)) return made.get(a);
-    const region = a instanceof spine.RegionAttachment, page = a.region && a.region.texture && a.region.texture.texture;
-    let m = null;
-    if (page && (region || a instanceof spine.MeshAttachment) && (region || a.worldVerticesLength <= wv.length)) {
-      m = new PIXI.MeshSimple({
-        texture: new PIXI.Texture({ source: page.source }),
-        vertices: new Float32Array(region ? 8 : a.worldVerticesLength), uvs: new Float32Array(a.uvs),
-        indices: new Uint32Array(region ? [0, 1, 2, 2, 3, 0] : a.triangles),
-      });
-      stage.addChild(m);
-    }
-    made.set(a, m);
-    return m;
-  };
-  const pose = () => {
-    for (const m of made.values()) if (m) m.visible = false;
-    for (const slot of slots) {
-      const a = slot.getAttachment(), m = a && slot.bone.active ? meshOf(a) : null;
-      if (!m) continue;
-      if (a instanceof spine.RegionAttachment) a.computeWorldVertices(slot, wv, 0, 2);
-      else a.computeWorldVertices(slot, 0, a.worldVerticesLength, wv, 0, 2);
-      const v = m.vertices;
-      for (let i = 0; i < v.length; i += 2) { pt.x = wv[i]; pt.y = wv[i + 1]; actor.skeletonToPixiWorldCoordinates(pt); v[i] = pt.x; v[i + 1] = pt.y; }
-      m.alpha = slot.color.a; m.visible = true;
-    }
-    app.renderer.render({ container: stage, target: mask, clear: true, clearColor: [0, 0, 0, 0] });
-  };
-  const prev = actor.afterUpdateWorldTransforms;
-  actor.afterUpdateWorldTransforms = o => { if (prev) prev(o); pose(); };
-  return pose;
-}
-function neonRim(app, actor, unlit = []) {
-  if (!window.WallFX || !WallFX.light || !PIXI.Filter || !PIXI.GlProgram || app.renderer.type !== PIXI.RendererType.WEBGL) return;
+// The parts the light leaves alone come with every frame from Blender (the clip's unlit frames: the cigar,
+// the shoes, where they show), drawn by the figure into `unlit`, a container laid over the stage just as the
+// figure is; it is drawn into `mask`, a texture the size of the stage that the filter reads. Returns the
+// redraw, which the figure calls whenever it shows a new frame, so the two never disagree.
+function neonRim(app, actor, unlit, touch = () => {}) {
+  if (!window.WallFX || !WallFX.light || !PIXI.Filter || !PIXI.GlProgram || app.renderer.type !== PIXI.RendererType.WEBGL) return null;
   const mask = PIXI.RenderTexture.create({ width: app.screen.width, height: app.screen.height, resolution: app.renderer.resolution });
   let filter;
   try {
     filter = new PIXI.Filter({
       glProgram: PIXI.GlProgram.from({ vertex: NEON_RIM_VERT, fragment: NEON_RIM_FRAG, name: "neon-rim" }),
-      // the rig is drawn into the filter at the canvas's own density and smoothing: Pixi's filter
+      // the figure is drawn into the filter at the canvas's own density and smoothing: Pixi's filter
       // default (1x, no antialias) drew it at two thirds of the pixels with jagged edges
       resolution: app.renderer.resolution, antialias: "inherit",
       resources: {
@@ -6486,15 +6645,15 @@ function neonRim(app, actor, unlit = []) {
         uUnlit: mask.source,
       },
     });
-  } catch (e) { console.warn("neon rim:", e.message); return; }
+  } catch (e) { console.warn("neon rim:", e.message); return null; }
   filter.enabled = false;   // until the tube has been read
   actor.filters = [filter];
   const u = filter.resources.neonRim.uniforms;
-  const repose = unlitMask(app, actor, unlit, mask);
+  const repose = () => { if (unlit) app.renderer.render({ container: unlit, target: mask, clear: true, clearColor: [0, 0, 0, 0] }); };
   app.renderer.on("resize", () => {
     mask.resize(app.screen.width, app.screen.height);
     u.uStage[0] = app.screen.width; u.uStage[1] = app.screen.height;
-    if (repose) repose();
+    repose();
   });
   let light = null, aimed = -1e9;
   // where the light falls on this figure, in its own stage px: off the tube, seen from its chest
@@ -6506,30 +6665,35 @@ function neonRim(app, actor, unlit = []) {
   app.ticker.add(() => {
     const now = performance.now();
     if (now - aimed > 1000) { aimed = now; aim(); }   // the layout moves (a resize, the portrait rules): keep aiming
-    filter.enabled = !!light;
+    if (filter.enabled !== !!light) { filter.enabled = !!light; touch(); }
     if (!light) return;
     const h = app.screen.height;
-    u.uLight[0] = light.x; u.uLight[1] = light.y;
     // the sign's level on this frame, for the stretches of the tube that light this figure
-    u.uPower = Math.min(1.3, light.k) * WallFX.neon(light.seg) * NEON_RIM.gain;
+    const power = Math.min(1.3, light.k) * WallFX.neon(light.seg) * NEON_RIM.gain;
+    // the stage is only redrawn when this changes (the sign flickering, the layout moving) or the frame does
+    if (u.uLight[0] !== light.x || u.uLight[1] !== light.y || u.uPower !== power || u.uInk !== h * NEON_RIM.ink) touch();
+    u.uLight[0] = light.x; u.uLight[1] = light.y;
+    u.uPower = power;
     u.uInk = h * NEON_RIM.ink; u.uWidth = h * NEON_RIM.width; u.uReach = h * NEON_RIM.reach;
   });
+  return repose;
 }
 
 // The pair's shadows on the pavement (owner, 2026-10-25: the old one was a fixed blur centred on
 // the box and cut in half by its edge). Each shoe throws its own soft shadow, under where the shoe
 // is and as wide as it, and a lighter pool spans both feet; a foot that lifts (a step, a hop, the
-// walk-on) shrinks and fades its shadow, which stays on the ground. Drawn from the rig's pose on a
-// small canvas of its own just under the figure (.charshadow), outside the figure's box.
-const FOOT_SHADOW = { alpha: .52, pool: .24, squash: .26, fps: 60, rgb: "6,5,10" };
-function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
-  const slots = feet.map(n => actor.skeleton.findSlot(n)).filter(Boolean);
-  if (!slots.length || !root.parentNode) return;
+// walk-on) shrinks and fades its shadow, which stays on the ground. Where each shoe is on every frame
+// comes from Blender with the frames (the manifest's track: each shoe's left, right and sole, in frame
+// px); drawn on a small canvas of its own just under the figure (.charshadow), outside the figure's box.
+const FOOT_SHADOW = { alpha: .74, pool: .36, squash: .26, fps: 60, rgb: "2,1,4" };   // darker (2026-11-03 QA: they barely read on the dark pavement)
+function footShadow(app, fig, root) {
+  const rest = fig.shoes("idle", 0);   // each shoe's own ground: the feet stand at their own depths
+  if (!rest || !rest.length || !root.parentNode) return;
   const cv = document.createElement("canvas");
   cv.className = "charshadow"; cv.setAttribute("aria-hidden", "true");
   root.parentNode.insertBefore(cv, root);   // under the figure, over the wall
-  const ctx = cv.getContext("2d"), wv = new Float32Array(4096), pt = { x: 0, y: 0 };
-  let map = null, placedAt = -1e9, drawnAt = 0;
+  const ctx = cv.getContext("2d");
+  let map = null, placedAt = -1e9, drawnAt = 0, drawnOf = null, drawnMap = null;
   // where the stage sits on the page (read between hops) and the canvas round the figure's ground:
   // its width, a little above the ground and a little below
   const place = () => {
@@ -6539,7 +6703,7 @@ function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
     const r = Cam.restRect(app.canvas.getBoundingClientRect());
     if (!r.width || !r.height) return;
     const dpr = Math.min(2, devicePixelRatio || 1), sx = r.width / app.screen.width, sy = r.height / app.screen.height;
-    const grounds = rest.map(y => r.top + toStage(0, y).y * sy);   // each shoe's ground, on the page
+    const grounds = rest.map(s => r.top + fig.toStage(0, s[2]).y * sy);   // each shoe's ground, on the page
     const above = r.height * .06, below = r.height * .05, y0 = Math.min(...grounds) - above, y1 = Math.max(...grounds) + below;
     map = { sx, sy, left: r.left, top: r.top, x0: r.left, y0, dpr };
     Object.assign(cv.style, { left: r.left + "px", top: y0 + "px", width: r.width + "px", height: (y1 - y0) + "px" });
@@ -6547,33 +6711,12 @@ function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
   };
   addEventListener("resize", () => { placedAt = -1e9; });
-  // a shoe's outline in skeleton units (y down): its left and right, and its lowest point
-  const span = (slot, sk = actor.skeleton) => {
-    const s = sk === actor.skeleton ? slot : sk.findSlot(slot.data.name), a = s && s.getAttachment();
-    if (!a || !s.bone.active) return null;
-    let n = 0;
-    if (a instanceof spine.RegionAttachment) { a.computeWorldVertices(s, wv, 0, 2); n = 4; }
-    else if (a instanceof spine.MeshAttachment && a.worldVerticesLength <= wv.length) { a.computeWorldVertices(s, 0, a.worldVerticesLength, wv, 0, 2); n = a.worldVerticesLength / 2; }
-    if (!n) return null;
-    let x0 = 1e9, x1 = -1e9, y1 = -1e9;
-    for (let i = 0; i < n; i++) { x0 = Math.min(x0, wv[i * 2]); x1 = Math.max(x1, wv[i * 2]); y1 = Math.max(y1, wv[i * 2 + 1]); }
-    return { x0, x1, y1 };
-  };
-  // Where each shoe stands: its lowest point in the setup pose, read off a skeleton of its own so the
-  // live one is never touched. The feet stand at their own depths - the skull's back shoe rests
-  // higher on the pavement than his front one - so each keeps its own ground.
-  const stance = new spine.Skeleton(actor.skeleton.data);
-  stance.setToSetupPose(); stance.updateWorldTransform(spine.Physics ? spine.Physics.none : undefined);
-  const rest = slots.map(s => { const b = span(s, stance); return b ? b.y1 : 0; });
-  const toStage = (x, y) => { pt.x = x; pt.y = y; actor.skeletonToPixiWorldCoordinates(pt); return pt; };
   // a shoe now: where its shadow lies (stage px), how wide, and how far the shoe is off its ground
   // (as a share of its width, a hair of the art's own gap allowed)
-  const foot = (slot, i) => {
-    const b = span(slot);
-    if (!b) return null;
-    const w = b.x1 - b.x0, lift = Math.max(0, Math.min(1, (rest[i] - b.y1 - w * .04) / (w * .9)));
-    const c = toStage((b.x0 + b.x1) / 2, rest[i]);
-    return { cx: c.x, gy: c.y, w: w * Math.abs(actor.scale.x), lift, a: slot.color.a };
+  const foot = (s, i) => {
+    const w = s[1] - s[0], lift = Math.max(0, Math.min(1, (rest[i][2] - s[2] - w * .04) / (w * .9)));
+    const c = fig.toStage((s[0] + s[1]) / 2, rest[i][2]);
+    return { cx: c.x, gy: c.y, w: w * fig.scale(), lift, a: fig.alpha() };
   };
   const blot = (x, y, rx, ry, a) => {   // a soft ellipse, darkest in the middle
     if (rx < 1 || ry < .5 || a < .01) return;
@@ -6588,9 +6731,13 @@ function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
     if (now - placedAt > 1000) { placedAt = now; place(); }   // the layout moves: keep following it
     cv.classList.toggle("on", app.canvas.classList.contains("on"));
     if (!map || now - drawnAt < 1000 / FOOT_SHADOW.fps - 2) return;
-    drawnAt = now;
+    // the shadows only change with the figure's frame (or a new placing): the same frame, the same shadows
+    const now_ = fig.showing();
+    if (now_ === drawnOf && map === drawnMap) return;
+    drawnAt = now; drawnOf = now_; drawnMap = map;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-    const F = slots.map(foot).filter(Boolean);
+    const S = now_ && fig.shoes(now_.clip, now_.i);
+    const F = (S || []).slice(0, rest.length).map(foot);
     if (!F.length) return;
     const k = map.sx * map.dpr, X = x => (map.left + x * map.sx - map.x0) * map.dpr, Y = y => (map.top + y * map.sy - map.y0) * map.dpr;
     // the pool under both feet first, then each shoe's own darker shadow over it
@@ -6604,77 +6751,175 @@ function footShadow(app, actor, root, feet = ["shoe_left", "shoe_right"]) {
   });
 }
 
-async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smoke = null, unlit = [] }) {
+async function makeCharacter({ el, name, flavour, swap = {} }) {
   const root = document.getElementById(el);
-  if (!root || typeof PIXI === "undefined" || typeof spine === "undefined") return null;
+  if (!root || typeof PIXI === "undefined") return null;
+  const headroom = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-headroom")) || 1;
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
 
-  let data, pages;
-  try { ({ data, pages } = await loadSpine(base, name)); }
-  catch (e) { console.warn("character rig failed to load:", name, e.message); return null; }
+  let F;
+  try { F = await charFrames(name, root.clientHeight / headroom() * dpr); }
+  catch (e) { console.warn("character failed to load:", name, e.message); return null; }
+  const { man, d } = F, [W, H] = man.size, fps = man.fps;
+  const has = clip => !!man.clips[clip];
+  if (!has("idle")) { console.warn("character has no idle:", name); return null; }
 
   const app = new PIXI.Application();
-  await app.init({
-    backgroundAlpha: 0, antialias: true, autoDensity: true,
-    resolution: Math.min(2, window.devicePixelRatio || 1),
-    resizeTo: root,
-  });
+  await app.init({ backgroundAlpha: 0, antialias: true, autoDensity: true, resolution: dpr, resizeTo: root });
   app.ticker.maxFPS = CHAR_FPS;
   root.appendChild(app.canvas);
+  // Pixi redraws the whole stage on every tick; the figure only changes 30 times a second (its frames)
+  // and when the sign's light on it does, so the stage is drawn only then (perf, 2026-11-03) - the
+  // canvas keeps showing the last picture in between.
+  let dirty = true;
+  const touch = () => { dirty = true; };
+  app.ticker.remove(app.render, app);
+  app.ticker.add(() => { if (dirty) { dirty = false; app.render(); } }, null, PIXI.UPDATE_PRIORITY.LOW);
+  app.renderer.on("resize", touch);
 
-  uploadPages(app, pages);
-  // posed on the canvas's own clock (Pixi's shared ticker, the default, ran uncapped at the screen's
-  // rate and re-posed the rig - and redrew its unlit mask - on frames the canvas never showed)
-  const actor = new spine.Spine({ skeletonData: data, autoUpdate: true, ticker: app.ticker });
-  actor.state.data.defaultMix = .2;
-  actor.state.timeScale = CHAR_RATE;
+  // Each frame is drawn onto a canvas the size of the whole frame at this density (its clip's box in
+  // place), which the sprite shows; the unlit mask's frame onto one of its own at its density.
+  const paper = (density) => {
+    const c = document.createElement("canvas");
+    c.width = Math.round(W * density); c.height = Math.round(H * density);
+    const tex = PIXI.Texture.from(c);
+    tex.source.autoGenerateMipmaps = true;   // drawn at a third to a half of its size on a 1080p screen: trilinear, no shimmer
+    tex.source.style.minFilter = "linear"; tex.source.style.mipmapFilter = "linear";
+    return { c, ctx: c.getContext("2d"), tex, density };
+  };
+  const art = paper(d), ud = (man.clips.idle.unlit || {}).density || .5, un = has("idle") && man.clips.idle.unlit ? paper(ud) : null;
+  const actor = new PIXI.Sprite(art.tex);
+  actor.anchor.set(.5, man.ground_y / H);   // its frame's centre line, on the soles' ground
   app.stage.addChild(actor);
-  neonRim(app, actor, unlit);   // the tag's light on them from behind
-  footShadow(app, actor, root);   // and their shadows on the pavement, under each shoe
-  // with reduced motion the painted plume stays, still
-  if (smoke && !REDUCED_MOTION && window.CigarSmoke) {
-    try { CigarSmoke.attach(app, actor, smoke); } catch (e) { console.warn("cigar smoke:", e.message); }
+  let unlitStage = null, unlitSprite = null;
+  if (un) {
+    unlitStage = new PIXI.Container();
+    unlitSprite = new PIXI.Sprite(un.tex);
+    unlitSprite.anchor.copyFrom(actor.anchor);
+    unlitStage.addChild(unlitSprite);
   }
+  const repose = neonRim(app, actor, unlitStage, touch);   // the tag's light on them from behind
 
-  // The rig is drawn feet-on-the-floor, centred: scale so the skeleton's own height fills
-  // the box the CSS vars were calibrated against - the box minus the headroom, which is
-  // there so an animation that rises above the standing pose (smoke, a raised arm) is
-  // drawn instead of clipped at the top edge.
+  // The figure is drawn feet-on-the-floor, centred: scaled so its standing height fills the box the
+  // CSS vars were calibrated against - the box minus the headroom, which is there so a clip that
+  // rises above the standing pose (smoke, a raised arm) is drawn instead of clipped at the top edge.
   const fit = () => {
     const w = app.renderer.width, h = app.renderer.height;
     if (!w || !h) return;
-    const head = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-headroom")) || 1;
-    actor.scale.set(h / head / (data.height || 1));
+    actor.scale.set(h / headroom() / man.rest_height / d);
     actor.position.set(w / 2, h);
+    if (unlitSprite) { unlitSprite.scale.set(actor.scale.x * d / ud); unlitSprite.position.copyFrom(actor.position); }
+    if (repose) repose();
+    touch();
   };
-  (window.__chars || (window.__chars = [])).push({ name, app, actor, data });   // debug handle
   fit();
   app.renderer.on("resize", fit);
   addEventListener("resize", fit);
 
-  const has = anim => data.animations.some(a => a.name === anim);
-  const lengthOf = anim => {
-    const a = data.findAnimation ? data.findAnimation(anim) : null;
-    return ((a && a.duration) || 0) * 1000 / CHAR_RATE;
+  // ---- the clock: what plays, from when, and what waits for the idle's next cue
+  let cur = { clip: "idle", t0: performance.now() }, next = null, shown = null, fade = null;
+  let rank = -1, until = 0, away = true, timer = 0, fadeTimer = 0;
+  const lengthOf = clip => man.clips[clip].frames * 1000 / fps;
+  const frameAt = (c, now) => {
+    const n = man.clips[c.clip].frames, f = Math.floor((now - c.t0) * fps / 1000);
+    return man.clips[c.clip].loop ? ((f % n) + n) % n : Math.min(f, n - 1);
   };
-  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const fig = {
+    showing: () => shown,
+    shoes: (clip, i) => { const t = man.track[clip]; return t && t[i] && t[i].shoes; },
+    scale: () => actor.scale.x * d,
+    alpha: () => 1,
+    toStage: (x, y) => ({ x: actor.position.x + (x - W / 2) * actor.scale.x * d, y: actor.position.y + (y - man.ground_y) * actor.scale.x * d }),
+  };
+  footShadow(app, fig, root);   // and their shadows on the pavement, under each shoe
 
-  // ambient extras (smoke, embers) ride their own tracks so the body track stays free
-  ambient.forEach((anim, i) => { if (has(anim)) actor.state.setAnimation(i + 1, anim, true); });
-
-  // who owns the body track, and until when
-  let rank = -1, until = 0, away = true, timer = 0;
-
-  const oneShot = (anim, want) => {
-    if (!has(anim)) return false;
-    const now = performance.now();
-    if (want <= rank && now < until) return false;   // a bigger moment still has the floor
-    actor.state.setAnimation(0, anim, false);
-    if (has("idle")) actor.state.addAnimation(0, "idle", true, 0);   // always fall back to resting
-    rank = want; until = now + lengthOf(anim);
+  const draw = (P, kind, clip, i, prev) => {
+    const boxOf = c => kind === "art" ? man.clips[c].box : man.clips[c].unlit.box, box = boxOf(clip);
+    const bmp = F.get(kind, clip, i);
+    if (!bmp) return false;
+    P.ctx.clearRect(0, 0, P.c.width, P.c.height);
+    P.ctx.globalAlpha = 1;
+    P.ctx.drawImage(bmp, box[0] * P.density, box[1] * P.density, bmp.width, bmp.height);
+    if (prev) {   // a cut away from a cue: the last frame shown fades out over the new one
+      const pb = F.get(kind, prev.clip, prev.i), pbox = boxOf(prev.clip);
+      if (pb) { P.ctx.globalAlpha = prev.a; P.ctx.drawImage(pb, pbox[0] * P.density, pbox[1] * P.density, pb.width, pb.height); P.ctx.globalAlpha = 1; }
+    }
+    P.tex.source.update();
     return true;
   };
 
-  // Idle breaks. Re-armed after every clip, and skipped (not dropped) whenever the rig is
+  const start = (clip, now, cut) => {
+    fade = cut && shown ? { clip: shown.clip, i: shown.i, t0: now } : null;
+    cur = { clip, t0: now };
+    if (clip !== "idle") { until = now + lengthOf(clip); }
+  };
+
+  app.ticker.add(() => {
+    const now = performance.now();
+    let f = frameAt(cur, now);
+    const C = man.clips[cur.clip];
+    // a one-shot over: back to the idle's first frame (the exit holds its last, hidden, pose)
+    if (!C.loop && Math.floor((now - cur.t0) * fps / 1000) >= C.frames && cur.clip !== "exit") {
+      start("idle", cur.t0 + lengthOf(cur.clip), false);
+      rank = -1;
+      f = frameAt(cur, now);
+    }
+    // a waiting clip cuts in on the idle's next cue (or when it has waited long enough, blending), once its
+    // first frames are decoded
+    if (next && F.get("art", next.clip, 0) && (!un || !man.clips[next.clip].unlit || F.get("unlit", next.clip, 0))) {
+      const cues = man.clips.idle.cues || [];
+      const onCue = cur.clip !== "idle" || cues.includes(f) || (shown && shown.clip === "idle" && cues.some(c => c > shown.i && c <= f));
+      const late = now - next.at > CHAR_CUE_WAIT;
+      if (onCue || late || cur.clip !== "idle") {
+        // seamless only from the idle's first frame (the clips' smoke starts from its smoke); any other cut
+        // blends over CHAR_XFADE frames - the pose is the same at every cue, so only the smoke cross-fades
+        start(next.clip, now, !(cur.clip === "idle" && f === 0));
+        next = null;
+        f = 0;
+      }
+    }
+    // what to keep decoded: this clip's next frames, the idle's first (to hand back to), a waiting clip's first
+    const wanted = new Set(), want = (clip, i0, n) => {
+      const c = man.clips[clip];
+      for (let k = 0; k < n; k++) {
+        const i = c.loop ? (i0 + k) % c.frames : i0 + k;
+        if (i >= c.frames) break;
+        wanted.add("art:" + clip + ":" + i); F.get("art", clip, i);
+        if (un && c.unlit) { wanted.add("unlit:" + clip + ":" + i); F.get("unlit", clip, i); }
+      }
+    };
+    want(cur.clip, f, CHAR_AHEAD);
+    if (cur.clip !== "idle") want("idle", 0, CHAR_AHEAD);
+    if (next) want(next.clip, 0, CHAR_AHEAD);
+    if (shown) want(shown.clip, shown.i, 1);
+    if (fade) want(fade.clip, fade.i, 1);
+    F.keep(wanted);
+    // draw when the frame changes (or while a cut blends)
+    const a = fade ? 1 - (now - fade.t0) * fps / 1000 / CHAR_XFADE : 0;
+    if (fade && a <= 0) fade = null;
+    if (shown && shown.clip === cur.clip && shown.i === f && !fade) return;
+    const prev = fade && { clip: fade.clip, i: fade.i, a };
+    if (draw(art, "art", cur.clip, f, prev)) {
+      if (un && man.clips[cur.clip].unlit) draw(un, "unlit", cur.clip, f, prev);
+      shown = { clip: cur.clip, i: f };
+      if (repose) repose();
+      touch();
+    }
+  });
+  (window.__chars || (window.__chars = [])).push({ name, app, actor, F, fig, state: () => ({ cur, next, shown, rank }) });   // debug handle
+
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const oneShot = (clip, want) => {
+    if (!has(clip)) return false;
+    const now = performance.now();
+    if (want <= rank && now < until) return false;   // a bigger moment still has the floor
+    if (next && want <= next.rank) return false;      // one is already waiting for its cue
+    next = { clip, rank: want, at: now };
+    rank = want; until = now + CHAR_CUE_WAIT + lengthOf(clip);
+    return true;
+  };
+
+  // Idle breaks. Re-armed after every clip, and skipped (not dropped) whenever the figure is
   // busy or the tab is in the background, so a hidden tab never banks up a queue of them.
   const armFlavour = () => {
     clearTimeout(timer);
@@ -6689,19 +6934,20 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smok
     if (REDUCED_MOTION || away) return;
     const want = CHAR_RANK[kind];
     if (want === undefined) return;
-    const clip = swap[kind] || kind;   // a rig may play another clip for a moment, at that moment's rank
+    const clip = swap[kind] || kind;   // a figure may play another clip for a moment, at that moment's rank
     if (oneShot(clip, want)) armFlavour();   // push the next break out past the reaction
   };
 
-  let fadeTimer = 0;   // the walk-off's fade, timed to its last beat (see exit)
   const enter = () => {
     if (!away) return;
     away = false;
-    rank = -1; until = 0;
+    rank = -1; until = 0; next = null;
     clearTimeout(fadeTimer);
     app.canvas.classList.add("on");
-    if (REDUCED_MOTION) { actor.state.timeScale = 0; actor.skeleton.setToSetupPose(); return; }
-    if (!oneShot("enter", CHAR_RANK.enter) && has("idle")) actor.state.setAnimation(0, "idle", true);
+    if (REDUCED_MOTION) { app.ticker.stop(); start("idle", performance.now(), false); draw(art, "art", "idle", 0); if (un) draw(un, "unlit", "idle", 0); app.render(); return; }
+    // the walk-on starts at once, not on a cue
+    start(has("enter") ? "enter" : "idle", performance.now(), false);
+    rank = has("enter") ? CHAR_RANK.enter : -1;
     armFlavour();
   };
 
@@ -6709,17 +6955,22 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smok
     if (away) return;
     away = true;
     clearTimeout(timer);
-    // The whole figure fades as one layer (the canvas, .charfx canvas.on) rather than part by
-    // part - per-part fades let every part show through the next. The walk-off plays, and the
-    // canvas fade (--char-fade) covers its last beat; the next walk-on fades it back in.
+    next = null;
+    // The whole figure fades as one layer (the canvas, .charfx canvas.on); the walk-off plays, and
+    // the canvas fade (--char-fade) covers its last beat; the next walk-on fades it back in.
     clearTimeout(fadeTimer);
     if (REDUCED_MOTION || !has("exit")) { app.canvas.classList.remove("on"); return; }
-    // exit ends on the hidden pose and holds it, so nothing is queued behind it
-    actor.state.setAnimation(0, "exit", false);
+    start("exit", performance.now(), cur.clip !== "idle");   // the exit holds its hidden last pose
     rank = CHAR_RANK.exit; until = performance.now() + lengthOf("exit");
-    const fade = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
-    fadeTimer = setTimeout(() => app.canvas.classList.remove("on"), Math.max(0, lengthOf("exit") - fade));
+    const fadeMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--char-fade")) || 280;
+    fadeTimer = setTimeout(() => app.canvas.classList.remove("on"), Math.max(0, lengthOf("exit") - fadeMs));
   };
+
+  // the loading screen waits for the walk-on and the idle's first frames (decoded, ready to show)
+  await Promise.all([F.ready("art", "enter", CHAR_AHEAD), F.ready("art", "idle", CHAR_AHEAD),
+                     un && F.ready("unlit", "enter", CHAR_AHEAD), un && F.ready("unlit", "idle", CHAR_AHEAD)]);
+  // the rest of the clips' files come down behind it, kept compressed until they play
+  for (const clip of Object.keys(man.clips)) { F.file("art", clip).catch(() => {}); if (un) F.file("unlit", clip).catch(() => {}); }
 
   // a backgrounded tab throttles rAF; Pixi resumes on its own, but re-fit in case the
   // pane was resized while hidden
@@ -6727,7 +6978,7 @@ async function makeCharacter({ el, base, name, ambient, flavour, swap = {}, smok
   return { react, enter, exit };
 }
 
-// the loading screen waits for both characters (their pages decoded and on the GPU)
+// the loading screen waits for both characters (their walk-on and idle decoded)
 let charsLoaded = Promise.resolve([]);
 (async function characters() {
   charsLoaded = Promise.all(CHARACTERS.map(makeCharacter));
@@ -6824,7 +7075,8 @@ function fitToScreen() {
 let sceneryProbes = null;
 function placeScenery() {
   const root = document.documentElement.style, chars = [$("charfx"), $("charfx2")].filter(Boolean);
-  if (!matchMedia("(max-width: 760px) and (orientation: portrait)").matches) {
+  root.removeProperty("--char-height");   // the stylesheet's size first (an upright screen may cap it below)
+  if (!matchMedia("(max-width: 1100px) and (orientation: portrait)").matches) {
     root.removeProperty("--char-drop"); root.removeProperty("--tag-top");
     for (const el of chars) el.style.removeProperty("--char-cut");
     return;
@@ -6849,6 +7101,12 @@ function placeScenery() {
   const [a, b] = sceneryProbes.map(p => p.getBoundingClientRect());
   const lineAt = x => a.top + (b.left === a.left ? 0 : (x - a.left) / (b.left - a.left) * (b.top - a.top));
   const ref = lineAt(innerWidth / 2);
+  // A tablet's board fills most of an upright screen, so the room over it is short: there the
+  // pair is sized down until their heads clear the top (their box shows about .58 of its height
+  // over the board: .65 above the line, less the lift and the canvas headroom). The box is
+  // --char-height x 1.3 x 1.2 tall. (2026-11-03 QA: 768x1024 had their heads cut off at the top.)
+  const fitsH = (ref - 22) / .6;
+  if (chars[0].offsetHeight > fitsH && fitsH > 40) root.setProperty("--char-height", (fitsH / 1.56).toFixed(1) + "px");
   const feet = ref + .35 * chars[0].offsetHeight;                 // the character boxes' bottom edge
   root.setProperty("--char-drop", (feet - innerHeight).toFixed(1) + "px");   // bottom = screen bottom - feet
   // #walltag's top is its centre (it is moved up half its height), measured inside #bgwall,
@@ -7734,7 +7992,45 @@ function totalWinScreen(amount, { total = true } = {}) {
 // comes forward. It fades up as the opening screen goes, and a click (or Space / Enter)
 // fades the plates out and the game in. A replay is a viewer, so it never shows this.
 const FEATURE_VALUES = [1.25, 2, 3, 5, 10, 20, 50, 100, 250, 500, 1000];
+// The Multi's value climbing its table and warming with it, round and round, on a .fmult face:
+// the intro's MULTI plate, and the special-symbol tiles in the game information. Returns a stop.
+function cycleMult(face, values = FEATURE_VALUES) {
+  if (!face) return () => {};
+  let vi = 0;
+  const show = () => {
+    face.textContent = "x" + fmtMult(values[vi]);
+    face.style.setProperty("--heat", heatColour(values[vi]));
+  };
+  show();
+  const id = setInterval(() => {
+    vi = (vi + 1) % values.length;
+    show();
+    face.classList.remove("tick"); restyle(face); face.classList.add("tick");
+  }, REDUCED_MOTION ? 1400 : 720);
+  return () => clearInterval(id);
+}
 let featuresDone = Promise.resolve();
+// The intro plates arrive as one stack in the middle of their row - fanned a few degrees, the
+// middle one on top - and are dealt out to their places, eased, a beat apart (owner, 2026-11-03).
+// On `translate` / `rotate` added on top of the plates' own drift, so nothing jumps as the drift
+// takes over. With reduced motion they are simply there.
+function fanPlates(wrap) {
+  if (REDUCED_MOTION || !Element.prototype.animate) return;
+  const row = wrap.querySelector(".fboxes"), plates = [...wrap.querySelectorAll(".fbox")];
+  if (!row || plates.length < 2) return;
+  const rr = row.getBoundingClientRect(), cx = rr.left + rr.width / 2, cy = rr.top + rr.height / 2;
+  const mid = (plates.length - 1) / 2;
+  plates.forEach((el, i) => {
+    const r = el.getBoundingClientRect();
+    const dx = cx - (r.left + r.width / 2), dy = cy - (r.top + r.height / 2);
+    if (i === Math.round(mid)) el.style.zIndex = "1";   // the middle plate tops the stack
+    const a = el.animate([
+      { translate: `${dx.toFixed(1)}px ${dy.toFixed(1)}px`, rotate: `${((i - mid) * 7).toFixed(1)}deg` },
+      { translate: "0px 0px", rotate: "0deg" },
+    ], { duration: 950, delay: 300 + i * 110, easing: "cubic-bezier(.22, 1, .36, 1)", fill: "backwards", composite: "add" });
+    a.finished.then(() => { el.style.zIndex = ""; }, () => {});
+  });
+}
 // The plates in 3D. Each one carries --mx/--my (-.5..5: where the pointer is across and down
 // it) and --glare (0..1: how far in the hover is), eased toward their targets every frame for
 // as long as anything is still moving; the CSS turns them into the tilt, the sliding shadow
@@ -7810,22 +8106,14 @@ function runFeatures() {
     el.addEventListener("pointerleave", () => { if (window.SprayFX) SprayFX.stoke(el, { peak: 0, hold: 0 }); });
   }
   // the Multi's value climbs the table and warms with it, round and round
-  const face = wrap.querySelector("#featMult");
-  let vi = 0;
-  face.style.setProperty("--heat", heatColour(FEATURE_VALUES[0]));
-  const multTimer = setInterval(() => {
-    vi = (vi + 1) % FEATURE_VALUES.length;
-    const v = FEATURE_VALUES[vi];
-    face.textContent = "x" + fmtMult(v);
-    face.style.setProperty("--heat", heatColour(v));
-    face.classList.remove("tick"); restyle(face); face.classList.add("tick");
-  }, REDUCED_MOTION ? 1400 : 720);
-  introDone.then(() => requestAnimationFrame(() => wrap.classList.add("up")));   // it fades up as the opening screen goes
+  const stopMult = cycleMult(wrap.querySelector("#featMult"));
+  // it fades up as the opening screen goes, the three plates stacked in the middle and dealt out
+  introDone.then(() => requestAnimationFrame(() => { fanPlates(wrap); wrap.classList.add("up"); }));
   let done = false;
   const finish = () => {
     if (done || !wrap.classList.contains("up")) return;   // not before it has shown
     done = true;
-    clearInterval(multTimer);
+    stopMult();
     document.removeEventListener("keydown", onKey, true);
     sfx("bet", 1.1);
     wrap.classList.add("gone");                        // the plates fade out
@@ -7996,8 +8284,9 @@ function showMenu(el, on) {
   } else {
     // a pop-up shrinks back into the button it grew out of (its transform-origin); a sound bar
     // folds down into its button the way it rose out of it
-    const lead = el.classList.contains("vpop") || (el.classList.contains("popover") && !el.classList.contains("right")) ? "translateX(-50%) " : "";
-    const bar = el.classList.contains("vpop");
+    // (the HUD's own pop-ups are centred by their `translate`, so their exit needs no lead)
+    const lead = !el.classList.contains("hudpop") && (el.classList.contains("vpop") || (el.classList.contains("popover") && !el.classList.contains("right"))) ? "translateX(-50%) " : "";
+    const bar = el.classList.contains("vpop") && !el.classList.contains("hudpop");   // the volume panel shrinks away like any pop-up
     anims.push(el.animate(bar ? exit(lead, "scale(1.04, 1.06)", "scale(.9, .55)", "scale(.75, .12)")
                              : exit(lead, "scale(1.05)", "scale(.68)", "scale(.3)"), { duration: ms, fill: "forwards" }));
   }
@@ -8018,6 +8307,10 @@ function openPop(id) {
     const on = pid === id;
     showMenu($(pid), on);
     $(bid).classList.toggle("open", on);
+    if (on) {   // it rises out of the bar over its tab, and follows the bar while it is up
+      placePop($(pid), $(bid));
+      if (!barTrack) barTrack = requestAnimationFrame(trackBars);
+    }
   }
 }
 function closePops() { openPop(null); }
@@ -8026,9 +8319,9 @@ function closePops() { openPop(null); }
 // One bar per bus, each popping up over its own icon and filling from the bottom. Zero is
 // the mute: there is no separate switch, which is why the icon greys out at the bottom of
 // the travel. Values save as the bar moves, so a drag that is never released still sticks.
-const BUSES = [   // both hang off the one speaker button, sound to its left and music to its right
-  { key: "sfx",   btn: "audioBtn", pop: "sfxPop",   bar: "sfxBar",   dx: -36 },
-  { key: "music", btn: "audioBtn", pop: "musicPop", bar: "musicBar", dx:  36 },
+const BUSES = [   // both live in the one volume panel over the speaker tab (HUD v3)
+  { key: "sfx",   btn: "audioBtn", pop: "volPop", bar: "sfxBar",   num: "sfxNum" },
+  { key: "music", btn: "audioBtn", pop: "volPop", bar: "musicBar", num: "musicNum" },
 ];
 function saveVol() { try { localStorage.setItem("smukiez.vol", JSON.stringify(vol)); } catch (e) { /* ignore */ } }
 // The liquid rushes up over a longer beat than it drains, and a change big enough to see
@@ -8048,7 +8341,8 @@ function paintVol() {
         bar._sloshT = setTimeout(() => bar.classList.remove("slosh"), 900);
       }
     }
-    bar.querySelector(".vfill").style.height = v + "%";
+    bar.style.setProperty("--v", v + "%");   // the fill's width and the knob's place
+    if ($(b.num)) $(b.num).textContent = v;
     bar.setAttribute("aria-valuenow", v);
     bar.setAttribute("aria-valuetext", v + "%");
   }
@@ -8071,7 +8365,29 @@ function placePop(pop, btn, dx = 0) {   // dx: a layout-px nudge sideways, for t
   if (!row || !pop || !btn) return;
   const rr = row.getBoundingClientRect(), br = btn.getBoundingClientRect();
   const k = rr.width / Math.max(1, row.offsetWidth);
-  const half = pop.getBoundingClientRect().width / 2;
+  const pr = pop.getBoundingClientRect(), half = pr.width / 2;
+  // A pop marked data-side="left" (the volume panel: the speaker tab sits under the menu tab,
+  // so from above its pointer could only land on the menu) stands beside the HUD instead, level
+  // with its tab, the pointer on the tab's outer side - wherever there is room for it there,
+  // which also keeps it off the board. Without the room it rises over the tab as usual.
+  const frame = btn.closest(".hudframe");
+  if (pop.dataset.side === "left" && frame) {
+    const fr = frame.getBoundingClientRect(), s0 = pr.width / Math.max(1, pop.offsetWidth);
+    const gap = 16 * k * s0;
+    if (fr.left - rr.left - 10 * k >= pr.width + gap) {
+      pop.classList.add("side");
+      const by = br.top + br.height / 2;
+      const foot = Math.min(by + pr.height / 2, fr.bottom);         // level with the tab, never below the HUD
+      const left = ((fr.left - gap - half - rr.left) / k) + "px";   // its centre (the pop is centred on `left`)
+      const bottom = ((rr.bottom - foot) / k) + "px";
+      const ay = Math.max(18, Math.min(pop.offsetHeight - 18, (by - (foot - pr.height)) / Math.max(.01, s0))).toFixed(1) + "px";
+      if (pop.style.left !== left) pop.style.left = left;
+      if (pop.style.bottom !== bottom) pop.style.bottom = bottom;
+      if (pop.style.getPropertyValue("--ay") !== ay) pop.style.setProperty("--ay", ay);
+      return;
+    }
+  }
+  pop.classList.remove("side");
   // Centre on the button, then pull back inside the bar. The three-line button sits at the
   // very left edge and its pop-up is three buttons wide, so centred alone puts the first one
   // off the side of the screen.
@@ -8096,9 +8412,14 @@ function placePop(pop, btn, dx = 0) {   // dx: a layout-px nudge sideways, for t
     if (pos === "absolute" || pos === "fixed") continue;   // an overlay, not part of the bar
     if (r.right > cx - half && r.left < cx + half) top = Math.min(top, r.top);
   }
-  const bottom = ((rr.bottom - top) / k + 10) + "px";
+  const bottom = ((rr.bottom - top) / k + 14) + "px";   // clear of the bar by its pointer's length
   if (pop.style.left !== left) pop.style.left = left;        // only write on a real move, so
   if (pop.style.bottom !== bottom) pop.style.bottom = bottom;  // the tracker costs reads only
+  // the pointer on the pop's foot sits over the button even where the pop was pulled aside
+  // (--ax, in the pop's own px: its rect carries its scale)
+  const s = pr.width / Math.max(1, pop.offsetWidth), w = pop.offsetWidth;
+  const ax = Math.max(24, Math.min(w - 24, (br.left + br.width / 2 - (cx - half)) / Math.max(.01, s))).toFixed(1) + "px";
+  if (pop.style.getPropertyValue("--ax") !== ax) pop.style.setProperty("--ax", ax);
 }
 const placeBar = b => placePop($(b.pop), $(b.btn), b.dx || 0);
 
@@ -8113,6 +8434,11 @@ function trackBars() {
   for (const b of BUSES) {
     if ($(b.pop).hidden) continue;
     placeBar(b);
+    any = true;
+  }
+  for (const [pid, bid] of Object.entries(POPS)) {   // the auto play picker rides the bar the same way
+    if ($(pid).hidden) continue;
+    placePop($(pid), $(bid));
     any = true;
   }
   if (any) barTrack = requestAnimationFrame(trackBars);
@@ -8139,9 +8465,9 @@ for (const b of BUSES) {
   const bar = $(b.bar);
   // the fill spans the bar exactly, so the pointer maps straight onto the rect - and reading
   // both ends off the same rect keeps it right under the page's fit-to-screen scale
-  const fromY = e => {
+  const fromX = e => {   // a plain slider: left is zero, right is full
     const r = bar.getBoundingClientRect();
-    return (1 - (e.clientY - r.top) / Math.max(1, r.height)) * 100;
+    return (e.clientX - r.left) / Math.max(1, r.width) * 100;
   };
   // The drag belongs to ONE pointer. A boolean is not enough: a second finger landing on the
   // bar would steer the same drag, and whichever finger lifted first would end it.
@@ -8159,7 +8485,7 @@ for (const b of BUSES) {
     dragId = e.pointerId;
     bar.classList.add("dragging");   // the level tracks the finger, no spring in the way
     try { bar.setPointerCapture(e.pointerId); } catch (err) { /* capture is a nicety */ }
-    setVol(b.key, fromY(e));
+    setVol(b.key, fromX(e));
     e.preventDefault();   // no text selection, no page scroll behind the drag
   });
   bar.addEventListener("pointermove", e => {
@@ -8169,7 +8495,7 @@ for (const b of BUSES) {
     // rect, which reads as the pointer being far below the bottom, and slam the bus to zero.
     // Once the pop is down, the drag is over.
     if ($(b.pop).hidden) { stop(); return; }
-    setVol(b.key, fromY(e));
+    setVol(b.key, fromX(e));
   });
   const release = e => {
     if (e.pointerId !== dragId) return;
@@ -8200,6 +8526,7 @@ paintVol();
 // speaker opens sound and music side by side over itself, and closes them again.
 $("audioBtn").addEventListener("click", () => {
   const on = !barsOpen();
+  if (on && autoDismiss) autoDismiss();   // one pop-up at a time: the auto play picker goes first
   sfx(on ? "menuOpen" : "menuClose");
   if (on) { for (const b of BUSES) showBar(b, true); $(BUSES[0].bar).focus({ preventScroll: true }); }   // the keyboard lands on the first bar
   else closeBars(true);
@@ -8257,12 +8584,29 @@ document.addEventListener("visibilitychange", async () => {
 (function info() {
   const wrap = $("infoWrap"), open = $("menuBtn"), close = $("infoClose");   // the three-line button
   if (!wrap || !open) return;
+  // The special symbols' Multi tiles wear the intro plate's Multi: the brick with its value
+  // climbing and warming (cycleMult). A line drop's tile runs through the drops' own values.
+  let multStops = [];
+  const stopMults = () => { multStops.forEach(s => s()); multStops = []; };
+  function liveMults() {
+    stopMults();
+    for (const t of $("rulesBody").querySelectorAll(".ptile.multi")) {
+      const drop = /drop/i.test(t.textContent);
+      const tile = document.createElement("div");
+      tile.className = "ptile livemult";
+      tile.innerHTML = `<img src="${SYM.M.img}" alt="" draggable="false"><span class="fmult" aria-hidden="true"></span>`;
+      t.replaceWith(tile);
+      multStops.push(cycleMult(tile.querySelector(".fmult"), drop ? [1.25, 1.5, 2] : FEATURE_VALUES));
+    }
+  }
   const show = on => {
     if (wrap.hidden === !on) return;
     if (on) {
       closeBars();   // the panel covers the bar: the volume bars go with it
+      hudTop();
       $("rulesBody").innerHTML = historyHtml() + RULES.render({ bet: bet(), fmt, social: SOCIAL, modeCost: MODE_COST });
-    }
+      liveMults();
+    } else stopMults();
     showMenu(wrap, on);
     sfx(on ? "menuOpen" : "menuClose");
     // the panel is modal: the keyboard belongs inside it while it is up, and back on the
@@ -8270,6 +8614,12 @@ document.addEventListener("visibilitychange", async () => {
     if (on) close.focus({ preventScroll: true });
     else if (!open.disabled) open.focus({ preventScroll: true });
   };
+  // the panel stands on the bar: the dim and the panel's foot stop at the HUD's top edge
+  function hudTop() {
+    const f = document.querySelector(".hudframe");
+    if (f) wrap.style.setProperty("--hud-top", Math.max(0, innerHeight - f.getBoundingClientRect().top).toFixed(0) + "px");
+  }
+  addEventListener("resize", () => { if (!wrap.hidden) hudTop(); });
   open.addEventListener("click", () => show(true));
   close.addEventListener("click", () => show(false));
   wrap.addEventListener("click", e => { if (e.target === wrap) show(false); });   // click-away

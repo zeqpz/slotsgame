@@ -44,7 +44,7 @@ if "render" in steps:
         vl.use = True
     sc.render.use_compositing = True
     for name, (a, b) in clips.items():
-        fxkit.render_clip(sc, name, a, b, os.path.join(ROOT, "art", "blender", "renders", sid))
+        fxkit.render_clip(sc, name, a, b, os.path.join(ROOT, "art", "blender", "renders", sid), fxkit.clip_slow(sid, name))
 if "qa" in steps:
     # the cut parts alone (no effects drawn on the art layer - dust, thrown pieces - which would read as gaps)
     import json
@@ -59,7 +59,5 @@ if "qa" in steps:
     sc.render.use_compositing = False
     sc.render.resolution_x = sc.render.resolution_y = 1024
     for name, (a, b) in clips.items():
-        sc.frame_start, sc.frame_end = a, b
-        sc.render.filepath = os.path.join(ROOT, "art", "blender", "qa", "art", sid, name) + "/"
-        bpy.ops.render.render(animation=True, scene=sc.name)
+        fxkit.render_clip(sc, name, a, b, os.path.join(ROOT, "art", "blender", "qa", "art", sid), fxkit.clip_slow(sid, name))
 print(f"{sid} done: {','.join(steps)} | clips {clips} | {time.time() - t0:.0f} s", flush=True)

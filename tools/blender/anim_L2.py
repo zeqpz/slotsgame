@@ -68,6 +68,8 @@ if arm.animation_data:
 BONES = ["root", "marker"] + SLICES
 CLIPS = {"idle": (1, 80), "land": (101, 126), "hit": (201, 252), "multi": (301, 348)}
 arm["clips"] = {k: list(v) for k, v in CLIPS.items()}
+arm["slow"] = {"idle": 2.5}
+IDLE_CALM = .7                   # the idle's moves at 70% of how far they were keyed (fxkit.calm)     # owner, 2026-11-03: the idle plays 2.5x slower than keyed (Time Remapping, fxkit.render_clip)
 
 # ------------------------------------------------------------------ the write-on, in the slices' materials
 P = np.array(PATH, np.float64)
@@ -220,6 +222,7 @@ for f, a, c, r, sy in IDLE_KEYS:
     v = AXIS * a + ACROSS * c
     mkey(f, v.x, v.z, r=r, sx=1 / math.sqrt(sy), sy=sy)
 fxkit.hard(act, "marker", "location", 1, TAP)
+fxkit.calm(act, IDLE_CALM)    # owner, 2026-11-03: the idle 30% less dramatic
 fxkit.make_cyclic(act)
 fxkit.end_action(arm, act, f0)
 

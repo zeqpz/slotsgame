@@ -843,7 +843,8 @@ void main() {
   // ------------------------------------------------------------------ a region: a pool or a tag drip, and its runs
   // kind "wall": a pool in the wall (region px = art px); kind "tag": a tip of the tag (region px = tag px)
   // A run is as wide as the painted drip it comes from and wears the art's own outline, measured across
-  // the drips (2026-10-30): the wall's have a dark edge 3-7 art px wide (R.ink of it ink, a band inside);
+  // the drips (2026-10-30; the wall redrawn 2026-11-03): the wall's have a black ink line ~6.5 art px wide
+  // (R.ink) and a dark band inside it;
   // the tag's are ~1.75x the paint make_wall_fx.py measures, inside a black outline ~15.5 tag px thick.
   const WIDE = .64;                                 // a wall drip's whole half-width, of the paint measured at its end
   function makeRegion(kind, src, i) {
@@ -855,16 +856,17 @@ void main() {
       light: null, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], alloc: false,
     };
     if (kind === "wall") {
-      R.ink = 3.5;
+      R.ink = 6.5;                                  // the 2026-11-03 cartoon wall inks its drips ~6-7 art px (was 3.5)
       R.tips = src.tips.map(([x, y, w]) => {
-        const ww = clamp(w * ART[0], 14, 46), r = ww * WIDE;
+        const ww = clamp(w * ART[0], 14, 46), r = Math.max(ww * WIDE, ww * .5 + R.ink * .7);   // a thin drip keeps some paint inside its heavier ink
         return { x: x * ART[0], y: y * ART[1], w: ww, r, pr: r - R.ink };
       });
       R.box = [src.x * ART[0], src.y * ART[1], src.w * ART[0], src.h * ART[1]];
       R.sprite = new Image(); R.sprite.src = `assets/wallfx/blob_${i}.webp`;
       // the ink line, the dark band inside it on the lit side and the shadow side (of the paint inside
-      // the ink), spray grain; the wall's relief shows through
-      R.cel = [0, R.ink, .12, .3]; R.grain = .3; R.relief = .9; R.shadow = [6, 8, 6, .48];
+      // the ink), a faint grain (the cartoon wall's paint is smooth and glossy; .3 for the old sprayed
+      // paint); the wall's relief shows through
+      R.cel = [0, R.ink, .12, .3]; R.grain = .1; R.relief = .9; R.shadow = [6, 8, 6, .48];
     } else {
       R.ink = 15.5;
       const w = clamp(src.w * TAG[0], 16, 40), pr = w * .87;

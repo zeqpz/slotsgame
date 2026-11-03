@@ -7,8 +7,11 @@
 #               for each loose bud round the pile's edge (a soft local weight: the bud hops, its neighbours shift a
 #               little with it, the plastic's creases over it crinkle) and the seal - a chain of bones each way from
 #               its middle, so the zip flexes and its corners flick
-#   idle        the bag breathes; the buds settle one after another round the pile; the seal bows with the breath;
-#               a wisp of aroma curls out of the seal
+#   idle        a stuffed bag, breathing and rocking: it fills slowly while it rocks on its bottom, lets the breath out
+#               and flumps down (a squash, the pile slumping, the buds settling one after another); its top trails
+#               the rock, the pile sloshes behind it, the zip swings loose and lifts its corners; a glint slides over
+#               the plastic at the top of the breath, the out-breath lets a curl of aroma and a little leaf out of
+#               the seal (previous idle: anim_L8.orig.py.txt)
 #   land        set down: it squashes on its bottom, the pile slumps after it and the buds jiggle, the seal flicks,
 #               the squeeze pushes a puff out of the seal
 #   hit         it crouches and hops, the buds float up inside it and crash back when it lands, then it gets a
@@ -280,29 +283,154 @@ def bud_keys(f0, n, plan, loop=False):
             keys(b, f0, rs, "r", .1, loop)
 
 
-# ================================================================== idle: it breathes; the buds settle one after another
+# ================================================================== idle: a stuffed bag, breathing and rocking
+# One slow breath and one lazy rock a loop (84 frames). It fills (slow in, a held beat at the top) while it rocks
+# right and back, then lets the breath out quicker as it rocks left, and flumps down onto its bottom: a little
+# squash, the pile slumping after it, the buds settling one after another round it. Everything soft follows a few
+# frames behind what drives it: the top of the bag lags the rock (it pivots on its bottom, its middle bends), the
+# pile sloshes behind the lean and stays more upright than the plastic, the buds drift against each other, the zip
+# hangs on looser springs than in the jolts of the other clips and its corners lift as the bag fills.
+# Every channel is a function of the loop's own frames (so it joins itself exactly) and starts on the rest pose
+# (what a lagging channel still holds at frame 0 is eased out over the lap - unpin).
+# Effects: a glint slides over the plastic at the top of the breath and twinkles out at the corner; the out-breath
+# lets a curl of aroma out of the seal with a little leaf riding up on it.
 f0, f1 = CLIPS["idle"]
 N = f1 - f0 + 1
+T = N / FPS
 act = fxkit.begin_action(arm, SID + "_idle")
 rest(arm, BONES, f0)
-for k in range(0, N + 1, 6):
+SWAY = 3.0                                             # degrees, the rock at its widest
+
+
+def circ_smooth(vals, sigma):
+    """a periodic series smoothed with a circular gaussian (sigma in frames)"""
+    n = len(vals)
+    ker = [math.exp(-.5 * (d / sigma) ** 2) for d in range(-3 * int(sigma + 1), 3 * int(sigma + 1) + 1)]
+    h = len(ker) // 2
+    tot = sum(ker)
+    return [sum(ker[j] * vals[(i + j - h) % n] for j in range(len(ker))) / tot for i in range(n)]
+
+
+def _breath_raw(t):
+    if t < .5:                                         # in: slow, easing into the top
+        return .5 - .5 * math.cos(math.pi * t / .5)
+    if t < .58:                                        # held a beat
+        return 1.0
+    if t < .8:                                         # out: quicker
+        return .5 + .5 * math.cos(math.pi * (t - .58) / .22)
+    return 0.0
+
+
+BR = circ_smooth([_breath_raw(k / N) for k in range(N)], 2.2)
+FL = circ_smooth([math.exp(-.5 * (min(abs(k - .84 * N), N - abs(k - .84 * N)) / 2.6) ** 2) for k in range(N)], 1.0)  # the flump
+
+
+def per(arr, k):
+    """a periodic table read at any (fractional) frame"""
+    k = k % N
+    i = int(math.floor(k))
+    u = k - i
+    return arr[i % N] * (1 - u) + arr[(i + 1) % N] * u
+
+
+def br(k):
+    return per(BR, k)
+
+
+def fl(k):
+    return per(FL, k)
+
+
+def sway(k):
+    """the rock, -1..1 (right = +): right first, back through upright at the top of the breath, left on the out-breath.
+    Its clock eases through the loop's start (upright, the breath out: the rest pose), so the bag hangs there a
+    moment before it pushes off again - and the one-shots, which end at rest, hand over to it without a jolt"""
     ph = 2 * math.pi * k / N
-    br = .5 - .5 * math.cos(ph)                           # one breath a loop, starting at rest
-    key(arm, "belly", f0 + k, sx=1 + .024 * br, sy=1 + .017 * br ** 1.4)
-    key(arm, "pile", f0 + k, y=-.012 * br, sy=1 - .006 * br)
-    key(arm, "bag", f0 + k, r=.35 * math.sin(ph) * (.5 - .5 * math.cos(ph)))
-bud_keys(f0, N, {"bud_top": [(f0 + 4, 3, 5, -6, 12)], "bud_r": [(f0 + 15, 5, 2, -5, 11)], "bud_b": [(f0 + 26, 2, -3, 6, 12)],
-                 "bud_l": [(f0 + 37, -5, 2, 6, 11)], "bud_ul": [(f0 + 47, -2, 4, 7, 10)], "bud_br": [(f0 + 57, 4, -3, -5, 12)],
-                 "bud_ur": [(f0 + 67, 3, 4, -7, 10)], "bud_bl": [(f0 + 71, -3, -2, 5, 11)]}, loop=True)
+    c = ph - .72 * math.sin(ph)
+    return math.sin(c) + .14 * math.sin(2 * c)
+
+
+def unpin(vals, base=0.0):
+    """a periodic series made to start exactly at `base`: the offset at frame 0 eased out over the lap"""
+    v0 = vals[0] - base
+    return [v - v0 * (.5 + .5 * math.cos(2 * math.pi * k / N)) for k, v in enumerate(vals)]
+
+
+ch = {}
+
+
+def put(bone, c, v):
+    ch.setdefault((bone, c), []).append(v)
+
+
+BUD_LAG = {"bud_top": 5, "bud_ur": 7, "bud_r": 9, "bud_br": 8, "bud_b": 10, "bud_bl": 9, "bud_l": 7, "bud_ul": 6}
+for k in range(N):
+    b, q, s = br(k), fl(k), sway(k)
+    # the whole bag: it fills taller and a touch wider, flumps onto its bottom, rocks on it (rolling with the rock)
+    put("root", "sx", 1 + .012 * b + .03 * q)
+    put("root", "sy", 1 + .028 * b - .042 * q)
+    put("root", "r", -SWAY * s)
+    put("root", "x", .03 * s)
+    # its middle bends behind the rock: the top of the bag trails it
+    put("bag", "r", -.55 * SWAY * (sway(k - 5) - s))
+    # the belly puffs out like a pillow, a frame behind the breath
+    put("belly", "sx", 1 + .062 * br(k - 1) + .012 * fl(k - 1))
+    put("belly", "sy", 1 + .04 * br(k - 1) - .01 * fl(k - 1))
+    # the pile: lifts a little on the breath, sloshes behind the lean (and stays more upright than the plastic),
+    # slumps after the flump
+    put("pile", "x", .05 * sway(k - 6))
+    put("pile", "y", .018 * br(k - 4) - .045 * fl(k - 2))
+    put("pile", "r", .4 * SWAY * sway(k - 4))
+    put("pile", "sx", 1 + .02 * fl(k - 2))
+    put("pile", "sy", 1 - .03 * fl(k - 2) + .008 * br(k - 4))
+    # the buds drift against each other behind the slosh (each a little later the further down the pile it sits)
+    for bn, d in BUD_LAG.items():
+        cx, cy = BUDS[bn][0]
+        ox = (cx - PILE_C[0]) / 260
+        put(bn, "x", .022 * (sway(k - d) - sway(k - 5)))
+        put(bn, "y", .012 * (br(k - d) - br(k - 4)) * (1 if cy < PILE_C[1] else .5))
+        put(bn, "r", 3.0 * (sway(k - d) - sway(k - 4)) * (1 if ox >= 0 else -1))
+
+# the flump settles the buds: one after another round the pile, top first, each dropping and bouncing back
+SETTLE = {"bud_top": (0, -1, -6, -7), "bud_ul": (1, -2, -5, 6), "bud_ur": (2, 2, -5, -6), "bud_l": (3, 2, -6, 7),
+          "bud_r": (4, -2, -6, -6), "bud_bl": (5, 2, -5, 6), "bud_br": (6, -2, -5, -5), "bud_b": (7, 0, -4, 5)}
+AT = round(.84 * N) - 1
+for bn, (d, dx, dy, deg) in SETTLE.items():
+    for key_ in ("x", "y", "r"):
+        vals = ch[(bn, key_)]
+        for k in range(N):
+            h = sum(hop(k + lap, AT + round(d * .85), 11) for lap in (-N, 0, N))
+            vals[k] += h * {"x": dx / 100, "y": dy / 100, "r": deg}[key_]
+
+for (bone, c), vals in ch.items():
+    ch[(bone, c)] = unpin(vals, 1.0 if c in ("sx", "sy") else 0.0)
+for bone in sorted({b_ for b_, _ in ch}):              # keyed together per bone, every frame round the loop
+    for k in range(N + 1):
+        kw = {c: ch[(bone, c)][k % N] for b_, c in ch if b_ == bone}
+        for a, z in (("x", "y"), ("y", "x"), ("sx", "sy"), ("sy", "sx")):
+            if a in kw and z not in kw:
+                kw[z] = 1.0 if z[0] == "s" else 0.0
+        key(arm, bone, f0 + k, **kw)
+print("  idle peaks:", ", ".join(f"{b_}.{c} {min(v):+.3f}..{max(v):+.3f}" for (b_, c), v in ch.items() if not b_.startswith("bud")))
+
+# the zip on looser springs than in the jolts (it hangs off the bag's real motion), its corners lifting as the bag
+# fills and dropping on the flump; kept in step with the rock that drives it and started at rest
+LOOSE = {"zip_l": dict(SEAL["zip_l"], freq=[2.9, 2.4], zeta=.24, gain=.8, limit=4),
+         "zip_r": dict(SEAL["zip_r"], freq=[2.7, 2.25], zeta=.23, gain=.8, limit=4)}
+BR_MEAN = sum(BR) / N
 
 
 def breath(name, i, t):
-    T = N / FPS
-    a = 22 * math.sin(2 * math.pi * t / T - .4)            # the seal's corners lift as the bag fills
+    k = t * FPS
+    a = 26 * (br(k) - BR_MEAN) - 14 * fl(k - 1)
     return Vector((0, 0, a * (1 if i == 2 else .4)))
 
 
-seal(f0, f1, loop=True, forces=breath)
+res = fxkit.secondary(sc, arm, "bag", f0, f1, LOOSE, loop=True, forces=breath, rest_start=False)
+for bone, vals in res.items():
+    vals = unpin(vals)
+    print(f"  idle {bone} {min(vals):+.1f}..{max(vals):+.1f}")
+    keys(bone, f0, vals, "r", .08, loop=True)
 fxkit.make_cyclic(act)
 fxkit.end_action(arm, act, f0)
 
@@ -482,9 +610,46 @@ def smoke_ring(f0, life, cx, cz, rx0, rx1, aspect, n, seed, scale):
 
 SX, SZ = px(*SEAL_C)                                   # the middle of the seal
 TOPX, TOPZ = px(520, 160)                              # just above it, where the aroma comes out
-# idle: one curl rises out of the seal
+# idle: the out-breath lets a curl of aroma out of the seal, a little leaf riding up on it, turning as it goes
 f0, f1 = CLIPS["idle"]
-wisp(f0 + 18, 38, TOPX - .4, TOPZ - .05, 1.9, 3, width=.045)
+m_leafy = gp_mat(art_fx, "fx_leafy", (.15, .3, .08, 1), fill=(.5, .8, .25, 1))
+
+
+def fan_leaf(cx, cz, r, rot):
+    """a little five-bladed leaf (world units): each blade a pointed lancet out from the middle, a short stem"""
+    out = []
+    for a, ln in ((0, 1.0), (.6, .78), (-.6, .78), (1.18, .5), (-1.18, .5)):
+        ang = math.pi / 2 + a + rot
+        L = r * ln
+        ax, az = math.cos(ang), math.sin(ang)
+        nx, nz = -az, ax
+        n = 7
+        side = [(u, .2 * L * math.sin(math.pi * u) ** .85) for u in (i / n for i in range(n + 1))]
+        pts = [(cx + ax * L * u + nx * w, cz + az * L * u + nz * w) for u, w in side]
+        pts += [(cx + ax * L * u - nx * w, cz + az * L * u - nz * w) for u, w in reversed(side[1:-1])]
+        out.append(pts)
+    sa = rot - math.pi / 2
+    stem = [(cx, cz), (cx + math.cos(sa + .25) * r * .42, cz + math.sin(sa + .25) * r * .42)]
+    return out, stem
+
+
+AT_OUT = f0 + 50                                       # the out-breath
+sx_, sz_ = bone_pt("bag", 515, 165, AT_OUT)
+wisp(AT_OUT, 28, sx_ - .3, sz_ - .05, 2.0, 3, width=.085, sway=.32)
+LF0, LFL = AT_OUT + 6, 23
+for k in range(LFL):
+    t = k / (LFL - 1)
+    up = 1 - (1 - t) ** 1.6
+    x = sx_ + .3 + .26 * math.sin(2 * math.pi * 1.05 * t)
+    z = sz_ + .15 + 1.75 * up
+    pop = 1.12 * math.sin(math.pi / 2 * min(1, k / 4)) if k < 5 else 1 + .12 * max(0, 1 - (k - 4) / 3)
+    s = pop * (1 - smooth(LFL - 8, LFL - 1, k))
+    if s < .08:
+        continue
+    blades, stem = fan_leaf(x, z, .4 * s, .38 * math.sin(2 * math.pi * 1.05 * t + 1.1))
+    ab.add(LF0 + k, lambda dr, stem=stem: stroke(dr, stem, .014, mat=m_leafy))
+    for bl in blades:
+        ab.add(LF0 + k, lambda dr, bl=bl: stroke(dr, bl, .009, mat=m_leafy, cyclic=True, fill=True))
 # land: the squeeze pushes a puff out of the seal, and a curl after it
 f0, f1 = CLIPS["land"]
 for k, (dx, d, sd, sz) in enumerate(((-.35, 0, 2, .52), (.4, 1, 5, .46), (0, 2, 8, .4))):
@@ -544,7 +709,32 @@ def shine(board, f0, life, x, z, length, mat, ang=.9):
                                                      mat=mat))
 
 
-fxkit.sparkle(onbag, CLIPS["idle"][0] + 52, 10, *px(*GLARE[1]), .38, o_spark, rot0=.2)
+# idle: at the top of the breath (the plastic taut) a glint slides over it, top-left to bottom-right - a broad
+# streak with a thin one running beside it, growing as they cross the middle and shrinking away - and twinkles out
+f0, f1 = CLIPS["idle"]
+G0, GL = f0 + 40, 15
+GA, GB = (262, 318), (700, 738)                        # icon px: where the glint starts and ends
+gax, gaz = px(*GA)
+gbx, gbz = px(*GB)
+tl = math.hypot(gbx - gax, gbz - gaz)
+tx_, tz_ = (gbx - gax) / tl, (gbz - gaz) / tl          # the way it travels
+sx_, sz_ = tz_ * -1, tx_                               # the way the streaks lie (across it)
+if sz_ < 0:
+    sx_, sz_ = -sx_, -sz_
+for k in range(GL):
+    t = k / (GL - 1)
+    e = math.sin(math.pi * t) ** .8
+    u = t * t * (3 - 2 * t)
+    cx_, cz_ = gax + (gbx - gax) * u, gaz + (gbz - gaz) * u
+    for off, ln, rad, op in ((0.0, 2.6, .13, .78), (.42, 1.5, .06, .92)):
+        L = ln * e
+        if L < .1:
+            continue
+        n = 8
+        pts = [(cx_ + tx_ * off + sx_ * L * (i / n - .5), cz_ + tz_ * off + sz_ * L * (i / n - .5)) for i in range(n + 1)]
+        rr = [rad * math.sin(math.pi * i / n) ** .6 + .004 for i in range(n + 1)]
+        onbag.add(G0 + k, lambda dr, pts=pts, rr=rr, op=op: stroke(dr, pts, 0, opacity=op, radii=rr, mat=o_white))
+fxkit.sparkle(onbag, G0 + GL - 4, 11, *px(722, 760), .44, o_spark, rot0=.3)
 f0, f1 = CLIPS["land"]
 fxkit.sparkle(onbag, f0 + 5, 9, *px(*GLARE[0]), .4, o_spark, rot0=.5)
 rnd = random.Random(7)

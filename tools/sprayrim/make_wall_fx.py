@@ -10,7 +10,11 @@ art/wall-src/bonus_wall_master.png is the wall's 16:9 composition, redrawn again
 overlapping tiles, each aligned back onto the master and given its tone) into bonus_wall_3840.jpg;
 wall_tag_gen.png is the tag, fitted onto the old tag's silhouette so it keeps its size and place.
 art/ui-src/bonus_wall.jpg and wall_tag.webp are the same art at the old source sizes (the originals
-are kept beside them as *_v1). Writes frontend/assets/wallfx/:
+are kept beside them as *_v1). 2026-11-03 the wall was reskinned (owner: cartoony like the old grey
+cartoon wall of d127bb5 but detailed, and none of the graffiti, posters or stains): the master redrawn
+from the 10-27 wall (layout) and the d127bb5 wall (style), the same holes, paint and pavement line, then
+tile-detailed the same way; the 10-27 files are kept as *.orig.* (skipped below). Writes
+frontend/assets/wallfx/:
   tag_glow.webp     the tag's neon-green outline as a neon tube (the tag's box padded by GLOW_PAD, half size)
   tube_<k>.webp     the same glow cut into NSEG stretches along the outline, each cropped to where it shows
                     (wallfx.js lays them in #tagglow instead of the whole tube, so one can drop out)
@@ -458,7 +462,7 @@ def tag_tips(im, green):
 def main():
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
-        if (f.startswith("blob_") or f.startswith("tube_")) and f.endswith(".webp"):
+        if (f.startswith("blob_") or f.startswith("tube_")) and f.endswith(".webp") and ".orig." not in f:
             os.remove(os.path.join(OUT, f))
     im, green = tag()
     if "--bonus" in sys.argv:

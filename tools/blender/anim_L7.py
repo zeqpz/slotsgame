@@ -221,6 +221,8 @@ if arm.animation_data:
 
 CLIPS = {"idle": (1, 80), "land": (101, 124), "hit": (201, 254), "multi": (301, 348)}
 arm["clips"] = {k: list(v) for k, v in CLIPS.items()}
+arm["slow"] = {"idle": 2.5}
+IDLE_CALM = .7                   # the idle's moves at 70% of how far they were keyed (fxkit.calm)     # owner, 2026-11-03: the idle plays 2.5x slower than keyed (Time Remapping, fxkit.render_clip)
 # the cords: the left one a touch longer and slower, the right one quicker - so they never swing as one
 # (each point's spring pulls it to where it hangs at rest, softer toward the tip so it trails the cord above it;
 # the aglet is metal, so its bend against the braid is kept to half of what the springs give - see follow())
@@ -349,6 +351,7 @@ for bone, vals in res.items():                         # kept in step with the l
         vals = [v * .5 for v in vals]
     print(f"  idle {bone} {min(vals):+.1f}..{max(vals):+.1f}")
     keys(bone, f0, vals, "r", .15, True)
+fxkit.calm(act, IDLE_CALM)    # owner, 2026-11-03: the idle 30% less dramatic
 fxkit.make_cyclic(act)
 fxkit.end_action(arm, act, f0)
 

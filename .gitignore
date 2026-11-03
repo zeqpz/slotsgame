@@ -23,3 +23,8 @@ art/blender/qa/
 art/blender/plates/*_raw.png
 art/blender/plates/*_response.json
 *.blend1
+# the characters' renders and QA images are rebuilt from art/blender/chars/<char>/*.blend (tools/blender/chars/<char>/run.py)
+art/blender/chars/*/renders/
+art/blender/chars/*/qa/
+# QA review screenshots (local notes)
+qa-review/

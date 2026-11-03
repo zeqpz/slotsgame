@@ -1,20 +1,22 @@
 # L1 - the spray can - animated in Blender: four Actions on its rig (idle, land, hit, multi) laid one after another
 # on the rig's NLA track, and its spray drawn frame by frame in Grease Pencil on the same timeline.
-#   the rig     the can (root, on its base), the cap on top of it, the jet (the cone of paint from the nozzle to the
-#               cloud) and the painted cloud (tools/blender/cuts/L1.py). Re-pivoted here: the jet turns about its far
-#               end in the cloud, so its tip stays in the nozzle - every frame it is keyed to where the pressed cap
-#               has taken the nozzle; the cloud swells and swings about where the jet feeds it.
-#   the cap     pressed by hand: it squashes down on its stem and springs back
-#   the cloud   billows as paint is pushed into it, and follows the can's moves on a soft spring (worked out in
-#               Blender from how the keys move the can, keyed onto its bone)
-#   the spray   drawn frame by frame: paint droplets streaming down the jet from the nozzle (always - the can is
-#               spraying), cartoon mist puffs boiling off the cloud and shrinking away, droplets flung off it
-#   idle        two gentle presses a loop; each sends a pulse of paint down the jet and the cloud breathes out
-#   land        the can thuds onto its base, rocks; the jolt squirts a burst of paint; dust
-#   hit         it leans back, the cap is slammed down, a big burst: the cloud swells and boils over in mist, the can
-#               recoils from the thrust, paint droplets fly, sparkles
-#   multi       it is shaken (the ball rattles), the cloud swells with each shake in three pulses, glowing; then the
-#               cap is slammed and the cloud blows out in a ring of mist, rings of light
+# (Redone 2026-11-03 for the new upright art; the old spraying-can version is anim_L1.orig.py.txt.)
+#   the rig     tip (the root, low on the base's right side: the can tilts over about it), the can on it (its base:
+#               sways, squashes, rattles) and the cap on the can (pressed straight down onto the stem)
+#               (tools/blender/cuts/L1.py)
+#   the spray   drawn frame by frame, only when the cap is pressed: a cone of paint shooting from the nozzle (it
+#               rides the nozzle while the can rumbles, sags a little under its own weight, and once the cap is let
+#               go its tail leaves the nozzle and flies into the cloud), a cloud of cartoon paint puffs billowing
+#               where it ends (solid, inked, glossy - they swell, boil on twos, then drift and shrink away), specks
+#               round the jet, droplets flung off the cloud
+#   idle        calm, not spraying: it sways on its base, a glint slides down the glossy body, the ball inside
+#               rattles once (a little hop and shiver, the cap a beat behind, rattle marks)
+#   land        it thuds onto its base (dust), tips over a little and lets out a quick puff, drops back upright
+#   hit         it crouches, tips over, the cap is slammed down: a strong burst - long jet, a big boiling cloud,
+#               droplets, sparkles - the can rumbling with the thrust; then it rights itself and rocks to rest
+#   multi       shaken hard (the ball rattles, pulses of light), then it tips over and lets go one big burst with
+#               rings of light and streaks; it rights itself by the end
+# Every one-shot ends exactly on the rest pose (upright, cap up, no paint left in the air): the idle follows.
 # Runs INSIDE Blender, after build_symbol_scene.py (tools/blender/run.py runs both in a background Blender).
 import bpy, importlib, math, os, random, sys
 from mathutils import Vector
@@ -23,28 +25,32 @@ HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() els
 sys.path.insert(0, HERE)
 import fxkit
 importlib.reload(fxkit)
-from fxkit import key, rest, px, vec, smooth, gp_object, gp_mat, gp_layer, stroke, ring, puff, Board, WHITE, GOLD
+from fxkit import key, rest, px, vec, gp_object, gp_mat, gp_layer, stroke, ring, puff, Board, WHITE, GOLD
 
 SID = "L1"
 sc, arm, spec = fxkit.setup(SID)
 FPS = sc.render.fps
-GREEN = (0.08, 0.86, 0.10, 1)               # the paint (the art's spray green)
-PAINT_INK = (0.01, 0.16, 0.03, 1)           # its cartoon outline
-LIGHT = (0.72, 1.0, 0.55, 1)                # wet highlights, the glow
-NOZZLE = (652, 159)                          # where the jet leaves the cap
-FAR = (470, 189)                             # the jet's far end, in the cloud: it turns about this
-FEED = (472, 285)                            # between where the jet feeds the cloud and where it meets the can: it swells and sways about this
-BASE = (468, 962)                            # the can's base, where it stands
-CLOUD_C = (300, 230)                         # the cloud's middle
-AXIS = Vector((0.43, 0.0, 0.90)).normalized()     # along the can, base -> top (world, z up)
+GREEN = (0.02, 0.80, 0.01, 1)               # the paint (the can's green; linear)
+DARK = (0.004, 0.26, 0.004, 1)              # its shade
+PAINT_INK = (0.003, 0.02, 0.004, 1)           # its cartoon outline
+LIGHT = (0.74, 1.0, 0.58, 1)                # wet highlights, the glow
+SHINE = (0.93, 1.0, 0.88, 1)                # gloss on the paint
+STICKER = (1.0, 1.0, 1.0, 1)               # the white sticker border round the spray
+FLECK = (0.002, 0.10, 0.002, 1)             # spray-paint grain
+NOZZLE = (441, 126)                          # the nozzle hole, on the cap's left face
+CAP_FOOT = (498, 231)                        # the cap's bottom, on the stem: it squashes about this
+BASE = (499, 958)                            # the middle of the can's base
+TIP = (600, 958)                             # right of the middle of the base: the can tilts over about this
 
-# ------------------------------------------------------------------ the rig: new pivots for the jet, the cloud, the can
+# ------------------------------------------------------------------ the rig: tip (new root), can on it, cap on the can
 keep = {o.name: o.matrix_world.copy() for o in sc.objects if o.parent_type == "BONE"}
 bpy.context.view_layer.objects.active = arm
 arm.select_set(True)
 bpy.ops.object.mode_set(mode="EDIT")
 eb = arm.data.edit_bones
-for name, at, parent in (("can", BASE, None), ("jet", FAR, "can"), ("cloud", FEED, "can")):
+if "tip" not in eb:
+    eb.new("tip")
+for name, at, parent in (("tip", TIP, None), ("can", BASE, "tip"), ("cap", CAP_FOOT, "can")):
     b = eb[name]
     b.head = vec(*at)
     b.tail = b.head + Vector((0, 0, .6))
@@ -65,126 +71,111 @@ if arm.animation_data:
     for tr in list(arm.animation_data.nla_tracks):
         arm.animation_data.nla_tracks.remove(tr)
 
-BONES = ["can", "cap", "jet", "cloud"]
-CLOUD_SPRING = {"cloud": dict(chain=[FEED, (170, 235)], freq=[1.7], zeta=.35, gain=.5, limit=2.2)}
+BONES = ["tip", "can", "cap"]
 CLIPS = {"idle": (1, 80), "land": (101, 126), "hit": (201, 252), "multi": (301, 348)}
 arm["clips"] = {k: list(v) for k, v in CLIPS.items()}
 
 
-# ------------------------------------------------------------------ helpers
-def mats(f, bones):
-    sc.frame_set(f)
-    out = {}
-    for b in bones:
-        pb = arm.pose.bones[b]
-        out[b] = arm.matrix_world @ pb.matrix @ pb.bone.matrix_local.inverted()
-    return out
-
-
-def jet_follow(f0, f1):
-    """Key the jet so its tip stays in the nozzle: each frame, where the cap has taken the nozzle (in the can's own
-    frame) sets the jet's turn about its far end and its length."""
-    F, N0 = vec(*FAR), vec(*NOZZLE)
-    a0 = math.atan2((N0 - F).z, (N0 - F).x)
-    L0 = (N0 - F).length
-    rs, ss = [], []
-    for f in range(f0, f1 + 1):
-        M = mats(f, ("can", "cap"))
-        q = M["can"].inverted() @ (M["cap"] @ N0)
-        d = q - F
-        rs.append(math.degrees(math.atan2(d.z, d.x) - a0))
-        ss.append(d.length / L0)
-    for i in sorted(set(fxkit.sparse(rs, .03)) | set(fxkit.sparse(ss, .0015))):
-        key(arm, "jet", f0 + i, r=rs[i], sx=ss[i])
-
-
-def cloud_follow(f0, f1, gain=1.0):
-    """The cloud's soft follow-through: a spring on how the keys move the can, keyed onto its turn."""
-    res = fxkit.secondary(sc, arm, "can", f0, f1, CLOUD_SPRING, gain=gain)
-    print(f"  {f0}-{f1}:", ", ".join(f"{b} {min(v):+.2f}..{max(v):+.2f}" for b, v in res.items()))
-    fxkit.key_series(arm, "cloud", f0, res["cloud"], channel="r", tol=.1)
-
-
-def press(rows):
-    """The cap: (frame, squash) - sy down on its stem, sx out a little to keep its volume."""
-    for f, sy in rows:
-        key(arm, "cap", f, sx=1 + (1 - sy) * .45, sy=sy)
-
-
-def billow(rows):
-    for f, s in rows:
-        key(arm, "cloud", f, s=s)
-
-
 def can_keys(rows):
-    """(frame, x, y, r, sx, sy) on the can's base."""
+    """(frame, x, y, r, sx, sy) on the can's base (it sways, rattles and squashes about the middle of its base)."""
     for f, x, y, r, sx, sy in rows:
         key(arm, "can", f, x=x, y=y, r=r, sx=sx, sy=sy)
 
 
-# ================================================================== idle: two gentle presses; the cloud breathes
+def tilt(rows):
+    """(frame, degrees) on the tip: negative tips the can over to the right, the nozzle turning up to the left."""
+    for f, r in rows:
+        key(arm, "tip", f, r=r)
+
+
+def press(rows):
+    """The cap: (frame, squash) - pushed down onto the stem (y) and squashed (sy), a little wider (sx)."""
+    for f, sy in rows:
+        down = max(0.0, 1 - sy)
+        key(arm, "cap", f, y=-down * .6 if sy < 1 else 0, sx=1 + (1 - sy) * .35, sy=sy)
+
+
+# ================================================================== idle: calm - it sways, a glint, the ball rattles once
 f0, f1 = CLIPS["idle"]
 act = fxkit.begin_action(arm, SID + "_idle")
 rest(arm, BONES, f0)
-PRESSES = (10, 50)
-for p in PRESSES:
-    press([(p - 1, 1), (p + 2, .94), (p + 7, .95), (p + 10, 1.01), (p + 13, 1)])
-    billow([(p + 3, 1), (p + 10, 1.02), (p + 17, .997), (p + 24, 1)])
-press([(f1 + 1, 1)]); billow([(f1 + 1, 1)])
-can_keys([(21, 0, 0, .4, 1, 1), (41, 0, 0, 0, 1, 1), (61, 0, 0, -.4, 1, 1), (81, 0, 0, 0, 1, 1)])
-jet_follow(f0, f1 + 1)
+rest(arm, BONES, f1 + 1)
+RATTLE, ROCK = 36, 58
+# it sways on its base, the ball knocks inside (a hop and a shiver, the cap a beat behind), and later it rocks up
+# onto the edge of its base and drops back with a little settle
+can_keys([(14, 0, 0, 2.8, .994, 1.01), (28, 0, 0, -1.2, 1.0, 1.0), (RATTLE, 0, 0, 0, 1, 1),
+          (RATTLE + 2, 0, .07, 2.2, .985, 1.025), (RATTLE + 4, 0, 0, -1.9, 1.025, .975), (RATTLE + 6, 0, .05, 1.5, .99, 1.015),
+          (RATTLE + 8, 0, 0, -.9, 1.012, .988), (RATTLE + 10, 0, .015, .4, 1, 1), (RATTLE + 13, 0, 0, 0, 1, 1),
+          (ROCK, 0, 0, 0, 1, 1), (ROCK + 9, 0, 0, 0, 1, 1), (ROCK + 10, 0, 0, 0, 1.03, .965), (ROCK + 13, 0, 0, .9, .995, 1.008),
+          (ROCK + 17, 0, 0, -.4, 1, 1)])
+fxkit.hard(act, "can", "scale", 0, ROCK + 10); fxkit.hard(act, "can", "scale", 1, ROCK + 10)
+tilt([(ROCK, 0), (ROCK + 6, -4.2), (ROCK + 9, 0)])
+fxkit.hard(act, "tip", "rotation_euler", 2, ROCK + 9)
+key(arm, "cap", RATTLE + 3, y=0, sx=1, sy=1)
+key(arm, "cap", RATTLE + 5, y=-.03, sx=1.02, sy=.95)              # the cap a beat behind: it chatters on its stem
+key(arm, "cap", RATTLE + 7, y=0, sx=.99, sy=1.0)
+key(arm, "cap", RATTLE + 9, y=-.015, sx=1.008, sy=.975)
+key(arm, "cap", RATTLE + 12, y=0, sx=1, sy=1)
+key(arm, "cap", ROCK + 10, y=0, sx=1, sy=1)
+key(arm, "cap", ROCK + 12, y=-.02, sx=1.012, sy=.965)
+key(arm, "cap", ROCK + 15, y=0, sx=1, sy=1)
 fxkit.make_cyclic(act)
 fxkit.end_action(arm, act, f0)
 
-# ================================================================== land: it thuds onto its base and rocks
+# ================================================================== land: thud, a little tip and a puff, back upright
 f0, f1 = CLIPS["land"]
 act = fxkit.begin_action(arm, SID + "_land")
 rest(arm, BONES, f0)
-can_keys([(103, 0, 0, 0, 1.08, .9), (106, 0, 0, 2.4, .97, 1.04), (110, 0, 0, -1.6, 1.01, .99), (114, 0, 0, .7, 1, 1),
-          (119, 0, 0, -.2, 1, 1), (f1, 0, 0, 0, 1, 1)])
-for i in (0, 1):
-    fxkit.hard(act, "can", "scale", i, 103)
-press([(103, 1), (105, .9), (109, 1.02), (113, 1), (f1, 1)])               # the jolt squirts it
-billow([(105, 1), (110, 1.03), (116, .995), (121, 1), (f1, 1)])
-cloud_follow(f0, f1, gain=.8)
-jet_follow(f0, f1)
+LAND_ON, LAND_OFF, LAND_BACK = 110, 115, 119
+can_keys([(103, 0, 0, 0, 1.08, .9), (106, 0, 0, 0, .97, 1.04), (109, 0, 0, 0, 1, 1),
+          (LAND_BACK, 0, 0, 0, 1, 1), (LAND_BACK + 1, 0, 0, 0, 1.04, .955), (LAND_BACK + 3, 0, 0, 1.4, .99, 1.015),
+          (LAND_BACK + 5, 0, 0, -.5, 1, 1), (f1, 0, 0, 0, 1, 1)])
+fxkit.hard(act, "can", "scale", 0, 103); fxkit.hard(act, "can", "scale", 1, 103)
+tilt([(106, 0), (LAND_ON, -11.0), (LAND_OFF, -12.0), (LAND_BACK, 0), (f1, 0)])
+fxkit.hard(act, "tip", "rotation_euler", 2, LAND_BACK)
+press([(LAND_ON - 1, 1), (LAND_ON, .88), (LAND_OFF - 1, .9), (LAND_OFF + 1, 1.03), (LAND_OFF + 4, 1), (f1, 1)])
+fxkit.hard(act, "cap", "scale", 1, LAND_ON)
 fxkit.end_action(arm, act, f0)
 
-# ================================================================== hit: lean back, slam the cap, a big burst
+# ================================================================== hit: crouch, tip over, slam the cap - a strong burst
 f0, f1 = CLIPS["hit"]
 act = fxkit.begin_action(arm, SID + "_hit")
 rest(arm, BONES, f0)
-SLAM = 208
-can_keys([(204, -.04, 0, 3.0, .98, 1.02), (SLAM, 0, 0, 0, 1.05, .94), (212, .14, 0, -2.6, 1, 1.01), (217, .1, 0, -1.8, 1, 1),
-          (224, .03, 0, .9, 1, 1), (231, 0, 0, -.4, 1, 1), (238, 0, 0, .1, 1, 1), (f1, 0, 0, 0, 1, 1)])
-press([(204, 1.05), (SLAM - 1, 1.04), (SLAM + 1, .84), (226, .86), (230, 1.04), (234, .98), (239, 1), (f1, 1)])
-fxkit.hard(act, "cap", "scale", 1, SLAM + 1)
-billow([(SLAM + 1, 1), (SLAM + 5, 1.06), (SLAM + 9, 1.045), (SLAM + 13, 1.065), (SLAM + 18, 1.045), (229, 1.05), (234, .985),
-        (239, 1.01), (244, 1), (f1, 1)])
-cloud_follow(f0, f1, gain=1.0)
-jet_follow(f0, f1)
+HIT_ON, HIT_OFF, HIT_BACK = 210, 233, 240
+rows = [(205, 0, 0, 3.0, 1.03, .955), (HIT_ON, 0, 0, 0, 1.0, 1.0)]
+for k, f in enumerate(range(HIT_ON + 2, HIT_OFF, 2)):              # the thrust rumbles it
+    e = 1 - .5 * (f - HIT_ON) / (HIT_OFF - HIT_ON)
+    rows.append((f, .025 * e * (1 if k % 2 else -1), 0, .7 * e * (-1 if k % 2 else 1), 1, 1))
+rows += [(HIT_OFF, 0, 0, 0, 1, 1), (HIT_BACK, 0, 0, 0, 1, 1), (HIT_BACK + 1, 0, 0, 0, 1.05, .93), (HIT_BACK + 3, 0, 0, 3.0, .98, 1.03),
+         (HIT_BACK + 6, 0, 0, -1.4, 1, 1), (HIT_BACK + 9, 0, 0, .5, 1, 1), (f1, 0, 0, 0, 1, 1)]
+can_keys(rows)
+tilt([(205, 0), (HIT_ON, -19.5), (HIT_ON + 3, -14.5), (HIT_ON + 6, -16.4), (HIT_OFF, -15.8), (HIT_BACK, 0), (f1, 0)])
+fxkit.hard(act, "tip", "rotation_euler", 2, HIT_BACK)
+press([(HIT_ON - 2, 1), (HIT_ON, .84), (HIT_OFF - 1, .86), (HIT_OFF + 1, 1.06), (HIT_OFF + 4, .98), (HIT_BACK + 1, 1), (f1, 1)])
+fxkit.hard(act, "cap", "scale", 1, HIT_ON)
 fxkit.end_action(arm, act, f0)
 
-# ================================================================== multi: shaken (the ball rattles), three swells, let go
+# ================================================================== multi: shaken (the ball rattles), then one big burst
 f0, f1 = CLIPS["multi"]
 act = fxkit.begin_action(arm, SID + "_multi")
 rest(arm, BONES, f0)
-SHAKE, PULSES, LET_GO = (304, 322), (310, 316, 322), 326
+SHAKE, MUL_ON, MUL_OFF, MUL_BACK = (303, 315), 321, 335, 341
 rows, k, f = [], 0, SHAKE[0]
 while f <= SHAKE[1]:
     e = (f - SHAKE[0]) / (SHAKE[1] - SHAKE[0])
-    a = (.07 + .12 * e) * (1 if k % 2 == 0 else -1)            # up and down along the can, harder and harder
-    v = AXIS * a
-    rows.append((f, v.x, v.z, (1 + 1.5 * e) * (-1 if k % 2 else 1), 1, 1))
+    up = k % 2 == 0
+    rows.append((f, 0, (.07 + .1 * e) * (1 if up else -.35), (1 + 1.6 * e) * (1 if up else -1),
+                 .98 if up else 1.03, 1.03 if up else .96))
     f += 2; k += 1
-can_keys(rows + [(LET_GO - 1, 0, 0, 1.5, 1, 1), (LET_GO + 1, .12, 0, -2.4, 1.04, .95), (LET_GO + 6, .05, 0, 1.4, 1, 1),
-                 (LET_GO + 11, 0, 0, -.6, 1, 1), (LET_GO + 16, 0, 0, .2, 1, 1), (f1, 0, 0, 0, 1, 1)])
-billow([(306, 1)] + [(p, s) for p, s in zip(PULSES, (1.03, 1.045, 1.06))] + [(p + 3, s - .015) for p, s in zip(PULSES, (1.03, 1.045, 1.06))]
-       + [(LET_GO, 1.05), (LET_GO + 4, 1.08), (LET_GO + 9, 1.065), (LET_GO + 13, .98), (LET_GO + 17, 1.01), (LET_GO + 21, 1), (f1, 1)])
-press([(LET_GO - 2, 1.04), (LET_GO, .84), (LET_GO + 9, .86), (LET_GO + 12, 1.04), (LET_GO + 16, .99), (LET_GO + 20, 1), (f1, 1)])
-fxkit.hard(act, "cap", "scale", 1, LET_GO)
-cloud_follow(f0, f1, gain=.8)
-jet_follow(f0, f1)
+can_keys(rows + [(SHAKE[1] + 2, 0, 0, 0, 1, 1), (MUL_ON, 0, 0, 0, 1, 1), (MUL_ON + 2, -.03, 0, -.8, 1, 1), (MUL_ON + 4, .03, 0, .8, 1, 1),
+                 (MUL_ON + 7, -.02, 0, -.5, 1, 1), (MUL_ON + 10, .02, 0, .4, 1, 1), (MUL_OFF, 0, 0, 0, 1, 1),
+                 (MUL_BACK, 0, 0, 0, 1, 1), (MUL_BACK + 1, 0, 0, 0, 1.05, .93), (MUL_BACK + 3, 0, 0, 2.8, .985, 1.025),
+                 (MUL_BACK + 5, 0, 0, -1.0, 1, 1), (f1, 0, 0, 0, 1, 1)])
+tilt([(SHAKE[1] + 2, 0), (MUL_ON, -20.0), (MUL_ON + 3, -15.0), (MUL_ON + 6, -16.8), (MUL_OFF, -16.2), (MUL_BACK, 0), (f1, 0)])
+fxkit.hard(act, "tip", "rotation_euler", 2, MUL_BACK)
+press([(SHAKE[0] + 4, 1), (SHAKE[0] + 6, .97), (SHAKE[0] + 8, 1), (MUL_ON - 2, 1), (MUL_ON, .83), (MUL_OFF - 1, .85),
+       (MUL_OFF + 1, 1.06), (MUL_OFF + 4, .985), (MUL_BACK + 1, 1), (f1, 1)])
+fxkit.hard(act, "cap", "scale", 1, MUL_ON)
 fxkit.end_action(arm, act, f0)
 
 # ================================================================== the spray and the effects
@@ -196,11 +187,26 @@ m = dict(white=gp_mat(fx, "fx_white_line", WHITE), white_f=gp_mat(fx, "fx_white_
          light=gp_mat(fx, "fx_light_line", LIGHT), light_f=gp_mat(fx, "fx_light_fill", LIGHT, fill=LIGHT),
          gold_f=gp_mat(fx, "fx_gold_fill", GOLD, fill=GOLD))
 mb = dict(light=gp_mat(glow, "glow_light", LIGHT), white=gp_mat(glow, "glow_white", WHITE), green=gp_mat(glow, "glow_green", GREEN))
-mp = dict(puff=gp_mat(paint, "paint_puff", PAINT_INK, fill=GREEN), drop=gp_mat(paint, "paint_drop", PAINT_INK, fill=GREEN),
-          speck=gp_mat(paint, "paint_speck", LIGHT, fill=LIGHT), dust=gp_mat(paint, "fx_dust", (.6, .58, .62, 1), fill=(.96, .95, .97, 1)))
+mp = dict(puff=gp_mat(paint, "paint_puff", PAINT_INK, fill=DARK), body=gp_mat(paint, "paint_body", PAINT_INK, fill=GREEN),
+          ink=gp_mat(paint, "paint_ink", PAINT_INK), shine=gp_mat(paint, "paint_shine", SHINE, fill=SHINE),
+          speck=gp_mat(paint, "paint_speck", GREEN, fill=GREEN), drop=gp_mat(paint, "paint_drop", PAINT_INK, fill=GREEN),
+          dust=gp_mat(paint, "fx_dust", (.6, .58, .62, 1), fill=(.96, .95, .97, 1)),
+          border=gp_mat(paint, "paint_border", STICKER, fill=STICKER), inkf=gp_mat(paint, "paint_inkfill", PAINT_INK, fill=PAINT_INK),
+          dark=gp_mat(paint, "paint_dark", DARK, fill=DARK), fleck=gp_mat(paint, "paint_fleck", FLECK, fill=FLECK))
 world, behind, air = Board(), Board(), Board()
-ALL = sorted({f for a, b in CLIPS.values() for f in range(a, b + 2)})
-M = {f: mats(f, ("can", "jet", "cloud", "cap")) for f in ALL}
+ALL = sorted({f for a, b in CLIPS.values() for f in range(a - 1, b + 3)})
+
+
+def mats(f, bones):
+    sc.frame_set(f)
+    out = {}
+    for b in bones:
+        pb = arm.pose.bones[b]
+        out[b] = arm.matrix_world @ pb.matrix @ pb.bone.matrix_local.inverted()
+    return out
+
+
+M = {f: mats(f, ("can", "cap")) for f in ALL}
 sc.frame_set(1)
 IDLE_N = CLIPS["idle"][1] - CLIPS["idle"][0] + 1
 
@@ -217,62 +223,181 @@ def on(bone, f, p):
     return q.x, q.z
 
 
-def dot(board, f, x, z, r, mat, idle=False):
+def nozzle(f):
+    """Where the nozzle is at frame f and which way it points (the cap's own left, unit vector), world (x, z)."""
+    Mc = M[f]["cap"]
+    p = Mc @ vec(*NOZZLE)
+    d = (Mc.to_3x3() @ Vector((-1, 0, 0))).normalized()
+    return (p.x, p.z), (d.x, d.z)
+
+
+def ease(t):
+    t = max(0.0, min(1.0, t))
+    return 1 - (1 - t) ** 2.2
+
+
+def clamp_in(x, z, r, lim=6.15):
+    """Keep a round shape of radius r inside the 13-unit frame (a sprite is clipped at its edge)."""
+    return max(-lim + r, min(lim - r, x)), max(-lim + r, min(lim - r, z))
+
+
+def dot(board, f, x, z, r, mat):
     if r > .006:
-        board.add(wrap(f) if idle else f, lambda dr, x=x, z=z, r=r: stroke(dr, ring(x, z, r, n=12), .004, mat=mat, cyclic=True,
-                                                                         fill=True, line=False))
+        board.add(f, lambda dr, x=x, z=z, r=r: stroke(dr, ring(x, z, r, n=12), .004, mat=mat, cyclic=True, fill=True, line=False))
 
 
-def stream(f0, f1, rate, seed, size=(.018, .034), idle=False, speed=5):
-    """Paint droplets running down the jet, nozzle to cloud, riding it as it moves: `rate` new ones a frame."""
+BW, IW = .2, .1                            # the spray's white sticker border and its ink line (units), as the art's
+# the cloud, drawn like the original art's: lumps (u along the jet, v across it, r - in units of the cloud's radius R)
+# whose union is one scalloped silhouette, inked and bordered all round, curls of ink inside, a wet gloss up on the left
+CLOUD = [(0.0, 0.0, .56), (-.18, .34, .42), (.1, -.38, .45), (.32, .14, .44)]          # its heart
+for _k in range(12):                                                                  # and its scalloped rim
+    _a = math.radians(_k * 30)
+    _d, _r = (.5, .3) if _k == 6 else (.73, .35 + .06 * ((_k * 7) % 3) / 2)           # (k 6 faces the jet: it enters there)
+    CLOUD.append((math.cos(_a) * _d, math.sin(_a) * _d * 1.12, _r))
+CURLS = [0, 2, 3, 9, 13]                                                              # lumps with an ink curl round their lower left
+
+
+def spray(on_f, off_f, L=2.2, W=.55, R=1.9, seed=0, grow=3, tail=4, linger=10):
+    """One spray, drawn like the original art's: a cone of paint from the nozzle, thin at the nozzle and widening into a
+    big round cloud of paint lumps - one inked silhouette with the white sticker border round jet and cloud, curls of
+    ink inside, a wet gloss, spray-paint specks. The cap is held from on_f to off_f: the jet shoots out over `grow`
+    frames, the cloud billows out from where it ends (its lumps pop out from the jet's end outward) and boils; the jet
+    rides the nozzle while the can rumbles and always ends in the cloud. Let go at off_f: the jet's tail leaves the
+    nozzle and runs into the cloud over `tail` frames; the cloud drifts off and its lumps shrink away (staggered,
+    the last gone `linger` frames after the tail). Returns the cloud's middle and the jet's direction (world)."""
     rnd = random.Random(seed)
-    acc = 0.0
-    for fb in range(f0, f1 + 1):
-        acc += rate
-        while acc >= 1:
-            acc -= 1
-            side, r0, tone = rnd.uniform(-.75, .75), rnd.uniform(*size), rnd.random()
-            for k in range(speed + 1):
-                u = k / speed
-                f = wrap(fb + k) if idle else fb + k
-                if f not in M:
-                    continue
-                ax = (NOZZLE[0] + (FAR[0] - NOZZLE[0]) * u, NOZZLE[1] + (FAR[1] - NOZZLE[1]) * u)
-                half = 44 * u                                   # the cone opens out toward the cloud
-                p = (ax[0] + .16 * side * half, ax[1] + side * half * .97)
-                x, z = on("jet", f, p)
-                dot(world, f, x, z, r0 * (.6 + .6 * u), m["white_f"] if tone < .3 else m["light_f"])
+    (nx0, nz0), (dx0, dz0) = nozzle(on_f + 5)                          # the settled tilt: the jet's end is fixed in the air
+    A = (nx0 + dx0 * L, nz0 + dz0 * L)
+    e1 = (dx0, dz0); e2 = (-dz0, dx0) if dx0 >= 0 else (dz0, -dx0)       # e2: across the jet, pointing up
+    C = [A[0] + e1[0] * R * .68, A[1] + e1[1] * R * .68]
+    # fit the full-grown cloud inside the frame (nothing clips at the sprite's edge): move its middle in if need be
+    lim = 6.2
+    for _ in range(3):
+        for u, v, r in CLOUD:
+            x = C[0] + (e1[0] * u + e2[0] * v) * R; z = C[1] + (e1[1] * u + e2[1] * v) * R
+            rr = r * R * 1.1 + IW + BW
+            C[0] += min(0.0, lim - (x + rr)) + max(0.0, -lim - (x - rr))
+            C[1] += min(0.0, lim - (z + rr)) + max(0.0, -lim - (z - rr))
+    lumps = []
+    for i, (u, v, r) in enumerate(CLOUD):
+        d = math.hypot(u + .5, v) / 1.6                                  # how far from where the jet comes in
+        lumps.append(dict(u=u, v=v, r=r, i=i, born=on_f + grow - 1 + int(round(d * 7)) + rnd.randint(0, 1),
+                          die=off_f + tail + int(linger * (.8 + .2 * rnd.random())), ph=rnd.uniform(0, 6.3),
+                          fl=[(rnd.uniform(0, 6.3), rnd.uniform(.1, .7), rnd.uniform(.014, .028)) for _ in range(4)]))
+    last = max(p["die"] for p in lumps)
+    grown = on_f + grow - 1
+
+    for f in range(on_f, last + 1):
+        border, ink, dark, green, top = [], [], [], [], []              # drawn in that order: one silhouette
+        # ---- the cloud
+        g_all = ease((f - grown) / 10) if f >= grown else 0.0
+        off = max(0, f - off_f)
+        cx = C[0] + e1[0] * R * .3 * ease(off / 14)
+        cz = C[1] + e1[1] * R * .3 * ease(off / 14) + .35 * ease(off / 14)
+        Rf = R * (.55 + .45 * g_all)
+        if f > off_f:                                                   # let go: the whole cloud shrinks away as one
+            Rf *= 1 - min(1.0, (f - off_f) / max(1, last - off_f)) ** 1.3
+        for p in lumps:
+            if f < p["born"]:
+                continue
+            a = (f - p["born"]) / 5
+            s = 1.08 * math.sin(min(1.0, a) * math.pi / 2) if a < 1 else 1.08 - .08 * min(1.0, (a - 1) * 1.5)
+            s *= 1 + .04 * math.sin((f // 2) * 1.9 + p["ph"])          # it boils, on twos
+            r = p["r"] * Rf * s
+            if r < .04:
+                continue
+            x = cx + (e1[0] * p["u"] + e2[0] * p["v"]) * Rf
+            z = cz + (e1[1] * p["u"] + e2[1] * p["v"]) * Rf
+            x, z = clamp_in(x, z, r + IW + BW, 6.25)
+            k = max(.35, min(1.0, r / .5))                              # small lumps: thinner lines
+            border.append(ring(x, z, r + (IW + BW) * k, n=40))
+            ink.append(ring(x, z, r + IW * k, n=40))
+            dark.append(ring(x, z, r, n=40))
+            green.append(ring(x - .13 * r, z + .12 * r, r * .86, n=40))
+            if p["i"] in CURLS and r > .2:                              # a curl of ink round its lower left
+                arc = [(x + math.cos(t) * r * .97, z + math.sin(t) * r * .97) for t in
+                       (math.radians(180 + 95 * j / 9) for j in range(10))]
+                top.append(("curl", arc, .05 * k))
+            if p["i"] in (1, 5, 6, 7) and r > .2:                     # a wet gloss on the top lumps (the light is up left)
+                gl = [(x + math.cos(t) * r * .62, z + math.sin(t) * r * .58) for t in (math.radians(112 + 38 * j / 5) for j in range(6))]
+                top.append(("streak", gl, .07 * k))
+                top.append(("blob", (x - .05 * r, z + .66 * r, .06 * r)))
+            for t, rr, sz in p["fl"]:                                   # spray-paint grain
+                top.append(("fleck", (x + math.cos(t) * rr * r, z + math.sin(t) * rr * r, sz * k)))
+        # ---- the jet: a cone from the nozzle to the cloud
+        if f <= off_f:
+            (px0, pz0), _ = nozzle(f)
+            s0f = 0.0
+        else:
+            (px0, pz0), _ = nozzle(off_f)
+            s0f = ease((f - off_f) / tail)
+        jl = math.hypot(A[0] - px0, A[1] - pz0)
+        ux, uz = (A[0] - px0) / jl, (A[1] - pz0) / jl
+        head = jl * (ease((f - on_f + 1) / grow) if f <= off_f else 1.0)
+        s0 = jl * s0f
+        if head - s0 > .05 and s0f < .97:
+            n = 16
+            ss = [s0 + (head - s0) * j / (n - 1) for j in range(n)]
+            flick = 1 + .05 * math.sin(f * 2.1)
+
+            def side(extra, sgn):
+                out = []
+                for s in ss:
+                    t = s / jl
+                    hw = (.035 + (W - .035) * t) * flick
+                    if s0 > 0:
+                        hw *= min(1.0, (s - s0) / .5) ** .55                # a let-go tail: rounded off to a point
+                    e = extra(t) if s - s0 > .06 or s0 == 0 else 0.0
+                    out.append((px0 + ux * s - uz * (hw + e) * sgn, pz0 + uz * s + ux * (hw + e) * sgn))
+                return out
+            poly = lambda extra: side(extra, 1) + side(extra, -1)[::-1]
+            border.insert(0, poly(lambda t: (.02 + .055 * t) + BW * fxkit.smooth(.25, .6, t)))
+            ink.insert(0, poly(lambda t: .02 + .055 * t))
+            green.insert(0, poly(lambda t: 0.0))
+            hi = side(lambda t: 0.0, 1)[2:n // 2 + 1]                       # a streak of gloss along its upper edge
+            hi = [(x - (x - (px0 + ux * s)) * .45, z - (z - (pz0 + uz * s)) * .45) for (x, z), s in zip(hi, ss[2:n // 2 + 1])]
+            top.append(("streak", hi, .03))
+            if f < on_f + grow + 9 and f <= off_f:                       # the paint's front as it shoots out: round, inked
+                hx, hz = px0 + ux * head, pz0 + uz * head
+                hr = (.035 + (W - .035) * head / jl) * 1.1
+                border.append(ring(hx, hz, hr + .075 + BW * min(1.0, head / jl * 2), n=28))
+                ink.append(ring(hx, hz, hr + .075, n=28))
+                green.append(ring(hx - .08 * hr, hz + .08 * hr, hr, n=28))
+            r2 = random.Random(seed * 997 + f // 2)                       # specks of paint misting off it, in its border
+            for j in range(10 if f <= off_f else 4):
+                s = r2.uniform(max(s0, .35 * jl), head)
+                t = s / jl
+                hw = .035 + (W - .035) * t
+                sg = r2.choice((-1, 1))
+                o = hw + .08 + r2.uniform(.02, .2) * (.4 + t)
+                top.append(("speck", (px0 + ux * s - uz * o * sg, pz0 + uz * s + ux * o * sg, r2.uniform(.016, .032))))
+            for j in range(5):                                            # grain inside it
+                s = r2.uniform(max(s0, .3 * jl), head); t = s / jl
+                o = (.035 + (W - .035) * t) * r2.uniform(-.7, .7)
+                top.append(("fleck", (px0 + ux * s - uz * o, pz0 + uz * s + ux * o, r2.uniform(.012, .022))))
+        for pts in border:
+            air.add(f, lambda dr, pts=pts: stroke(dr, pts, .004, mat=mp["border"], cyclic=True, fill=True, line=False))
+        for pts in ink:
+            air.add(f, lambda dr, pts=pts: stroke(dr, pts, .004, mat=mp["inkf"], cyclic=True, fill=True, line=False))
+        for pts in dark:
+            air.add(f, lambda dr, pts=pts: stroke(dr, pts, .004, mat=mp["dark"], cyclic=True, fill=True, line=False))
+        for pts in green:
+            air.add(f, lambda dr, pts=pts: stroke(dr, pts, .004, mat=mp["body"], cyclic=True, fill=True, line=False))
+        for kind, a, *rest in top:
+            if kind == "curl":
+                air.add(f, lambda dr, a=a, w=rest[0]: stroke(dr, a, w, mat=mp["ink"], radii=fxkit.taper(len(a), w, .4)))
+            elif kind == "streak" and len(a) > 1:
+                air.add(f, lambda dr, a=a, w=rest[0]: stroke(dr, a, w, mat=mp["shine"], radii=fxkit.taper(len(a), w, .4)))
+            elif kind == "blob":
+                air.add(f, lambda dr, a=a: stroke(dr, ring(a[0], a[1], a[2], n=14), .004, mat=mp["shine"], cyclic=True, fill=True, line=False))
+            elif kind == "fleck":
+                air.add(f, lambda dr, a=a: stroke(dr, ring(a[0], a[1], a[2], n=8), .004, mat=mp["fleck"], cyclic=True, fill=True, line=False))
+            elif kind == "speck":
+                air.add(f, lambda dr, a=a: stroke(dr, ring(a[0], a[1], a[2], n=8), .004, mat=mp["speck"], cyclic=True, fill=True, line=False))
+    return (C[0], C[1]), e1
 
 
-def mist(f0, n, seed, spread=(100, 260), dist=(1.2, 2.4), size=(.35, .6), life=(12, 18), idle=False, around=None):
-    """Mist boiling off the cloud: cartoon puffs of paint that billow out from its edge, swell and shrink away."""
-    rnd = random.Random(seed)
-    cx, cz = on("cloud", f0, CLOUD_C) if around is None else around
-    for i in range(n):
-        a = math.radians(rnd.uniform(*spread))
-        d0 = rnd.uniform(1.0, 1.5)
-        fb = f0 + rnd.randint(0, 6)
-        lf = rnd.randint(*life)
-        x, z = cx + math.cos(a) * d0, cz + math.sin(a) * d0 * .9
-        dd = rnd.uniform(*dist)
-        top = size[1] * 1.05 + .35                         # it may not drift out of the frame (6.5 units each way)
-        for _ in range(40):
-            ex, ez = x + math.cos(a) * dd, z + math.sin(a) * dd * .9 + .25
-            if abs(ex) + top <= 6.2 and abs(ez) + top <= 6.2:
-                break
-            dd *= .92
-        for k in range(lf):
-            t = k / (lf - 1)
-            size_t = math.sin(math.pi * min(1.0, t * 1.05)) ** .6
-            rr = rnd.uniform(*size) if k == 0 else rr
-            r = rr * (.3 + .75 * size_t) * size_t
-            px_, pz_ = x + math.cos(a) * dd * (1 - (1 - t) ** 2), z + math.sin(a) * dd * .9 * (1 - (1 - t) ** 2) + .25 * t
-            if r > .03:
-                air.add(wrap(fb + k) if idle else fb + k, lambda dr, px_=px_, pz_=pz_, r=r, s=seed * 31 + i: stroke(
-                    dr, puff(px_, pz_, r, lobes=6, seed=s, bump=.12), .009, mat=mp["puff"], cyclic=True, fill=True))
-
-
-def fling(f0, n, seed, x, z, spread=(0, 360), speed=(3, 6), size=(.04, .09), life=12, grav=6.0, idle=False):
+def fling(f0, n, seed, x, z, spread=(0, 360), speed=(3, 6), size=(.04, .09), life=12, grav=6.0):
     """Paint droplets flung out: they fly, fall and shrink away."""
     rnd = random.Random(seed)
     for i in range(n):
@@ -280,8 +405,9 @@ def fling(f0, n, seed, x, z, spread=(0, 360), speed=(3, 6), size=(.04, .09), lif
         for k in range(life):
             t = k / FPS; u = k / (life - 1)
             r = r0 * (1 - u ** 1.6)
-            dot(air, f0 + k, x + math.cos(a) * sp * t, z + math.sin(a) * sp * t - grav * t * t, r,
-                mp["drop"] if i % 3 else mp["speck"], idle=idle)
+            xx, zz = clamp_in(x + math.cos(a) * sp * t, z + math.sin(a) * sp * t - grav * t * t, r)
+            if r > .006:
+                air.add(f0 + k, lambda dr, xx=xx, zz=zz, r=r: stroke(dr, ring(xx, zz, r, n=14), .022, mat=mp["drop"], cyclic=True, fill=True))
 
 
 def rings_out(board, f0, cx, cz, r0, r1, mats_, life=11, lag=3, width=.12):
@@ -309,77 +435,95 @@ def ticks(board, f0, x, z, mats_, a0=20, a1=160, n=5, r0=.25, r1=.85, life=6, w=
                 w * (1 - t) ** .8 + .006, mat=mats_[i % len(mats_)]))
 
 
-# ---- idle: a trickle down the jet all the time, a pulse with each press, mist breathing off the cloud
-stream(1, 80, .34, seed=1, idle=True)
-for p in PRESSES:
-    stream(p + 1, p + 7, 1.3, seed=p, idle=True, size=(.022, .04))
-    mist(p + 5, 3, seed=p, spread=(110, 230), dist=(.6, 1.1), size=(.3, .45), life=(14, 18), idle=True)
-    fling(p + 6, 4, seed=p + 3, x=on("cloud", p + 6, (180, 200))[0], z=on("cloud", p + 6, (180, 200))[1],
-          spread=(120, 220), speed=(1.4, 2.4), size=(.03, .05), life=12, grav=3, idle=True)
-fxkit.sparkle(world, 30, 9, *px(705, 105), .28, m["white_f"], rot0=.3)          # the cap's rim catches the light
-fxkit.sparkle(world, 68, 9, *px(250, 120), .24, m["white_f"], rot0=1.0)         # a wet glint on the cloud
+def rattle_marks(f, side, scale=1.0, idle=False):
+    """Two little curved marks beside the body as the ball knocks inside (on the side it is thrown to)."""
+    cx, cz = on("can", f, (499, 600))
+    for j in range(2):
+        ox = side * (2.5 + .3 * j) * scale ** .3
+        pts = [(cx + ox - side * .14 * (1 - s * s), cz + .12 * j + s * .42 * scale * (1 - .2 * j)) for s in (-1, -.5, 0, .5, 1)]
+        world.add(wrap(f) if idle else f, lambda dr, pts=pts: stroke(dr, pts, .045, mat=m["white"],
+                                                                     radii=fxkit.taper(len(pts), .05, .35)), hold=2)
 
-# ---- land: dust from the base, a squirt of paint, the cloud puffs
+
+def press_flash(f):
+    """A pop of light at the nozzle as the cap goes down."""
+    (x, z), (dx, dz) = nozzle(f)
+    fxkit.sparkle(world, f, 6, x + dx * .15, z + dz * .15, .42, m["white_f"], rot0=.4)
+
+
+# ---- idle: a glint slides down the glossy body, the cap's rim twinkles, the ball rattles (no paint)
+for k in range(12):                                                     # the glint, riding the can as it sways
+    f = 8 + k
+    t = k / 11
+    x, z = on("can", f, (352, 430 + 360 * t))
+    rr = .34 * math.sin(math.pi * t) ** .8
+    if rr > .02:
+        world.add(f, lambda dr, x=x, z=z, rr=rr, t=t: stroke(dr, fxkit.star(x, z, rr, .3 + .6 * t), .004, mat=m["white_f"],
+                                                              cyclic=True, fill=True, line=False))
+fxkit.sparkle(world, 24, 10, *on("can", 24, (338, 318)), .3, m["white_f"], rot0=.6)         # the collar catches the light
+fxkit.sparkle(world, 72, 9, *on("cap", 72, (402, 76)), .3, m["white_f"], rot0=1.0)         # and the cap's rim
+for k, f in enumerate(range(RATTLE + 2, RATTLE + 9, 2)):
+    rattle_marks(f, 1 if k % 2 == 0 else -1, scale=.8, idle=True)
+
+# ---- land: dust from the base, a short tip and a quick puff, dust again as it drops back
 bx, bz = px(*BASE)
 ticks(world, 103, bx, bz - .1, (m["white"], m["light"], m["white"]), seed=3)
 for side, sd in ((-1, 3), (1, 7)):
-    fxkit.dust(air, 103, 11, bx + side * .9, bz - .1, .45, mp["dust"], drift=(side * 1.1, .25), seed=sd)
-stream(104, 110, 1.6, seed=104, size=(.022, .04))
-mist(109, 4, seed=109, dist=(.7, 1.3), size=(.3, .45), life=(12, 15))
+    fxkit.dust(air, 103, 11, bx + side * 1.9, bz - .1, .42, mp["dust"], drift=(side * 1.0, .25), seed=sd)
+press_flash(LAND_ON)
+spray(LAND_ON, LAND_OFF, L=1.5, W=.32, R=1.0, seed=11, grow=2, tail=3, linger=5)
+lx, lz = px(300, 960)
+fxkit.dust(air, LAND_BACK, 6, lx - .2, lz - .05, .3, mp["dust"], drift=(-.7, .15), seed=17)
 
-# ---- hit: the burst - a gush down the jet, the cloud boils over, droplets fly, the can recoils; sparkles
-stream(201, 212, .5, seed=201)
-stream(SLAM, 228, 2.2, seed=SLAM, size=(.026, .05), speed=4)
-mist(SLAM + 3, 12, seed=SLAM, spread=(70, 290), dist=(1.4, 2.6), size=(.42, .72), life=(14, 20))
-cx, cz = on("cloud", SLAM + 6, CLOUD_C)
-fling(SLAM + 4, 20, seed=5, x=cx, z=cz, spread=(60, 300), speed=(4.5, 8), size=(.05, .1), life=14, grav=7)
-rings_out(behind, SLAM + 2, cx, cz, 1.4, 3.4, (mb["light"], mb["white"]), life=10, lag=3, width=.1)    # inside the frame
-for k, f in enumerate(range(SLAM + 1, SLAM + 6)):                       # thrust lines off the can's back
-    t = k / 4
+# ---- hit: the burst - a long jet, a big boiling cloud, droplets, sparkles, the can rumbling
+press_flash(HIT_ON)
+(cx, cz), (tx, tz) = spray(HIT_ON, HIT_OFF, L=2.1, W=.55, R=1.95, seed=21, grow=3, tail=4, linger=10)
+fling(HIT_ON + 6, 10, seed=5, x=cx, z=cz, spread=(70, 250), speed=(3.5, 6.5), size=(.045, .09), life=13, grav=6)
+fling(HIT_ON + 14, 8, seed=6, x=cx, z=cz, spread=(80, 240), speed=(3, 5.5), size=(.04, .08), life=12, grav=6)
+for k, f in enumerate(range(HIT_ON + 1, HIT_ON + 7)):                    # thrust lines off the can's right side
+    t = k / 5
     for j in range(3):
-        x0, z0 = on("can", f, (760 + 18 * j, 470 + 80 * j))
-        world.add(f, lambda dr, x0=x0, z0=z0, t=t: stroke(dr, [(x0 + .2 + .5 * t, z0), (x0 + .9 + .9 * t, z0 - .1)],
+        x0, z0 = on("can", f, (725, 470 + 110 * j))
+        world.add(f, lambda dr, x0=x0, z0=z0, t=t: stroke(dr, [(x0 + .15 + .4 * t, z0 - .05 * t), (x0 + .75 + .8 * t, z0 - .2 - .1 * t)],
                                                          .03 * (1 - t) + .006, mat=m["white"]))
 rnd = random.Random(8)
-for i in range(8):
-    fxkit.sparkle(world, 222 + rnd.randint(0, 16), rnd.randint(7, 10), rnd.uniform(-4.6, 4.6), rnd.uniform(-4.2, 4.8),
-                  rnd.uniform(.22, .4), m["white_f"] if i % 3 else m["gold_f"], rot0=rnd.uniform(0, 1))
+for i in range(7):
+    fxkit.sparkle(world, HIT_ON + 8 + rnd.randint(0, 16), rnd.randint(7, 10), cx + rnd.uniform(-2.2, 1.6), cz + rnd.uniform(-1.6, 1.2),
+                  rnd.uniform(.2, .36), m["white_f"] if i % 3 else m["gold_f"], rot0=rnd.uniform(0, 1))
+lx, lz = px(300, 960)
+fxkit.dust(air, HIT_BACK, 10, lx - .2, lz - .05, .38, mp["dust"], drift=(-.9, .2), seed=23)
+ticks(world, HIT_BACK, *px(330, 965), (m["white"], m["light"], m["white"]), a0=100, a1=175, n=3, seed=9)
 
-# ---- multi: rattle marks as it is shaken, the cloud glows with each swell, then it blows out in a ring of mist
-for k, f in enumerate(range(SHAKE[0] + 2, SHAKE[1] + 1, 2)):
-    side = 1 if k % 2 else -1
-    cx_, cz_ = on("can", f, (560, 620))
-    for j in range(3):
-        ox = (-AXIS.z * side) * (2.4 + .2 * j) * (1 if side > 0 else .9)
-        oz = (AXIS.x * side) * (2.4 + .2 * j)
-        pts = [(cx_ + ox + AXIS.x * s * .32, cz_ + oz + AXIS.z * s * .32) for s in (-1, 0, 1)]
-        pts[1] = (pts[1][0] - AXIS.z * side * .08, pts[1][1] + AXIS.x * side * .08)
-        world.add(f, lambda dr, pts=pts: stroke(dr, pts, .024, mat=m["white"]), hold=2)
-for p in PULSES:
-    for k in range(7):                                                   # the cloud glows with each swell
-        t = k / 6
-        f = p - 1 + k
-        cx_, cz_ = on("cloud", f, CLOUD_C)
-        s = M[f]["cloud"].to_scale().x
-        w = .1 * (1 - t) ** 1.2 + .004
-        loop_pts = [(cx_ + math.cos(a) * 2.25 * s, cz_ + math.sin(a) * 2.15 * s) for a in (2 * math.pi * i / 64 for i in range(64))]
-        behind.add(f, lambda dr, w=w, pts=loop_pts: stroke(dr, pts, w, mat=mb["green"], cyclic=True))
-        behind.add(f, lambda dr, w=w, pts=loop_pts: stroke(dr, pts, w * .45, mat=mb["light"], cyclic=True))
-    stream(p - 2, p + 3, 1.0, seed=p)
-stream(LET_GO, LET_GO + 12, 2.4, seed=LET_GO, size=(.026, .05), speed=4)
-cx, cz = on("cloud", LET_GO + 4, CLOUD_C)
-mist(LET_GO + 2, 16, seed=LET_GO, spread=(0, 360), dist=(1.4, 2.3), size=(.4, .66), life=(9, 12), around=(cx, cz))   # gone before the clip ends
-fling(LET_GO + 3, 22, seed=11, x=cx, z=cz, spread=(0, 360), speed=(5, 8.5), size=(.05, .1), life=13, grav=5)
-rings_out(behind, LET_GO + 1, 0, .3, 2.2, 5.6, (mb["green"], mb["white"], mb["light"]), life=11, lag=3, width=.13)   # round the whole can
-fxkit.streaks(world, LET_GO + 1, 8, cx, cz, 2.6, 5.6, (m["white"], m["light"]), n=14, rot=.2)
+# ---- multi: shaken - rattle marks, pulses of light; then the big burst with rings of light and streaks
+for k, f in enumerate(range(SHAKE[0] + 1, SHAKE[1] + 1, 2)):
+    rattle_marks(f, 1 if k % 2 else -1, scale=1.0 + .25 * k / 6)
+for p in (SHAKE[0] + 2, SHAKE[0] + 7, SHAKE[1]):                          # it glows with each knock
+    ox, oz = on("can", p, (499, 520))
+    rings_out(behind, p, ox, oz, 2.4, 3.4, (mb["green"], mb["light"]), life=7, lag=2, width=.09)
+press_flash(MUL_ON)
+(cx, cz), (tx, tz) = spray(MUL_ON, MUL_OFF, L=2.2, W=.6, R=2.15, seed=31, grow=3, tail=4, linger=7)
+cx, cz = clamp_in(cx, cz, 1.2)
+rings_out(behind, MUL_ON + 2, cx, cz, 1.0, 2.4, (mb["green"], mb["white"], mb["light"]), life=10, lag=3, width=.12)
+rings_out(behind, MUL_ON + 4, *on("can", MUL_ON + 4, (499, 520)), 2.4, 4.5, (mb["light"], mb["white"]), life=10, lag=3, width=.1)
+fxkit.streaks(world, MUL_ON + 2, 8, cx, cz, 1.3, 2.7, (m["white"], m["light"]), n=14, rot=.2)
+fling(MUL_ON + 5, 14, seed=12, x=cx, z=cz, spread=(0, 360), speed=(4, 7), size=(.045, .09), life=11, grav=5)
 rnd = random.Random(31)
-for i in range(6):
-    fxkit.sparkle(world, LET_GO + 5 + rnd.randint(0, 8), rnd.randint(7, 8), rnd.uniform(-4.6, 4.6), rnd.uniform(-4.2, 4.8),
+for i in range(7):
+    fxkit.sparkle(world, MUL_ON + 4 + rnd.randint(0, 9), rnd.randint(7, 8), rnd.uniform(-4.6, 4.6), rnd.uniform(-3.8, 4.8),
                   rnd.uniform(.2, .36), m["white_f"] if i % 2 else m["gold_f"], rot0=rnd.uniform(0, 1))
+fxkit.dust(air, MUL_BACK, 6, *(lambda p: (p[0] - .2, p[1] - .05))(px(300, 960)), .34, mp["dust"], drift=(-.8, .2), seed=33)
 
 world.draw(gp_layer(fx, "fx"))
 behind.draw(gp_layer(glow, "burst"))
 air.draw(gp_layer(paint, "paint"))
+
+# nothing a one-shot draws may still be on screen on its last frame (the idle follows straight on)
+for name, (a, b) in CLIPS.items():
+    if name == "idle":
+        continue
+    left = [f for brd in (world, behind, air) for f in brd.frames if b - 1 <= f <= b]
+    if left:
+        print(f"  WARNING {name}: effects still drawn on frames {sorted(set(left))}")
 
 sc.frame_start, sc.frame_end = 1, max(b for a, b in CLIPS.values())
 sc.frame_set(1)

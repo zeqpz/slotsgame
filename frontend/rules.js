@@ -165,7 +165,7 @@ const RULES = (() => {
     <tr><td><b>${t("Auto")}</b></td><td>${t("Plays a chosen number of rounds one after another at the current bet. You confirm the number before it starts; press it again to stop. It also stops when the balance can't cover the next round.")}</td></tr>
     <tr><td><b>${t("Rapid")}</b></td><td>${t("Shortens the reel spin and win animations. Results are unaffected.")}</td></tr>
     <tr><td><b>${t("Info")}</b></td><td>${t("Opens this page: the rules, the paytable and your recent rounds.")}</td></tr>
-    <tr><td><b>${t("Audio")}</b></td><td>${t("Opens the Sound and Music level bars. Drag a bar to the bottom to silence it; with both at the bottom every sound in the game is off. Levels are remembered on this device.")}</td></tr>
+    <tr><td><b>${t("Audio")}</b></td><td>${t("Opens the Sound and Music volume sliders. Slide one all the way left to silence it; with both at zero every sound in the game is off. Levels are remembered on this device.")}</td></tr>
     <tr><td><b>${t("Win / Balance")}</b></td><td>${t("The bar shows your balance in the token you are playing with, and the current round's win while there is one. The balance is always the amount the server reports.")}</td></tr>
   </table>
 </section>

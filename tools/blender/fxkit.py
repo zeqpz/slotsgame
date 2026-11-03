@@ -6,7 +6,7 @@
 # Grease Pencil layers drawn frame by frame - and the animation is the keys and drawings the symbol's own script
 # lays down with these. Everything stays editable in Blender: keys in the Graph Editor, strips in the NLA, the
 # drawings in Grease Pencil, the glow in the Compositor.
-import bpy, json, math, os, random
+import bpy, glob, json, math, os, random
 from mathutils import Vector
 
 PX = 100.0                                    # icon px per unit (tools/blender/build_symbol_scene.py)
@@ -178,6 +178,23 @@ def fcurves(act):
             for bag in strip.channelbags:
                 out.extend(bag.fcurves)
     return out
+
+
+def calm(act, k):
+    """Tone a clip's motion down: every bone transform key (and its handles) drawn toward the rest pose, to k of
+    how far it went (k = .7: 30% less movement). Materials, visibility and the rest are left as keyed."""
+    rest = {"location": (0, 0, 0), "rotation_euler": (0, 0, 0), "rotation_quaternion": (1, 0, 0, 0), "scale": (1, 1, 1)}
+    for fc in fcurves(act):
+        if not fc.data_path.startswith("pose.bones["):
+            continue
+        r = rest.get(fc.data_path.rsplit(".", 1)[-1])
+        if r is None:
+            continue
+        r = r[fc.array_index]
+        for kp in fc.keyframe_points:
+            for p in (kp.co, kp.handle_left, kp.handle_right):
+                p.y = r + k * (p.y - r)
+        fc.update()
 
 
 def make_cyclic(act):
@@ -759,8 +776,28 @@ def clip_ranges(sid):
     return out
 
 
-def render_clip(sc, name, start, end, out_dir):
-    """Render frames start..end to out_dir/<name>/####.png (RGBA, through the compositor)."""
-    sc.frame_start, sc.frame_end = start, end
+def clip_slow(sid, name):
+    """How many times slower than keyed a clip plays (arm["slow"], set by the animation script; 1 = as keyed)."""
+    return float(bpy.data.objects[sid + "_rig"].get("slow", {}).get(name, 1))
+
+
+def render_clip(sc, name, start, end, out_dir, slow=1.0):
+    """Render frames start..end to out_dir/<name>/####.png (RGBA, through the compositor).
+    slow > 1 plays the clip that many times slower with Blender's Time Remapping: every curve is evaluated between
+    its keys, so the motion stays smooth (effects drawn frame by frame hold their drawing). A loop (end + 1 is
+    start again) is sampled evenly round its whole cycle, so it still joins up."""
+    for f in glob.glob(f"{out_dir}/{name}/*.png"):     # a clip's frame count can change: no stale frames left over
+        os.remove(f)
+    if slow == 1:
+        sc.frame_start, sc.frame_end = start, end
+    else:
+        # Blender evaluates frame f at f * old / new
+        sc.render.frame_map_old, sc.render.frame_map_new = 100, round(100 * slow)
+        k = sc.render.frame_map_new / sc.render.frame_map_old
+        sc.frame_start = math.ceil(start * k)
+        sc.frame_end = sc.frame_start + round((end - start + 1) * k) - 1
     sc.render.filepath = f"{out_dir}/{name}/"
-    bpy.ops.render.render(animation=True, scene=sc.name)
+    try:
+        bpy.ops.render.render(animation=True, scene=sc.name)
+    finally:
+        sc.render.frame_map_old = sc.render.frame_map_new = 100
