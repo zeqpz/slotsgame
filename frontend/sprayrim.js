@@ -21,6 +21,7 @@
 //
 //   SprayFX.start({ rules: [...], boxes: [...] })
 //   SprayFX.stoke(el, { peak, hold })
+//   SprayFX.flash(el, { colors, ms, speed, peak })  the fire flashes through these colours and fades back
 (function () {
   "use strict";
   const VS = "attribute vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }";
@@ -39,6 +40,8 @@ uniform vec4 uMapX, uMapY;// nine-slice per axis: border b0, b1 (css), slice s0,
 uniform float uBandSrc;   // field mode: the outline's width, src px
 uniform float uL, uFlame, uTime, uBoil, uSeed, uGlow;
 uniform float uBlow;      // a stoke: the flames this much taller (0 = at rest), brighter and wider-glowing with it
+uniform vec3 uTint;       // a flash: the colour the fire (and its glow) burns in for a moment...
+uniform float uTintAmt;   // ...and how much (0 = its own colours)
 uniform vec3 uShadow;     // the drop shadow under the outline: offset down, blur (css px), alpha
 uniform sampler2D uSdf;
 uniform vec3 uRimKey, uRimDeep, uRimMid, uRimFleck;           // the sprayed band: keylines, paint, flecks
@@ -123,7 +126,7 @@ void main() {
   // a boxy band of blue round the inside of every outline)
   float glow = uGlow * (1. + 1.6 * uBlow) * exp(-max(dOut, 0.) / (uFlame * .55 * (1. + .7 * uBlow)))
              * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011)) * smoothstep(-2. * aa, 2. * aa, dOut);
-  col = vec4(uGlowC * glow, glow) + col * (1. - glow);
+  col = vec4(mix(uGlowC, uTint, uTintAmt) * glow, glow) + col * (1. - glow);
 
   // flames: tongues that climb out of the rim (outward, pulled upward)
   vec2 dir = normalize(n + vec2(0., -.85));
@@ -144,6 +147,7 @@ void main() {
   float b3 = smoothstep(.74 - fw, .74 + fw, f);   // white-hot core
   float outside = smoothstep(-2. * aa, 2. * aa, dOut);
   vec3 fc = mix(uFireKey, uFireBody, b1); fc = mix(fc, uFireLight, b2); fc = mix(fc, uFireCore, b3);
+  fc = mix(fc, uTint * (.75 + .45 * b2) + .35 * b3, uTintAmt * b1 * (1. - .55 * b3));   // a flash: the tongues burn in its colour
   float fa = b0 * outside;
   // overspray: round drops that ride up off the tongues' tips (no flicker: they drift)
   float C = max(1.8 * uL, 3.6 * fmin);
@@ -223,7 +227,7 @@ void main() {
     U = {};
     const CU = { uRimKey: "rimKey", uRimDeep: "rimDeep", uRimMid: "rimMid", uRimFleck: "rimFleck", uFireKey: "fireKey",
                  uFireBody: "fireBody", uFireLight: "fireLight", uFireCore: "fireCore", uGlowC: "glow", uDropC: "drop" };
-    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uTint", "uTintAmt", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
     for (const [u, k] of Object.entries(CU)) gl.uniform3fv(U[u], COLORS[k]);   // set once: every rim shares them
     gl.uniform1i(U.uSdf, 0);
     gl.disable(gl.BLEND);
@@ -368,6 +372,8 @@ void main() {
     t.clock = (t.clock ?? tt) + (t.at !== undefined ? Math.min(.1, tt - t.at) : 0) * (1 + 1.5 * lvl); t.at = tt;
     gl.uniform1f(U.uTime, (t.clock + t.seed) % 900); gl.uniform1f(U.uBoil, Math.floor(tt * 8) % 7919 + 1);
     gl.uniform1f(U.uBlow, lvl * g.flare);
+    const fl = flashAt(t.el, now);
+    gl.uniform3fv(U.uTint, fl.c); gl.uniform1f(U.uTintAmt, fl.a);
     if (t.o.box) {
       gl.uniform1f(U.uMode, 0); gl.uniform3f(U.uRound, g.inset, g.radius, g.band);
     } else {
@@ -442,6 +448,26 @@ void main() {
     s.hold = hold;
   }
 
+  // A flash of colour through the fire (a win, a Multi): its tongues and glow burn in `colors`, stepping
+  // through them `speed` times a second (blended), up in a breath and fading back to its own colours
+  // over `ms`. A new flash takes over from wherever the last one is.
+  const NONE = { c: [0, 0, 0], a: 0 };
+  function flashAt(el, now) {
+    const f = el && el.__flash;
+    if (!f) return NONE;
+    const a = (now - f.at) / 1000, life = f.ms / 1000;
+    if (a >= life) { el.__flash = null; return NONE; }
+    const amt = f.peak * Math.min(1, a / .08) * (a < life * .35 ? 1 : Math.pow(1 - (a - life * .35) / (life * .65), 1.6));
+    const k = f.colors.length, u = (a * f.speed) % k, i = Math.floor(u), w = u - i;
+    const c0 = f.colors[i], c1 = f.colors[(i + 1) % k], e = w * w * (3 - 2 * w);
+    f.c[0] = c0[0] + (c1[0] - c0[0]) * e; f.c[1] = c0[1] + (c1[1] - c0[1]) * e; f.c[2] = c0[2] + (c1[2] - c0[2]) * e;
+    return { c: f.c, a: amt };
+  }
+  function flash(el, { colors = [[1, 1, 1]], ms = 1200, speed = 4, peak = 1 } = {}) {
+    if (!el || still || !colors.length) return;
+    el.__flash = { at: performance.now(), colors, ms, speed, peak: Math.max(0, Math.min(1, peak)), c: [0, 0, 0] };
+  }
+
   function stopAll() {
     alive = false; cancelAnimationFrame(raf);
     for (const t of targets) { t.cv.remove(); if (t.el) delete t.el.__rim; }
@@ -464,5 +490,5 @@ void main() {
     scan(rules);
     return true;
   }
-  window.SprayFX = { start, stop: stopAll, stoke, get ok() { return ok; }, targets };
+  window.SprayFX = { start, stop: stopAll, stoke, flash, get ok() { return ok; }, targets };
 })();

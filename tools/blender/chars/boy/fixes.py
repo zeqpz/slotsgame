@@ -48,8 +48,42 @@ def soft(mask, sigma=.6):
     return np.clip(cv2.GaussianBlur(mask.astype(np.float32), (0, 0), sigma) * 1.0, 0, 1)
 
 
-PRINT = dict(font="frontend/assets/bromo.otf", text="SMUKIEZ", centre=(455, 845), width=112, angle=14.0, tracking=.08,
+PRINT = dict(font="frontend/assets/bromo.otf", text="",              # "" = no print: a plain black tee centre=(455, 845), width=112, angle=14.0, tracking=.08,
              arc=2.5, taper=.07, colour=(238, 237, 232))
+
+
+def plain_chest(t, region):
+    """the chest where the print was (and the edits' traces round it, under the thumb): rebuilt as plain cloth -
+    the shirt's own light and folds carried in smoothly from the cloth round the patch, and the fabric's fine
+    grain at its own strength - so no ghost of letters and no flat blur patch is left"""
+    H, W = t.shape[:2]
+    poly = np.array([(392, 852), (418, 826), (470, 816), (540, 812), (566, 826), (568, 872), (524, 896),
+                     (452, 904), (398, 890)], np.int32)
+    pm = np.zeros((H, W), np.uint8)
+    cv2.fillPoly(pm, [poly], 1)
+    patch = (pm > 0) & region
+    rgb = t[..., :3].astype(np.float32)
+    lum = rgb.mean(-1)
+    ring = ndimage.binary_dilation(patch, iterations=26) & ~ndimage.binary_dilation(patch, iterations=3) & region
+    ring &= np.abs(lum - cv2.GaussianBlur(lum, (0, 0), 6)) < .08         # plain cloth, not seams or ink
+    # the light and the folds: a smooth surface through the cloth round the patch (normalised convolution, wide
+    # then narrower so the gradients carry in)
+    low = np.zeros_like(rgb)
+    w8 = ring.astype(np.float32)
+    for sig in (22, 12):
+        num = cv2.GaussianBlur(rgb * w8[..., None], (0, 0), sig)
+        den = cv2.GaussianBlur(w8, (0, 0), sig)[..., None]
+        est = num / np.maximum(den, 1e-4)
+        low = np.where(den > .02, est, low) if sig == 22 else np.where(den > .08, .5 * est + .5 * low, low)
+    # the grain: the cloth's own fine texture (high-pass) at its measured strength, as fine noise
+    hp = lum - cv2.GaussianBlur(lum, (0, 0), 1.4)
+    rnd = np.random.RandomState(11).normal(0, 1, (H, W)).astype(np.float32)
+    rnd = cv2.GaussianBlur(rnd, (0, 0), .55)
+    rnd *= hp[ring].std() / max(rnd[ring].std(), 1e-6)
+    fill = np.clip(low + rnd[..., None], 0, 1)
+    k = cv2.GaussianBlur(patch.astype(np.float32), (0, 0), 3.0)[..., None] * patch[..., None]
+    k = np.clip(cv2.GaussianBlur(patch.astype(np.float32), (0, 0), 3.0) * 1.6 - .3, 0, 1)[..., None]
+    t[..., :3] = np.where(region[..., None], rgb * (1 - k) + fill * k, rgb)
 
 
 def print_shirt(t, region):
@@ -76,6 +110,9 @@ def print_shirt(t, region):
     rnd *= grain[plain].std() / max(rnd[plain].std(), 1e-6)
     grain = np.where(ndimage.binary_dilation(old, iterations=2), rnd, grain)
     base[old] += grain[old][:, None]
+    if not PRINT.get("text"):                       # a plain tee (the owner: "get rid of the text on the shirt")
+        plain_chest(t, region)
+        return
     # 2. the new letters, set 8x large and warped onto the chest
     SS = 8
     font = ImageFont.truetype(os.path.join(root, PRINT["font"]), 60 * SS)
