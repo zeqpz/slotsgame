@@ -2980,6 +2980,137 @@
     .bottom { padding-bottom: calc(6vh / max(var(--fit, 1), .2)); }
     .hud .bonusbtn { bottom: calc(3.5vh / max(var(--fit, 1), .2) - 37px * var(--hs, 1)); }
   }
+  /* ---------- from Tipsy Harvest (owner, 2026-11-05) ----------
+     WIN in the bar: between BALANCE and BET, between thin dividers. A cluster's figure, done
+     counting on the board, is pulled down into it (flyWinToHud), and it pops and counts up as it
+     lands. The bar runs longer to make room for it (buildHud). */
+  .hudbar { display: grid; grid-template-columns: 1fr auto 1fr; }
+  .hudbar > .hudstat:first-child { justify-self: start; }
+  .hudbar > .hudbet { justify-self: end; }
+  .hudstat.win {
+    align-items: center; justify-self: center; padding: 0 calc(26px * var(--hs, 1));
+    border-left: calc(2px * var(--hs, 1)) solid rgba(255, 255, 255, .14); border-right: calc(2px * var(--hs, 1)) solid rgba(255, 255, 255, .14);
+    min-width: calc(190px * var(--hs, 1));
+  }
+  .hudstat.win .lbl { color: var(--hud-on); }
+  .hudstat.win .val, #roundWin {
+    color: #fff; text-align: center;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 0 14px rgba(184, 242, 58, .4);
+    transition: opacity .3s ease;
+  }
+  .hudstat.win.zero .val { opacity: .4; text-shadow: none; }
+  .hudstat.win .val.pop { animation: winSlotPop .5s cubic-bezier(.2, .9, .3, 1.35); }
+  @keyframes winSlotPop { 0% { scale: 1; } 30% { scale: 1.28; filter: brightness(1.5); } 100% { scale: 1; filter: none; } }
+  /* the figure on its way down from the board to the bar */
+  .winpop.winfly { position: fixed; z-index: 60; animation: none; will-change: transform, opacity; }
+  @media (max-width: 1100px) and (orientation: portrait) {
+    .hudstat.win { padding: 0 calc(14px * var(--hs, 1)); min-width: calc(150px * var(--hs, 1)); }
+  }
+
+  /* The bonus screens in the HUD's paint (Tipsy Harvest): no painted plates or rims - the free-spin
+     counter and the bonus's how-it-works box are the HUD's own slab, half see-through with a thin
+     black outline */
+  html .bonusintro .bhow, html.sprayfx .bonusintro .bhow {
+    border: 3px solid var(--hud-line); border-image: none; border-radius: 18px; background: rgba(20, 18, 26, .8);
+    padding: 1.6vh 2vw; box-shadow: 0 14px 34px rgba(0, 0, 0, .45);
+  }
+  .fsplate, html.sprayfx .fsplate {
+    height: 86px; padding: 0 12px; border: 3px solid var(--hud-line); border-image: none; border-radius: 18px;
+    background: var(--hud-fill); box-shadow: 0 6px 14px rgba(0, 0, 0, .35);
+  }
+  /* the counter says only FREE SPINS (owner, 2026-11-05): the bonus's running win is the bar's WIN now */
+  #fsCard .fswinbox { display: none; }
+  @media (max-width: 760px) and (orientation: portrait) {
+    .fsplate, html.sprayfx .fsplate { height: 174px; padding: 0 24px; border-width: 6px; border-radius: 36px; }
+  }
+
+  /* The bonus shop (Tipsy Harvest's format, in our paint): a row of cards - each a banner of its own
+     (art/ui-src/bonus_banners: a night street scene with the scatter on it), its heat in drips, its
+     name, a line on what it does, the max win, the price at the live bet and GET - over a bar with the
+     balance and the bet to play. GET asks once more (CONFIRM) before it charges. */
+  .bshop {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 18px 20px 20px; font-family: "Fredoka", var(--num); color: #f4f1f8;
+  }
+  .bshoptitle {
+    margin: 0; font-family: "Fredoka", var(--num); font-weight: 700; font-size: 22px; letter-spacing: .22em;
+    text-transform: uppercase; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .5);
+  }
+  .bshopx {
+    position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; padding: 0; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .25); background: rgba(20, 18, 24, .7); cursor: pointer; color: #fff;
+  }
+  .bshopx::before, .bshopx::after { content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 3px; border-radius: 2px; background: currentColor; translate: -50% -50%; rotate: 45deg; }
+  .bshopx::after { rotate: -45deg; }
+  .bshopx:hover { border-color: #fff; }
+  .bshoprow { display: flex; gap: 18px; justify-content: center; align-items: stretch; }
+  .bscard {
+    --acc: #9CE424;
+    position: relative; width: 260px; display: flex; flex-direction: column; overflow: hidden;
+    background: rgba(28, 26, 32, .92); border: 2px solid #000; border-radius: 18px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, .07) inset, 0 14px 30px rgba(0, 0, 0, .55);
+    transition: transform .2s cubic-bezier(.2, .9, .3, 1.3), box-shadow .2s ease;
+  }
+  .bscard:hover { transform: translateY(-4px); }
+  .bscard.on { box-shadow: 0 0 0 2px var(--acc) inset, 0 0 26px color-mix(in srgb, var(--acc) 55%, transparent), 0 14px 30px rgba(0, 0, 0, .55); }
+  .bsban { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 2px solid #000; background: #18171c; }
+  .bsban > img.bsart { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bsban .bsico { position: absolute; left: 50%; top: 52%; height: 70%; translate: -50% -50%; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .6)); }
+  .bsban.art .bsico { display: none; }   /* the banner art carries its own icon */
+  .bsbody { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 14px 6px; text-align: center; flex: 1; }
+  .bspips { display: flex; gap: 4px; }
+  .bspips i {
+    width: 18px; height: 22px; background: rgba(255, 255, 255, .16);
+    -webkit-mask: var(--drip) center / contain no-repeat; mask: var(--drip) center / contain no-repeat;
+  }
+  .bspips i.on { background: var(--acc); }
+  .bsttl { font-weight: 700; font-size: 25px; line-height: 1.05; letter-spacing: .03em; text-transform: uppercase; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, .45); }
+  .bsdesc { font-weight: 500; font-size: 15px; line-height: 1.3; color: #c4bcd2; min-height: 2.6em; }
+  .bsmax { display: flex; justify-content: center; align-self: stretch; margin-top: auto; padding-top: 8px; font-size: 13px; letter-spacing: .12em; color: #9a92a8; font-weight: 600; text-transform: uppercase; }
+  .bsfoot { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 14px 14px; border-top: 2px solid rgba(0, 0, 0, .6); background: rgba(0, 0, 0, .22); }
+  .bsprice { font-weight: 700; font-size: 30px; line-height: 1.1; color: #F5C518; font-variant-numeric: tabular-nums; text-shadow: 0 2px 0 rgba(0, 0, 0, .45); white-space: nowrap; }
+  .bsx { font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #9a92a8; }
+  .bsget {
+    margin-top: 10px; width: 100%; padding: 10px 0 12px; border: 0; border-radius: 14px; cursor: pointer;
+    font-family: "Fredoka", var(--num); font-weight: 700; font-size: 26px; letter-spacing: .06em; color: #15131a; text-transform: uppercase;
+    background: linear-gradient(#D6FF6E, #9CE424); box-shadow: 0 5px 0 #3C6C0C, 0 8px 14px rgba(0, 0, 0, .4);
+    transition: transform .1s ease, filter .15s ease, box-shadow .1s ease;
+  }
+  .bscard.x .bsget { background: linear-gradient(#E9C2FF, #B454E4); box-shadow: 0 5px 0 #3C0C6C, 0 8px 14px rgba(0, 0, 0, .4); }
+  .bsget:hover:not(:disabled) { filter: brightness(1.08); }
+  .bsget:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 #3C6C0C, 0 3px 8px rgba(0, 0, 0, .4); }
+  .bsget:disabled { filter: grayscale(.8) brightness(.6); cursor: default; }
+  .bsget.armed { animation: bsArm .8s ease-in-out infinite alternate; font-size: 22px; }
+  @keyframes bsArm { to { filter: brightness(1.18); transform: scale(1.03); } }
+  .bsget:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  /* the bar under the cards: what you have, and what each spin plays */
+  .bshopbar {
+    display: flex; align-items: center; gap: 22px; padding: 10px 26px; border-radius: 16px;
+    background: var(--hud-fill); border: 2px solid #000; box-shadow: 0 0 0 2px rgba(255, 255, 255, .06) inset;
+  }
+  .bsstat { display: flex; flex-direction: column; gap: 3px; }
+  .bsstat .lbl { font-weight: 600; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: var(--hud-soft); }
+  .bsstat .val { font-weight: 700; font-size: 28px; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bsplay { align-items: center; }
+  .bssep { width: 2px; align-self: stretch; background: rgba(255, 255, 255, .16); }
+  .bsbet { display: flex; align-items: center; gap: 14px; }
+  .bshop #bonusBetDown, .bshop #bonusBetUp {
+    position: relative; width: 32px; height: 32px; padding: 0; border: 0; background: #fff; cursor: pointer; filter: none; transform: none;
+    -webkit-mask: var(--chev) center / 70% no-repeat; mask: var(--chev) center / 70% no-repeat;
+  }
+  .bshop #bonusBetUp { rotate: 180deg; }
+  .bshop #bonusBetDown:hover:not(:disabled), .bshop #bonusBetUp:hover:not(:disabled) { background: var(--hud-on); }
+  .bshop #bonusBetDown:disabled, .bshop #bonusBetUp:disabled { opacity: .3; cursor: default; }
+  .bshop #bonusBetDown::before, .bshop #bonusBetUp::before { content: none; }
+  :root {
+    --drip: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'><path d='M10 1C10 1 3 10 3 15a7 7 0 0 0 14 0C17 10 10 1 10 1z'/></svg>");
+    --chev: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9l7 7 7-7'/></svg>");
+  }
+  /* upright screens: the cards side by side, a size down */
+  @media (max-width: 1100px) and (orientation: portrait) {
+    .bshoprow { gap: 12px; }
+    .bscard { width: min(250px, 44vw); }
+  }
 </style>
 </head>
 <body>
@@ -3015,6 +3146,7 @@
       <button class="hudbtn audio" id="audioBtn" aria-label="Sound and music volume" aria-expanded="false">Audio</button>
       <div class="hudbar">
         <div class="hudstat stat"><span class="lbl" id="balanceLbl">Balance</span><span class="val" id="balance">0.00</span></div>
+        <div class="hudstat stat win zero" id="winStat"><span class="lbl">Win</span><span class="val" id="roundWin">0.00</span></div>
         <div class="chip stat juris" id="jurisBox" hidden><span class="val" id="jurisVal"></span></div>
         <div class="hudbet">
           <div class="hudstat stat bet"><span class="lbl">Bet</span><span class="val" id="betVal">1.00</span></div>
@@ -3029,8 +3161,6 @@
       <button class="sidebtn auto" id="autoBtn" aria-label="Auto play" title="Auto play"><span id="autoN" hidden></span></button>
     </div>
   </div>
-  <!-- the round total still counts here, unseen: the popup over the icons is the win text -->
-  <div class="chip stat winchip" id="winChip" hidden><span class="lbl">Win</span><span class="val" id="roundWin">0.00</span></div>
 
   <!-- The pop-ups hang off the bar itself (placed from JS over the tab that opens them), so they
        read as part of the HUD: the auto play picker over Auto, the volume panel over the speaker. -->
@@ -3068,35 +3198,26 @@
 
 <div class="infowrap" id="bonusWrap" hidden>
   <div class="bonuspop">
-    <div class="bonuspanel" role="dialog" aria-modal="true" aria-label="Bonus">
-      <h3 id="bonusTitle"><i class="bglow" aria-hidden="true"></i>Bonus</h3>
-      <div class="bonusgrid">
-        <button type="button" class="bonuscard gold on" id="bonusStd" data-mode="bonus">
-          <i class="nhalo" aria-hidden="true"></i><i class="ntube" aria-hidden="true"></i>
-          <span class="ttl">Bonus</span>
-          <img class="cardart" src="assets/flat/BS.webp" alt="" draggable="false">
-          <span class="spins"><b>10, 12 or 15</b> free spins</span>
-          <span class="mult" id="bonusStdCost"></span>
-          <span class="desc" id="bonusStdDesc">10, 12 or 15 free spins. Multis land often and drop in lines, and every value they leave stays on the board for the whole bonus.</span>
-        </button>
-        <button type="button" class="bonuscard purple" id="bonusExt" data-mode="extremebonus">
-          <i class="nhalo" aria-hidden="true"></i><i class="ntube" aria-hidden="true"></i>
-          <span class="ttl">Extreme Bonus</span>
-          <img class="cardart" src="assets/flat/ES.webp" alt="" draggable="false">
-          <span class="spins"><b>10, 12, 15 or 17</b> free spins</span>
-          <span class="mult" id="bonusExtCost"></span>
-          <span class="desc" id="bonusExtDesc">10, 12, 15 or 17 free spins. Every Multi is worth x2 or more, walls drop in lines, and values stack across the feature.</span>
-        </button>
+    <!-- The bonus shop (owner, 2026-11-05, Tipsy Harvest's format): a row of cards - each a banner of
+         its own, its heat in drips, its name, a line on what it does, the max win, the price at the
+         live bet and GET - over a bar with the balance and the bet to play. Cards are written by
+         paintBonus() from BUYS; GET asks once more (CONFIRM) before it charges. -->
+    <div class="bshop" role="dialog" aria-modal="true" aria-label="Bonus buy">
+      <button type="button" class="bshopx" id="bonusClose" aria-label="Close"></button>
+      <h3 class="bshoptitle" id="bonusTitle">Bonus Buy</h3>
+      <div class="bshoprow" id="bshopRow"></div>
+      <div class="bshopbar">
+        <div class="bsstat"><span class="lbl">Balance</span><span class="val" id="bshopBal">0.00</span></div>
+        <i class="bssep" aria-hidden="true"></i>
+        <div class="bsstat bsplay">
+          <span class="lbl">Play</span>
+          <div class="bsbet">
+            <button type="button" id="bonusBetDown" aria-label="Lower bet"></button>
+            <span class="val" id="bonusBetVal">1.00</span>
+            <button type="button" id="bonusBetUp" aria-label="Raise bet"></button>
+          </div>
+        </div>
       </div>
-      <div class="bonusbet">
-        <span class="lbl" id="bonusBetLbl">Bet amount</span>
-        <button type="button" id="bonusBetDown" aria-label="Lower bet">−</button>
-        <div class="amt" id="bonusBetVal">1.00</div>
-        <button type="button" id="bonusBetUp" aria-label="Raise bet">+</button>
-      </div>
-      <div class="bonustotal" id="bonusTotalLbl">Total<b id="bonusTotal"></b></div>
-      <button class="wordbtn bonusgo" id="bonusGo">Play</button>
-      <div class="bonusnote" id="bonusNote">Pressing Play charges the total above and starts the feature.</div>
     </div>
   </div>
 </div>
@@ -3403,12 +3524,7 @@ function wander(targets, frames, { seg = 6, rate = 8 } = {}) {
 // art keeps its painted outlines.
 const RIM_SLICE_INFO = [.049, .0625, .049, .0625], RIM_SLICE_AUTO = [.09, .09, .09, .09];
 const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art had in CSS
-  { sel: ".bonuspanel", art: "bonus_panel", fit: "stretch", flameK: 1.7, shadow: [18, 40, .6] },
   { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7 },   // stoked under the mouse (runFeatures)
-  { sel: ".bonusintro .bhow", art: "info_panel", fit: "slice", slice: RIM_SLICE_INFO, flameK: 1.9, shadow: [14, 30, .55] },
-  { sel: "#fsCard .fsplate", art: "hud_bar", fit: "slice", slice: [0, .06, 0, .06], shadow: [4, 8, .5] },   // the free-spin counter wears the bar's slab
-  { sel: "#bonusBetUp", art: "hud_plus", fit: "contain", shadow: [2, 3, .5] },
-  { sel: "#bonusBetDown", art: "hud_minus", fit: "contain", shadow: [2, 3, .5] },
 ];
 function startRims() {
   if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
@@ -5249,19 +5365,71 @@ function paintFsCount(cur, total, quiet) {
     sfx("bell", 1.15);
   }
 }
+// A cluster's figure, done counting on the board, is pulled down into the bar's WIN (owner, 2026-11-05,
+// after Tipsy Harvest): a copy of it rises a touch, then drops - faster and faster, shrinking to the
+// bar's figure - and lands on it; the bar then pops and counts up (setRoundWin waits for it). The copy
+// lives on the page, outside the scaled and turned board, so it flies in screen space, on transform
+// and opacity only.
+function flyWinToHud(chip) {
+  const dst = $("roundWin");
+  const a = chip.getBoundingClientRect(), b = dst && dst.getBoundingClientRect();
+  if (REDUCED_MOTION || !b || !a.width || !b.width || document.hidden) { chip.remove(); return Promise.resolve(); }
+  const ghost = chip.cloneNode(true);
+  ghost.classList.remove("off");
+  ghost.classList.add("winfly");
+  const k0 = a.height / Math.max(1, chip.offsetHeight);   // the board's scale on screen
+  ghost.style.left = (a.left + a.width / 2) + "px";
+  ghost.style.top = (a.top + a.height / 2) + "px";
+  ghost.style.fontSize = (parseFloat(getComputedStyle(chip).fontSize) * k0).toFixed(1) + "px";
+  ghost.style.webkitTextStrokeWidth = (3 * k0).toFixed(2) + "px";
+  document.body.appendChild(ghost);
+  chip.remove();
+  const dx = b.left + b.width / 2 - (a.left + a.width / 2), dy = b.top + b.height / 2 - (a.top + a.height / 2);
+  const k = Math.max(.2, Math.min(1.2, b.height / Math.max(1, a.height)));
+  sfxGap("floatAway", 300);
+  const anim = ghost.animate([
+    { transform: "translate(0, 0) scale(1)", opacity: 1, easing: "cubic-bezier(.3, .6, .5, 1)" },
+    { offset: .2, transform: `translate(${(dx * .03).toFixed(1)}px, -16px) scale(1.06)`, opacity: 1, easing: "cubic-bezier(.6, 0, .9, .45)" },
+    { offset: .9, transform: `translate(${(dx * .97).toFixed(1)}px, ${(dy * .97).toFixed(1)}px) scale(${(k * 1.05).toFixed(3)})`, opacity: 1 },
+    { transform: `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(${k.toFixed(3)})`, opacity: 0 },
+  ], { duration: 640 * tempo(), fill: "forwards" });
+  // as it lands, the bar's figure flashes in this line's own colour (its green-to-purple count hue,
+  // with the same glow) and eases back to the bar's white (owner, 2026-11-05)
+  const col = chip.style.color || getComputedStyle(chip).color;
+  return anim.finished.catch(() => {}).then(() => {
+    ghost.remove();
+    dst.animate([
+      { color: col, textShadow: `0 0 6px ${col}, 0 0 18px ${col}, 0 2px 0 rgba(0, 0, 0, .35)` },
+      { offset: .35, color: col, textShadow: `0 0 6px ${col}, 0 0 18px ${col}, 0 2px 0 rgba(0, 0, 0, .35)` },
+      { color: "#fff", textShadow: "0 2px 0 rgba(0, 0, 0, .35), 0 0 14px rgba(184, 242, 58, .4)" },
+    ], { duration: 900 * tempo(), easing: "ease-out" });
+  });
+}
+// figures still on their way down: the bar's WIN counts once they have landed
+let winGates = [];
+let hudWinQ = Promise.resolve(), hudWinShown = 0, hudWinGen = 0;
 function setRoundWin(v) {
-  const el = $("roundWin"), from = shownWin, chip = $("winChip");
+  const el = $("roundWin"), stat = $("winStat");
   shownWin = v;
-  // the chip is not a permanent readout any more: it arrives with the win and leaves with it
-  if (chip) {
-    if (v > 0) {
-      chip.hidden = false;
-    } else {
-      chip.hidden = true;
-    }
+  if (!(v > 0)) {   // a new round: back to an empty WIN at once, and whatever was queued is dropped
+    hudWinGen++; winGates = []; hudWinQ = Promise.resolve();
+    hudWinShown = 0;
+    countTo(el, 0, 0, 0);
+    if (stat) stat.classList.add("zero");
+    return;
   }
-  if (v > from) { countTo(el, from, v, countMs()); cashFx(el, "up"); }
-  else { countTo(el, from, v, 0); }   // resetting to 0 at round start — no fanfare
+  const gen = hudWinGen, gates = winGates;
+  winGates = [];
+  hudWinQ = hudWinQ
+    .then(() => Promise.race([Promise.all(gates), new Promise(r => setTimeout(r, 4000))]))
+    .then(() => {
+      if (gen !== hudWinGen || v <= hudWinShown) return;
+      const from = hudWinShown;
+      hudWinShown = v;
+      if (stat) stat.classList.remove("zero");
+      if (!REDUCED_MOTION) { el.classList.remove("pop"); restyle(el); el.classList.add("pop"); }
+      countTo(el, from, v, countMs());
+    });
 }
 
 /* ---------- sound ---------- */
@@ -6438,10 +6606,12 @@ function placeWinChip(positions, amount, mult) {
   sfx("winText");   // the win amount popping is this note's cue
   const gone = () => !chip.isConnected;
   const bye = () => chip.remove();
+  let landed;
+  winGates.push(new Promise(r => { landed = r; }));   // the bar's WIN waits for this figure to arrive
   if (REDUCED_MOTION) {   // no motion: the end state, for a moment
     paint(final, true);
     if (m > 1) slamTag();
-    setTimeout(bye, 1800 * tempo());
+    setTimeout(() => { bye(); landed(); }, 1800 * tempo());
     return 600;
   }
   const T = tempo();
@@ -6485,11 +6655,9 @@ function placeWinChip(positions, amount, mult) {
     sfx("countEnd");
     await wait(REST);
     if (gone()) return;
-    chip.classList.add("off");                // up and away, slowly
-    sfxGap("floatAway", 400);                 // (one at a time: figures can overlap as clusters follow on)
-    chip.addEventListener("animationend", e => { if (e.animationName === "winAmtOff") bye(); });
-    setTimeout(bye, 1700 * T + 400);          // in case the animation never runs
-  })();
+    await flyWinToHud(chip);                  // pulled down into the bar's WIN, which pops and counts up
+    landed();
+  })().finally(() => landed());
   return IN + UP1 + (m > 1 ? GAP + HIT + UP2 : 0) + 150;
 }
 
@@ -6587,30 +6755,75 @@ async function presentRound(round, { settle = true } = {}) {
 // mode and pressing Play are three deliberate actions, with the exact charge on screen for
 // the last two. It is also the only route into the bonus modes — nothing else calls
 // playRound() with anything but "base".
+// The shop's cards (owner, 2026-11-05, Tipsy Harvest's format), in order. A mode the math does not
+// have (no MODE_COST) shows no card.
+const BUYS = [
+  { mode: "bonus", key: "fs", title: "Free Spins", desc: "10, 12 or 15 free spins. Multis stay all bonus.", heat: 3, acc: "#9CE424", icon: () => SYM.BS.img },
+  { mode: "extremebonus", key: "xfs", title: "Free Spins", desc: "17 free spins. Every Multi is x2 or more.", heat: 5, acc: "#B454E4", icon: () => SYM.ES.img, x: true },
+];
 let bonusMode = "bonus";
+let bshopArmed = null, bshopArmT = 0;
+function bshopCard(o) {
+  const card = document.createElement("div");
+  card.className = "bscard" + (o.x ? " x" : "");
+  card.dataset.mode = o.mode;
+  card.style.setProperty("--acc", o.acc);
+  const ban = document.createElement("div");
+  ban.className = "bsban";
+  const art = new Image();
+  art.className = "bsart"; art.alt = ""; art.draggable = false;
+  art.onload = () => ban.classList.add("art");
+  art.onerror = () => art.remove();
+  art.src = `assets/bonus/banner_${o.key}.webp`;
+  const ic = new Image();
+  ic.className = "bsico"; ic.alt = ""; ic.draggable = false; ic.src = o.icon();
+  ban.append(art, ic);
+  card.append(ban);
+  card.insertAdjacentHTML("beforeend",
+    `<div class="bsbody"><div class="bspips">${Array.from({ length: 5 }, (_, i) => `<i class="${i < o.heat ? "on" : ""}"></i>`).join("")}</div>` +
+    `<div class="bsttl"></div><div class="bsdesc"></div><div class="bsmax"></div></div>` +
+    `<div class="bsfoot"><div class="bsprice"></div><div class="bsx"></div><button type="button" class="bsget"></button></div>`);
+  card.querySelector(".bsttl").textContent = T(o.title);
+  card.querySelector(".bsdesc").textContent = T(o.desc);
+  card.querySelector(".bsget").addEventListener("click", () => bshopGet(o));
+  return card;
+}
+function bshopGet(o) {
+  if (bshopArmed !== o.mode) {   // the first press asks; the second, within a few seconds, buys
+    bshopArmed = o.mode; bonusMode = o.mode;
+    clearTimeout(bshopArmT);
+    bshopArmT = setTimeout(() => { bshopArmed = null; paintBonus(); }, 4000);
+    sfx("bet", 1.1);
+    paintBonus();
+    return;
+  }
+  bshopArmed = null; clearTimeout(bshopArmT);
+  sfx("buyConfirm");
+  closeBonus();
+  playRound(o.mode);
+}
 function paintBonus() {
   const wrap = $("bonusWrap");
   if (!wrap || wrap.hidden) return;
-  const price = MODE_COST[bonusMode] * bet();
-  const over = m => MODE_COST[m] * bet() > state.balance;
-  // each card's price: the x-cost over the money it comes to at this bet, each on its own line
-  const cost = (id, m) => {
-    const x = document.createElement("b"), money = document.createElement("span");
-    x.textContent = "x" + MODE_COST[m];
-    money.textContent = fmt(MODE_COST[m] * bet());
-    $(id).replaceChildren(x, money);
-  };
-  cost("bonusStdCost", "bonus");
-  cost("bonusExtCost", "extremebonus");
+  const row = $("bshopRow");
+  const live = BUYS.filter(o => MODE_COST[o.mode] > 0);
+  if (row.dataset.modes !== live.map(o => o.mode).join()) {
+    row.replaceChildren(...live.map(bshopCard));
+    row.dataset.modes = live.map(o => o.mode).join();
+  }
+  for (const card of row.children) {
+    const o = BUYS.find(x => x.mode === card.dataset.mode), cost = MODE_COST[o.mode], price = cost * bet();
+    const over = price > state.balance, btn = card.querySelector(".bsget"), armed = bshopArmed === o.mode;
+    card.querySelector(".bsprice").textContent = fmt(price);
+    card.querySelector(".bsx").textContent = T(`${fmtMult(cost)}× bet`);
+    card.querySelector(".bsmax").textContent = T("Max win") + " x" + RULES.MAX_WIN.toLocaleString("en-US");
+    card.classList.toggle("on", armed);
+    btn.classList.toggle("armed", armed && !over);
+    btn.textContent = over ? T("Low balance") : armed ? T("Confirm") : T("Get");
+    btn.disabled = over;
+  }
+  $("bshopBal").textContent = fmtBal(state.balance);
   $("bonusBetVal").textContent = fmt(bet());
-  $("bonusTotal").textContent = fmt(price);
-  $("bonusStd").classList.toggle("on", bonusMode === "bonus");
-  $("bonusExt").classList.toggle("on", bonusMode === "extremebonus");
-  $("bonusStd").disabled = over("bonus");
-  $("bonusExt").disabled = over("extremebonus");
-  $("bonusGo").classList.toggle("purple", bonusMode === "extremebonus");
-  $("bonusGo").disabled = over(bonusMode);
-  $("bonusGo").textContent = over(bonusMode) ? T("Not enough balance") : T("Play");
   $("bonusBetUp").disabled = state.betIdx >= state.bets.length - 1;
   $("bonusBetDown").disabled = state.betIdx <= 0;
 }
@@ -6629,15 +6842,16 @@ function openBonus() {
   sfx("menuOpen");
   sfx("capPop");   // the can's cap comes off
   musicTo("menu", .8);
+  bshopArmed = null;
   paintBonus();
   fitBonus();
-  $("bonusGo").focus();
+  $("bonusClose").focus({ preventScroll: true });
 }
 // A short window (a laptop's 650 px, a phone on its side, a popout): the whole buy shrinks to fit
 // rather than running off the screen - prices, steppers and PLAY all stay on screen. Both ways: the
 // sideways layout keeps one design width, wider than a 400 px popout.
 function fitBonus() {
-  const pop = document.querySelector("#bonusWrap .bonuspop"), panel = document.querySelector("#bonusWrap .bonuspanel");
+  const pop = document.querySelector("#bonusWrap .bonuspop"), panel = document.querySelector("#bonusWrap .bshop");
   if (!pop || !panel || $("bonusWrap").hidden) return;
   // the panel drifts a few px, and the wrap keeps a 20 px margin: room for both
   const k = Math.min((innerHeight - 28) / (panel.offsetHeight + 12), (innerWidth - 28) / (panel.offsetWidth + 12));
@@ -6664,16 +6878,9 @@ $("bonusBtn").addEventListener("click", () => openBonus());
   // stops with it, and comes back when the button does if the pointer never left
   new MutationObserver(() => { if (btn.disabled) stop(); else start(); }).observe(btn, { attributes: true, attributeFilter: ["disabled"] });
 }
-$("bonusStd").addEventListener("click", () => { bonusMode = "bonus"; sfx("bet", 1.1); paintBonus(); });
-$("bonusExt").addEventListener("click", () => { bonusMode = "extremebonus"; sfx("bet", .9); paintBonus(); });
+$("bonusClose").addEventListener("click", () => closeBonus());
 $("bonusBetUp").addEventListener("click", () => { state.betIdx = Math.min(state.betIdx + 1, state.bets.length - 1); sfx("bet", 1.22); refreshBet(); });
 $("bonusBetDown").addEventListener("click", () => { state.betIdx = Math.max(state.betIdx - 1, 0); sfx("bet", 0.8); refreshBet(); });
-$("bonusGo").addEventListener("click", () => {
-  const mode = bonusMode;
-  sfx("buyConfirm");
-  closeBonus();
-  playRound(mode);
-});
 $("bonusWrap").addEventListener("click", e => { if (e.target === $("bonusWrap")) closeBonus(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("bonusWrap").hidden) closeBonus(); });
 
@@ -6847,7 +7054,7 @@ function buildHud() {
   const M = 4, H = 128, TOP = M, BOT = M + H, CY = M + H / 2;   // M: room for the outline
   const S = 74;                                    // the hexagon's half-width
   const BH = 100, BT = CY - BH / 2, BB = CY + BH / 2;   // the bar, its top and bottom
-  const LEN = upright ? 380 : 460;                 // the bar's straight run
+  const LEN = upright ? 520 : 720;                 // the bar's straight run (longer for the WIN readout, 2026-11-05)
   const G = 6, GX = G / S60, TW = 72, TG = 6;      // tab gap (square to the face), its run across, tab width, gap within a pair
   const run = (BH / 2) / T60;                      // the pointed end's reach
   const Y1 = CY - TG / 2, Y2 = CY + TG / 2;

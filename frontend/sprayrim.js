@@ -460,7 +460,7 @@ void main() {
   function flashAt(el, now) {
     const f = el && el.__flash;
     if (!f) return NONE;
-    const a = (now - f.at) / 1000, life = f.ms / 1000;
+    const a = Math.max(0, (now - f.at) / 1000), life = f.ms / 1000;   // a frame stamped before the flash began reads as its start
     if (a >= life) { el.__flash = null; return NONE; }
     const amt = f.peak * Math.min(1, a / .08) * (a < life * .35 ? 1 : Math.pow(1 - (a - life * .35) / (life * .65), 1.6));
     const k = f.colors.length, u = (a * f.speed) % k, i = Math.floor(u), w = u - i;
