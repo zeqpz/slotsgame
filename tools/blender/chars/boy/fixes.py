@@ -429,3 +429,16 @@ def apply(P, heads, M, labs, aligned):
     keep = ndimage.binary_dilation(lab == names.index("arm_l_fore"), iterations=8) | ndimage.binary_erosion(Hd, iterations=2) | elbow_end
     Fo[..., 3] *= soft(keep, .6)
     Fo[Fo[..., 3] < 1 / 255.] = 0
+    # the beanie's brim: the old cut ended the beanie on a ragged line through the brim's black outline, so specks
+    # of the forehead showed through the outline (a light, spiky fringe - plain at 2x); the brim's whole ink line
+    # (and its soft lower edge) goes into the beanie, which covers the head there
+    Bn = P["beanie"]
+    bs = Bn[..., 3] > .5
+    band = ndimage.binary_dilation(bs, iterations=12) & ~bs & np.isin(lab, [names.index("head"), names.index("beanie")])
+    inky = band & (M[..., :3].max(-1) < .55) & (M[..., 3] > .9)
+    lab_i, k = ndimage.label(inky | bs)
+    keep_l = np.unique(lab_i[bs])
+    add = np.isin(lab_i, keep_l[keep_l > 0]) & inky
+    add = ndimage.binary_closing(add | bs, iterations=2) & ~bs & band
+    Bn[add, :3] = M[add, :3]
+    Bn[..., 3] = np.maximum(Bn[..., 3], soft(add, .6) * (M[..., 3] > .9))

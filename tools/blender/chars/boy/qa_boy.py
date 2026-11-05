@@ -28,7 +28,15 @@ def on_wall(a):
     return Image.fromarray((rgb * 255 + .5).clip(0, 255).astype(np.uint8))
 
 
+def half(a):
+    """the crack check runs on the frame at the 720 x 1200 scale (it measures px-wide gaps; at the 2x master the
+    full-size pass is four times the work for the same answer)"""
+    k = max(1, a.shape[1] // 720)
+    return a if k == 1 else a.reshape(a.shape[0] // k, k, a.shape[1] // k, k, 4).mean((1, 3))
+
+
 def cracks(a, rest_mask=None):
+    a = half(a)
     """hairline cracks and holes inside the figure: see-through pixels with solid paint on both sides within 2 px
     (across the gap, any of four directions), and see-through pockets enclosed by the figure"""
     al = a[..., 3]

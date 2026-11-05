@@ -24,12 +24,13 @@ import fxkit                    # noqa: E402  (read-only: px / vec / secondary /
 
 SID = "BOY"
 PARTS = os.path.join(ROOT, "art", "blender", "chars", "boy", "parts")
+PARTS4 = os.path.join(ROOT, "art", "blender", "chars", "boy", "parts_4x")
 spec = json.load(open(os.path.join(PARTS, "parts.json")))
 W, H = spec["size"]
 fxkit.ICON[0], fxkit.ICON[1] = W, H
 PX = 100.0
 DEPTH = 0.1
-RES = (720, 1200)
+RES = (1440, 2400)                                   # the 2x master (packed down for each screen)
 REST_PX = RES[1] / 1.2                              # the standing figure's height on screen
 FAN = spec["fan"]
 NB = len(FAN["angles"])
@@ -229,7 +230,8 @@ mask_ng.links.new(mv.outputs[0], go.inputs[0])
 
 
 def material(name, file, mask_white=False):
-    img = bpy.data.images.load(os.path.join(PARTS, file), check_existing=True)
+    hi = os.path.join(PARTS4, file)                 # the 4x textures (hires_parts.py), same geometry
+    img = bpy.data.images.load(hi if os.path.exists(hi) else os.path.join(PARTS, file), check_existing=True)
     img.reload()
     img.alpha_mode = "STRAIGHT"
     mat = bpy.data.materials.get(SID + "_" + name) or bpy.data.materials.new(SID + "_" + name)

@@ -24,6 +24,11 @@ UNLIT_DENSITY = .5
 QUALITY = 84
 
 
+def dname(d):
+    """A density's folder name: tenths (d5, d7, d10) when exact, else hundredths (d25, d35)."""
+    return f"d{round(d * 10)}" if abs(d * 10 - round(d * 10)) < 1e-6 else f"d{round(d * 100)}"
+
+
 def box_of(files, pad=4):
     """The union of everything a clip's frames show, in master px (x0, y0, x1, y1)."""
     seen = None
@@ -90,7 +95,7 @@ def pack_clip(args):
     box = box_of(files)
     out = {"box": [int(v) for v in box], "files": {}, "away": [] if clip == "smoke" else away_from_rest(char, files)}
     for d in densities:
-        dd = f"d{round(d * 10)}"
+        dd = dname(d)
         out["files"][dd] = encode(files, box, d, os.path.join(OUT, char, dd, clip + ".bin"))
     if unlit:
         if len(unlit) != len(files):
@@ -125,7 +130,7 @@ if __name__ == "__main__":
             clips[clip] = {"frames": info["frames"], "loop": bool(info.get("loop")), "cues": cues,
                            "box": p["box"], "files": p["files"], **({"unlit": p["unlit"]} if "unlit" in p else {})}
         man = {"fps": m["fps"], "size": m["size"], "rest_height": m["rest_height_px"], "ground_y": m["ground_y"],
-               "densities": [f"d{round(d * 10)}" for d in densities], "clips": clips, "track": m.get("track", {})}
+               "densities": [dname(d) for d in densities], "density_of": {dname(d): d for d in densities}, "clips": clips, "track": m.get("track", {})}
         if "smoke" in m:
             p = packed[char]["smoke"]
             man["smoke"] = {"frames": m["smoke"]["frames"], "origin": m["smoke"]["origin"], "box": p["box"], "files": p["files"]}

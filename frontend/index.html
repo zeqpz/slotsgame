@@ -1390,11 +1390,11 @@
        toward the held column (--zx), reaching full size as that column's last icon lands
        (--zoomms, set per reveal) and letting go again in a beat, hit or miss */
     scale: 1; transform-origin: var(--zx, 50%) 50%;
-    transition: scale .6s cubic-bezier(.2,.9,.3,1.2), transform-origin .6s ease;
+    transition: scale .6s cubic-bezier(.2,.9,.3,1.2), transform-origin .6s ease, opacity .25s ease;
   }
   .board.zoomin {
     scale: 1.045;
-    transition: scale var(--zoomms, 1.8s) cubic-bezier(.35,0,.65,1), transform-origin var(--zoomms, 1.8s) ease;
+    transition: scale var(--zoomms, 1.8s) cubic-bezier(.35,0,.65,1), transform-origin var(--zoomms, 1.8s) ease, opacity .25s ease;
   }
   /* the sprayed outline: a thin band that runs 1% to 4% in from the art's edge, so a 10px
      overhang lands it in the board's own padding, just outside the icons, on every side */
@@ -1771,6 +1771,10 @@
      under the icon, as long as the trail it leaves (88% of the cell is the icon's box, and the
      trail runs SMEAR.trail of its height above it). It shows in step with the tile's speed - none
      at rest, the whole streak (--blur of it) at the fastest - and is gone the moment it lands. */
+  /* the board's symbols are drawn in one canvas (boardgl.js), between the multiplier values and the reels;
+     the cells keep moving as ever but show no picture of their own, the motion blur included */
+  #board > canvas.boardgl { position: absolute; pointer-events: none; z-index: 0; }
+  #board.gl .cell > .smear { visibility: hidden; }
   .cell > .smear {
     position: absolute; left: 6%; width: 88%; bottom: 6%; height: calc(88% * 2.1);
     background: center bottom / 100% 100% no-repeat; opacity: 0; pointer-events: none; transform-origin: 50% 100%;
@@ -2938,8 +2942,10 @@
   @keyframes infoRise { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
   /* While the game menu is up the board (with its frame and its numbers) and the two characters fade
      out, leaving the wall, the HUD and the panel (owner, 2026-11-03) */
-  #board, .framefx, .charfx, .charshadow { transition: opacity .25s ease; }
-  body.menu-open #board, body.menu-open .framefx, body.menu-open .charfx, body.menu-open .charshadow { opacity: 0 !important; pointer-events: none; }
+  /* (the fade rides each element's own transition list - .board's carries its zoom's scale too, and a
+     transition set here would replace that and make the lean-in jump; the frame fades with the board) */
+  .charfx { transition: opacity .25s ease; }
+  body.menu-open #board, body.menu-open .charfx, body.menu-open .charshadow { opacity: 0 !important; pointer-events: none; }
   @media (prefers-reduced-motion: reduce) { #infoWrap .infopanel { animation: none; } }
   /* Portrait phone layout (the characters' own rules are up with the other character rules):
      the tag on the wall moves up to the top quarter so the pair stands in front of it, the
@@ -3152,6 +3158,7 @@
 <script src="rules.js"></script>
 <script src="sprayrim.js"></script>
 <script src="wallfx.js"></script>
+<script src="boardgl.js"></script>
 <script>
 "use strict";
 
@@ -3406,7 +3413,8 @@ const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art ha
 function startRims() {
   if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
   SprayFX.start({
-    boxes: [{ sel: "#board", box: true, grow: 10, inset: .01, band: .03, radius: .022, flameK: 1.76, z: 3, cls: "framefx",
+    boxes: [{ sel: "#board", box: true, grow: 10, inset: .01, band: .03, radius: .022, flameK: 1.76, z: 3, cls: "framefx", fireIdle: 0,   // the fire only for a line, FS or multiplier (owner, 2026-11-04)
+             
               flare: 1, onAttach: el => el.classList.add("livefx") }],   // stoked as a spin starts (playRound)
     rules: RIM_RULES,
   });
@@ -3506,6 +3514,9 @@ function setCell(r, y, sym) {
 const SYM_DENSITY = [1.6, 2.4, 3.2];   // sheet px per rig unit (an icon is 100 across), as the old atlas's
 const SYM_HEADROOM = 1.25;            // sheet px per screen px at rest: crisp at rest, through the lit pop and the hit
 const SYM_IDLE_STAGGER = 2400;        // ms over which a resting board's idles start up, each symbol at its own moment
+const SYM_IDLE_REST = [8000, 20000];   // ms an icon rests between its idle cycles, at random (the first 0 to the most after it lands)
+const SYM_IDLE_MAX_SHARE = .12;       // at most this share of the board mid-idle at once: a start over it waits a moment
+const SYM_IDLE_RATE = .575;             // the idles play at this share of their frame rate: slow and barely noticed (owner, 2026-11-04); land/hit/multi at their own speed
 const SYMF = { man: null, density: "d16", sheets: new Map(), k: 1 };   // sheets: "<ID>_<clip>" -> { img, ok, ready, frames }
 // The clips every symbol plays all the time - its landing and its idle - are held as ready frames (perf,
 // 2026-11-03). Drawn straight from the sheets, the board needed every sheet decoded at once (~480 MB at
@@ -3520,8 +3531,9 @@ const SYM_HOLD_HEADROOM = 1.1;
 const CLIP_OF = { drop: "land", win: "hit" };   // the board's own names for the moments, and the clips that play
 let symReady = null;
 // sheet px per rig unit the biggest symbol needs at rest on this screen, times the headroom -> the density to load
+const symDpr = () => Math.min(window.devicePixelRatio || 1, window.BoardGL && BoardGL.on ? BoardGL.MAX_RES : 99);
 function symWantDensity() {
-  const c = cellEls[0] && cellEls[0][0], dpr = window.devicePixelRatio || 1;
+  const c = cellEls[0] && cellEls[0][0], dpr = symDpr();
   let px = dpr;
   if (c && c.offsetWidth && c.offsetHeight) {
     const unit = Math.min(c.clientWidth * .88, c.clientHeight * .88) / 100;   // css px per rig unit (measureRigBox)
@@ -3536,7 +3548,7 @@ function symWantDensity() {
 // How far the held frames are scaled from the sheet: to what the board's biggest symbol needs at rest -
 // for the biggest window this screen gives it, so a window made bigger later is still drawn sharp
 function symHoldScale() {
-  const c = cellEls[0] && cellEls[0][0], dpr = window.devicePixelRatio || 1;
+  const c = cellEls[0] && cellEls[0][0], dpr = symDpr();
   if (!c || !c.offsetWidth || !c.offsetHeight) return 1;
   const unit = Math.min(c.clientWidth * .88, c.clientHeight * .88) / 100;
   const fit = c.getBoundingClientRect().width / c.offsetWidth;
@@ -3549,6 +3561,14 @@ function symHoldScale() {
 function symSheet(id, clip) {
   const key = id + "_" + clip;
   let s = SYMF.sheets.get(key);
+  if (!s && BoardGL.on) {
+    // drawn by the board canvas: every clip is an atlas at the size the screen shows it (the hit and the
+    // Multi with the headroom of their pop)
+    const url = `assets/sym/${SYMF.density}/${key}.webp`, k = SYM_HOLD.includes(clip) ? SYMF.k : Math.min(1, SYMF.k * SYM_HEADROOM / SYM_HOLD_HEADROOM);
+    s = { ok: false, ready: null, atlas: null };
+    s.ready = BoardGL.atlas(id, clip, url, k).then(a => { s.atlas = a; s.ok = true; }, e => { SYMF.sheets.delete(key); throw e; });
+    SYMF.sheets.set(key, s);
+  }
   if (!s) {
     const img = new Image(), url = `assets/sym/${SYMF.density}/${key}.webp`, hold = SYM_HOLD.includes(clip);
     img.decoding = "async";
@@ -3590,6 +3610,7 @@ function loadSymFrames() {
     if (REDUCED_MOTION) return false;
     const man = await fetch("assets/sym/manifest.json").then(r => r.ok ? r.json() : Promise.reject(new Error("manifest " + r.status)));
     SYMF.man = man;
+    if (window.BoardGL) await BoardGL.init();   // one canvas for the whole board, where WebGL is there
     SYMF.density = symWantDensity();
     SYMF.k = symHoldScale();
     const ids = Object.keys(man.symbols);
@@ -3614,6 +3635,11 @@ function rigEl(name, label) {
   el.className = "rig"; el.setAttribute("role", "img"); el.setAttribute("aria-label", label || name);
   el.style.setProperty("--rw", (m.icon[0] * 10).toFixed(2));
   el.style.setProperty("--rh", (m.icon[1] * 10).toFixed(2));
+  if (BoardGL.on) {   // the board canvas draws it: the rig only says what is showing (_gclip, _gf)
+    Object.assign(el, { _name: name, _m: m, _clip: null, _shown: "", _gclip: null, _gf: 0 });
+    symRest(el);
+    return el;
+  }
   const cv = document.createElement("canvas");
   cv.className = "symc";
   el.append(cv);
@@ -3639,6 +3665,7 @@ function symDraw(el, clip, f) {
   if (el._shown === key) return;
   const s = fr;
   if (!s || !s.ok) return;
+  if (!el._ctx) { el._gclip = clip; el._gf = f; el._shown = key; BoardGL.touch(); return; }   // the board canvas draws it
   if (held) {
     symLay(el, clip, held.width, held.height);
     el._ctx.clearRect(0, 0, held.width, held.height);
@@ -3664,15 +3691,14 @@ function symStep(now) {
     let f = Math.floor((now - el._t0) * el._rate / 1000 * c.fps);
     if (f >= c.frames) {
       if (el._loop) f %= c.frames;
-      else if (SYMF.sheets.get(el._name + "_idle")?.ok) {
-        // straight back into the idle from the very moment the clip ended (both meet on the rest pose): a
-        // symbol never stands still between a landing, a hit or a Multi and its idle
-        const end = el._t0 + c.frames / c.fps / el._rate * 1000;
-        Object.assign(el, { _clip: "idle", _t0: end, _rate: 1 / tempo(), _loop: true });
-        const ci = el._m.clips.idle;
-        f = Math.floor((now - end) * el._rate / 1000 * ci.fps) % ci.frames;
+      else {
+        // a clip played through: back on the rest pose (every clip ends on it), and its next idle cycle a
+        // while off, on its own random clock (owner, 2026-11-04: idles now and then, never in step)
+        const landed = el._clip === "land";
+        symPlaying.delete(el); el._clip = null; symRest(el);
+        el._idleAt = now + (landed ? Math.random() * SYM_IDLE_REST[1] : SYM_IDLE_REST[0] + Math.random() * (SYM_IDLE_REST[1] - SYM_IDLE_REST[0]));
+        continue;
       }
-      else { symPlaying.delete(el); el._clip = null; symRest(el); continue; }
     }
     symDraw(el, el._clip, Math.max(0, f));
   }
@@ -3689,7 +3715,8 @@ function winClipMs(cells, clip = "hit") {
   }
   return ms;
 }
-// Play one of a symbol's clips; Rapid and Skip speed it up. A clip whose sheet has not arrived yet is let go:
+// Play one of a symbol's clips, always at its own speed: Rapid and Skip hurry the game along, never the icons'
+// animations (owner, 2026-11-04). A clip whose sheet has not arrived yet is let go:
 // the symbol keeps its rest pose (only ever in the first seconds of a session).
 function rigPlay(cell, clip, { loop = false, speed = 1 } = {}) {
   const el = rigOf(cell);
@@ -3697,7 +3724,7 @@ function rigPlay(cell, clip, { loop = false, speed = 1 } = {}) {
   clip = CLIP_OF[clip] || clip;
   const c = el._m.clips[clip], s = SYMF.sheets.get(el._name + "_" + clip);
   if (!c || !s || !s.ok) { if (c && !s) symSheet(el._name, clip).catch(() => {}); return null; }
-  Object.assign(el, { _clip: clip, _t0: performance.now(), _rate: speed / tempo(), _loop: loop });
+  Object.assign(el, { _clip: clip, _t0: performance.now(), _rate: clip === "idle" ? speed * SYM_IDLE_RATE : speed, _loop: loop });
   symDraw(el, clip, 0);
   symPlaying.add(el);
   if (!symRaf) symRaf = requestAnimationFrame(symStep);
@@ -3731,19 +3758,26 @@ function rigDrain() {
   }
   if (rigQueue.size) rigQueueRaf = requestAnimationFrame(rigDrain);
 }
-// The board is never still: every symbol loops its idle the whole time, through rounds too (owner, 2026-11-02:
-// always playing, no pauses). A landing, hit or Multi cuts in and hands straight back to the idle as it ends
-// (symStep). This only starts the loops on symbols showing their rest pose - the board as the game opens, a
-// symbol whose idle frames arrived late - each at its own moment within the stagger, so they never pulse as one.
+// Each icon plays its idle now and then (owner, 2026-11-04, replacing "always playing"): one cycle at
+// SYM_IDLE_RATE of its speed, then it rests on its rest pose for SYM_IDLE_REST, each on its own random clock so
+// neighbours are never in step, and never more than SYM_IDLE_MAX_SHARE of the board at once. A landing, hit or
+// Multi cuts in at once and hands back to the rest pose as it ends (symStep).
 function symIdleTick() {
   setTimeout(symIdleTick, 200);
   if (document.hidden || REDUCED_MOTION) return;
   const now = performance.now();
+  let idling = 0;
+  for (const el of symPlaying) if (el._clip === "idle") idling++;
+  const cap = Math.max(1, Math.round(REELS * ROWS * SYM_IDLE_MAX_SHARE));
   for (let r = 0; r < REELS; r++) for (let y = 0; y < ROWS; y++) {
     const cell = cellEls[r][y], el = rigOf(cell);
     if (!el || symPlaying.has(el) || !SYMF.sheets.get(el._name + "_idle")?.ok) continue;
-    if (!el._idleAt) el._idleAt = now + Math.random() * SYM_IDLE_STAGGER;
-    else if (now >= el._idleAt) { el._idleAt = 0; rigPlay(cell, "idle", { loop: true }); }
+    if (!el._idleAt) el._idleAt = now + Math.random() * SYM_IDLE_REST[1];   // a new icon: its first cycle somewhere in the first rest
+    else if (now >= el._idleAt) {
+      if (idling >= cap) { el._idleAt = now + 500 + Math.random() * 1500; continue; }   // enough of the board moving: in a moment
+      el._idleAt = 0; idling++;
+      rigPlay(cell, "idle");   // one cycle, then it rests again (symStep)
+    }
   }
 }
 // What a tile does as it drops in: its own clip as it lands (`hit`, the moment of contact), and -
@@ -4068,7 +4102,10 @@ function hueRgb(h) {   // a fully saturated colour of hue h (degrees), as 0..1 r
 function boardFlash(kind, v = 1) {
   const b = $("board");
   if (!window.SprayFX || !SprayFX.flash || !b) return;
-  if (kind === "multi") {
+  if (kind === "fs") {   // free spins: the scatters' lime and the extreme bonus's violet, strobing white
+    SprayFX.flash(b, { colors: [[.72, .95, .23], [1, 1, 1], [.62, .33, .98], [1, 1, 1]], ms: 1800 * tempo(), speed: 6, peak: 1 });
+    SprayFX.stoke(b, { peak: 1 });
+  } else if (kind === "multi") {
     const c = hueRgb(heatHue(v));
     SprayFX.flash(b, { colors: [c, [1, 1, 1], c, c], ms: 1500 * tempo(), speed: 7, peak: 1 });
     SprayFX.stoke(b, { peak: 1 });
@@ -6024,6 +6061,7 @@ const handlers = {
   },
 
   async freeSpinTrigger(ev) {
+    boardFlash("fs");   // the board's fire pops for the free spins
     for (const p of ev.positions || []) cellEls[p.reel][p.row - 1].classList.add("pulse");
     state.bonusHit = true;
     Cam.trigger((ev.positions || []).map(p => cellEls[p.reel][p.row - 1]));   // the camera swoops in on the scatters
@@ -6654,7 +6692,7 @@ async function playRound(mode) {
   state.playing = true; state.skip = false; state.mode = mode;
   setButtons(false);
   bounceFx();
-  if (window.SprayFX) SprayFX.stoke($("board"));   // the spin blows on the frame's fire: its flames whoosh up and settle
+  // (the board's fire no longer flares on every spin: it pops only for a line, an FS trigger or a multiplier - boardFlash)
   tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
   const t0 = performance.now();
   let ok = true;
@@ -6962,6 +7000,8 @@ const CHARACTERS = [
 // 63 rather than 60 because Pixi rounds the time since its last frame down to whole ms before it
 // compares: at exactly 60 a 60 Hz screen would now and then lose a frame; at 63 it never does.
 const CHAR_FPS = 63;
+const CHAR_IDLE_REST = [3000, 7000];      // ms the figure rests on its rest pose between idle cycles
+const CHAR_IDLE_RATE = .575;              // the characters' idle loops play at 57.5% speed, without re-animating them
 const CHAR_FLAVOUR_GAP = [7000, 16000];   // how long idle runs before the next break
 const CHAR_AHEAD = 10;                    // frames kept decoded ahead of the one showing
 const CHAR_DECODES = 6;                   // decodes under way at once, per figure (charFrames)
@@ -6979,6 +7019,39 @@ let charReact = () => {}, charEnter = () => {}, charExit = () => {};
 // A figure's frames: its manifest, the density that suits this screen, each clip's file (fetched whole,
 // kept compressed) and the frames decoded from it. get() hands a decoded frame or null (and starts its
 // decode); keep() lets go of every frame not in the set it is given.
+// The figures' frames are fetched and decoded in a worker (perf, 2026-11-04): on a phone, slicing a frame out
+// of its clip's file and starting its decode on the page itself took ~1 ms of the page's own time a frame,
+// for each of the two figures, their lit masks and the smoke - a quarter of a slow phone's frame. The worker
+// keeps each clip's file (compressed) and hands every decoded frame back as an ImageBitmap, moved, not copied.
+// Where a worker cannot start, the page does it itself as before.
+const charWorker = (() => {
+  let w = null;
+  if (/[?&]charworker=0/.test(location.search)) return null;   // QA: decode on the page itself
+  try {
+    const src = `const files = new Map();
+      const file = url => { let f = files.get(url); if (!f) { f = fetch(url).then(r => { if (!r.ok) throw new Error(url + " -> HTTP " + r.status); return r.blob(); }); files.set(url, f); f.catch(() => files.delete(url)); } return f; };
+      onmessage = async e => {
+        const q = e.data;
+        if (q.drop) { files.delete(q.drop); return; }
+        try {
+          const b = await file(q.url);
+          if (q.a === undefined) { postMessage({ id: q.id }); return; }
+          const bmp = await createImageBitmap(b.slice(q.a, q.b, "image/webp"));
+          postMessage({ id: q.id, bmp }, [bmp]);
+        } catch (err) { postMessage({ id: q.id, err: String((err && err.message) || err) }); }
+      };`;
+    w = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+  } catch (e) { return null; }
+  let n = 0;
+  const wait = new Map();
+  w.onmessage = e => { const p = wait.get(e.data.id); if (!p) return; wait.delete(e.data.id); e.data.err ? p.no(new Error(e.data.err)) : p.ok(e.data.bmp); };
+  const ask = q => new Promise((ok, no) => { q.id = ++n; wait.set(q.id, { ok, no }); w.postMessage(q); });
+  return {
+    file: url => ask({ url: new URL(url, location.href).href }),
+    frame: (url, a, b) => ask({ url: new URL(url, location.href).href, a, b }),
+    drop: url => w.postMessage({ drop: new URL(url, location.href).href }),
+  };
+})();
 async function charFrames(name, figurePx) {
   const base = `assets/chars/${name}`;
   const r = await fetch(`${base}/manifest.json`);
@@ -6986,14 +7059,16 @@ async function charFrames(name, figurePx) {
   const man = await r.json();
   // the smallest density that still draws the standing figure at a pixel per screen pixel
   const want = figurePx / man.rest_height;
-  const dd = man.densities.find(d => parseInt(d.slice(1), 10) / 10 >= want) || man.densities[man.densities.length - 1];
-  const d = parseInt(dd.slice(1), 10) / 10;
+  const dval = n => (man.density_of && man.density_of[n]) || parseInt(n.slice(1), 10) / 10;   // (older packs: tenths in the name)
+  const dd = man.densities.find(n => dval(n) >= want) || man.densities[man.densities.length - 1];
+  const d = dval(dd);
   const files = new Map(), frames = new Map();
+  const urlOf = (kind, clip) => kind === "unlit" ? `${base}/unlit/${clip}.bin` : `${base}/${dd}/${clip}.bin`;
   const file = (kind, clip) => {   // kind: "art", "unlit" or "smoke" (clip "smoke": the figure's own smoke loop)
     const key = kind + ":" + clip;
     if (!files.has(key)) {
-      const url = kind === "unlit" ? `${base}/unlit/${clip}.bin` : `${base}/${dd}/${clip}.bin`;
-      files.set(key, fetch(url).then(r => { if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`); return r.blob(); }));
+      const url = urlOf(kind, clip);
+      files.set(key, charWorker ? charWorker.file(url) : fetch(url).then(r => { if (!r.ok) throw new Error(`${url} -> HTTP ${r.status}`); return r.blob(); }));
     }
     return files.get(key);
   };
@@ -7021,14 +7096,15 @@ async function charFrames(name, figurePx) {
       f = { bmp: null, busy: true };
       frames.set(key, f);
       inflight++;
-      file(kind, clip)
-        .then(b => createImageBitmap(b.slice(inf.offsets[i], inf.offsets[i + 1], "image/webp")))
+      (charWorker ? charWorker.frame(urlOf(kind, clip), inf.offsets[i], inf.offsets[i + 1])
+        : file(kind, clip).then(b => createImageBitmap(b.slice(inf.offsets[i], inf.offsets[i + 1], "image/webp"))))
         .finally(() => { inflight--; f.busy = false; })
         .then(bmp => { failed.delete(key); if (frames.get(key) === f) f.bmp = bmp; else bmp.close(); })
         .catch(e => {
           if (frames.get(key) === f) frames.delete(key);
           failed.set(key, { n: ((failed.get(key) || {}).n || 0) + 1, at: performance.now() });
           files.delete(kind + ":" + clip);
+          if (charWorker) charWorker.drop(urlOf(kind, clip));
           if (!warned.has(kind + ":" + clip)) { warned.add(kind + ":" + clip); console.warn("character frames:", name, kind, clip, e.message); }
         });
     }
@@ -7284,25 +7360,48 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   app.ticker.add(() => { if (dirty) { dirty = false; app.render(); } }, null, PIXI.UPDATE_PRIORITY.LOW);
   app.renderer.on("resize", touch);
 
-  // Each frame is drawn onto a canvas the size of the whole frame at this density (its clip's box in
-  // place), which the sprite shows; the unlit mask's frame onto one of its own at its density.
+  // Each frame is laid on a "paper" the size of the whole frame at this density (its clip's box in place):
+  // a container of sprites - the frame, the one fading out over it on a cut, the smoke - each showing a
+  // decoded frame straight as a texture (perf, 2026-11-04: it was drawn into a 2D canvas first and that
+  // canvas uploaded, which on a phone cost the most of anything on the page). The unlit mask's frame on a
+  // paper of its own at its density. An empty rectangle the paper's size keeps the light's filter working
+  // over the whole frame, as it did on the canvas.
   const paper = (density) => {
-    const c = document.createElement("canvas");
-    c.width = Math.round(W * density); c.height = Math.round(H * density);
-    const tex = PIXI.Texture.from(c);
-    tex.source.autoGenerateMipmaps = true;   // drawn at a third to a half of its size on a 1080p screen: trilinear, no shimmer
-    tex.source.style.minFilter = "linear"; tex.source.style.mipmapFilter = "linear";
-    return { c, ctx: c.getContext("2d"), tex, density };
+    const cont = new PIXI.Container();
+    const pw = Math.round(W * density), ph = Math.round(H * density);
+    const bed = new PIXI.Graphics().rect(0, 0, pw, ph).fill({ color: 0, alpha: 0 });
+    const layer = () => { const s = new PIXI.Sprite(); s.visible = false; cont.addChild(s); return s; };
+    cont.addChild(bed);
+    const P = { cont, density, main: layer(), prev: layer(), smoke: layer() };
+    cont.pivot.set(pw / 2, man.ground_y * density);   // its frame's centre line, on the soles' ground
+    return P;
   };
+  // Each layer keeps one texture and has each new frame uploaded into it (the same size within a clip, so
+  // the GPU copies it over the last one rather than making a new texture every frame)
+  const put = (s, bmp, x, y, a) => {
+    if (s._bmp !== bmp) {
+      const src = s._src;
+      if (src && src.width === bmp.width && src.height === bmp.height) { src.resource = bmp; src.update(); }
+      else {
+        const tex = PIXI.Texture.from(bmp);
+        tex.source.autoGenerateMipmaps = true;   // drawn at a third to a half of its size on a 1080p screen: trilinear, no shimmer
+        tex.source.style.minFilter = "linear"; tex.source.style.mipmapFilter = "linear";
+        const old = s.texture;
+        s.texture = tex; s._src = tex.source;
+        if (src && old) old.destroy(true);
+      }
+      s._bmp = bmp;
+    }
+    s.position.set(x, y); s.alpha = a; s.visible = true;
+  };
+  const hide = s => { s.visible = false; };
   const art = paper(d), ud = (man.clips.idle.unlit || {}).density || .5, un = has("idle") && man.clips.idle.unlit ? paper(ud) : null;
-  const actor = new PIXI.Sprite(art.tex);
-  actor.anchor.set(.5, man.ground_y / H);   // its frame's centre line, on the soles' ground
+  const actor = art.cont;
   app.stage.addChild(actor);
   let unlitStage = null, unlitSprite = null;
   if (un) {
     unlitStage = new PIXI.Container();
-    unlitSprite = new PIXI.Sprite(un.tex);
-    unlitSprite.anchor.copyFrom(actor.anchor);
+    unlitSprite = un.cont;
     unlitStage.addChild(unlitSprite);
   }
   const repose = neonRim(app, actor, unlitStage, touch);   // the tag's light on them from behind
@@ -7328,10 +7427,12 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   const SM = man.smoke || null, smokeT0 = performance.now();   // the figure's smoke loop, if it has one
   let smokeAt = 0, smokeLast = null;
   let rank = -1, until = 0, away = true, timer = 0, fadeTimer = 0;
-  const lengthOf = clip => man.clips[clip].frames * 1000 / fps;
+  // the idle plays at CHAR_IDLE_RATE of its frame rate: slow and barely noticeable (owner, 2026-11-04)
+  const rateOf = clip => clip === "idle" ? CHAR_IDLE_RATE : 1;
+  const lengthOf = clip => man.clips[clip].frames * 1000 / fps / rateOf(clip);
   const frameAt = (c, now) => {
-    const n = man.clips[c.clip].frames, f = Math.floor((now - c.t0) * fps / 1000);
-    return man.clips[c.clip].loop ? ((f % n) + n) % n : Math.min(f, n - 1);
+    const n = man.clips[c.clip].frames, f = Math.floor((now - c.t0) * fps * rateOf(c.clip) / 1000);
+    return Math.max(0, Math.min(f, n - 1));   // (the idle too: it plays a cycle and rests, see the ticker)
   };
   const fig = {
     showing: () => shown,
@@ -7346,13 +7447,13 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     const boxOf = c => kind === "art" ? man.clips[c].box : man.clips[c].unlit.box, box = boxOf(clip);
     const bmp = F.get(kind, clip, i);
     if (!bmp) return false;
-    P.ctx.clearRect(0, 0, P.c.width, P.c.height);
-    P.ctx.globalAlpha = 1;
-    P.ctx.drawImage(bmp, box[0] * P.density, box[1] * P.density, bmp.width, bmp.height);
+    put(P.main, bmp, box[0] * P.density, box[1] * P.density, 1);
+    hide(P.prev);
     if (prev) {   // a cut away from a cue: the last frame shown fades out over the new one
       const pb = F.get(kind, prev.clip, prev.i), pbox = boxOf(prev.clip);
-      if (pb) { P.ctx.globalAlpha = prev.a; P.ctx.drawImage(pb, pbox[0] * P.density, pbox[1] * P.density, pb.width, pb.height); P.ctx.globalAlpha = 1; }
+      if (pb) put(P.prev, pb, pbox[0] * P.density, pbox[1] * P.density, prev.a);
     }
+    hide(P.smoke);
     // the figure's own smoke (the skull's cigar): its loop runs on its own clock and is laid with its
     // emitter on the ember of the frame showing, so it follows the cigar and never restarts on a cut
     const em = SM && kind === "art" && man.track[clip] && man.track[clip][i] && man.track[clip][i].ember;
@@ -7360,11 +7461,8 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
       const fresh = F.get("smoke", "smoke", smokeAt);
       if (fresh) smokeLast = fresh;
       const sb = smokeLast && smokeLast.width ? smokeLast : null;   // (a released frame is closed: width 0)
-      if (sb) {
-        P.ctx.drawImage(sb, (em[0] - SM.origin[0] + SM.box[0]) * P.density, (em[1] - SM.origin[1] + SM.box[1]) * P.density, sb.width, sb.height);
-      }
+      if (sb) put(P.smoke, sb, (em[0] - SM.origin[0] + SM.box[0]) * P.density, (em[1] - SM.origin[1] + SM.box[1]) * P.density, 1);
     }
-    P.tex.source.update();
     return true;
   };
 
@@ -7379,40 +7477,28 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     const now = performance.now();
     let f = frameAt(cur, now);
     const C = man.clips[cur.clip];
-    // a one-shot over: on into a reaction waiting behind it, else back to the idle's first frame - every
-    // clip ends on the rest pose, so either way it carries straight on (the exit holds its last, hidden, pose)
+    // Clips never cut into each other and never blend (owner, 2026-11-04: "wait to be done before jumping to
+    // another animation"): a waiting reaction starts exactly where the clip playing ends - a one-shot at its
+    // last frame, the idle at the end of its loop. Every clip starts and ends on the rest pose, so each hands
+    // straight on to the next. (The exit holds its last, hidden, pose.)
     if (!C.loop && Math.floor((now - cur.t0) * fps / 1000) >= C.frames && cur.clip !== "exit") {
       const endAt = cur.t0 + lengthOf(cur.clip);
-      if (next && nextReady()) { start(next.clip, endAt, true, next.rank); next = null; }
+      if (next && nextReady()) { charSfx(name, next.clip); start(next.clip, endAt, false, next.rank); next = null; }
       else { start("idle", endAt, false); rank = -1; }
       f = frameAt(cur, now);
     }
-    // a waiting clip cuts in on the idle's next cue (or when it has waited long enough, blending), once its
-    // first frames are decoded
-    // A bigger moment leaves a smaller one-shot playing (an idle break such as the 8 s cash count, or a smaller
-    // reaction) where that clip passes back through the rest pose (its cues, found by the packer) - not at its end
-    if (next && cur.clip !== "idle" && cur.clip !== "enter" && cur.clip !== "exit" && next.rank > cur.rank && nextReady()) {
-      const cues = man.clips[cur.clip].cues || [];
-      const atRest = f > 2 && (cues.includes(f) || (shown && shown.clip === cur.clip && cues.some(c => c > shown.i && c <= f)));
-      const late = now - next.at > CHAR_CUE_WAIT;   // a clip with no rest pass for a while: the safety net
-      if (atRest || late) { start(next.clip, now, true, next.rank); next = null; f = 0; }
-    }
-    // A waiting reaction cuts into the idle only where the idle passes through the rest pose (its cues, never
-    // more than ~0.75 s apart) - never mid-move, never by fading one pose into another (owner, 2026-11-03).
-    // During another one-shot it waits for that clip's end (above). CHAR_CUE_WAIT is only a safety net.
-    if (next && cur.clip === "idle" && nextReady()) {
-      const cues = man.clips.idle.cues || [];
-      const passed = shown && shown.clip === "idle" && (cues.some(c => c > shown.i && c <= f) || f < shown.i);   // (f < shown.i: round past frame 0)
-      const onCue = cues.includes(f) || passed;
-      const late = now - next.at > CHAR_CUE_WAIT;
-      if (onCue || late) {
-        // on a cue the pose is the idle's rest pose, so the cut is seamless; a late cut or a bigger moment
-        // cutting off a smaller one blends over CHAR_XFADE frames (a figure's smoke is its own layer and
-        // carries straight on - see draw)
-        charSfx(name, next.clip);
-        start(next.clip, now, true, next.rank);   // a 3-frame blend: the hanging parts (laces, beanie tip) settle the last px
-        next = null;
-        f = 0;
+    // The idle is not always playing (owner, 2026-11-04): it plays one cycle, then the figure rests on its
+    // first frame (the rest pose) for CHAR_IDLE_REST, then plays again. A waiting reaction starts at once while
+    // he rests, or where the cycle under way ends.
+    if (cur.clip === "idle") {
+      const L = lengthOf("idle"), el = now - cur.t0;
+      if (el >= L) {
+        const endAt = cur.t0 + L;
+        if (next && nextReady()) { charSfx(name, next.clip); start(next.clip, endAt, false, next.rank); next = null; }
+        else cur.t0 = endAt + CHAR_IDLE_REST[0] + Math.random() * (CHAR_IDLE_REST[1] - CHAR_IDLE_REST[0]);
+        f = frameAt(cur, now);
+      } else if (el < 0 && next && nextReady()) {
+        charSfx(name, next.clip); start(next.clip, now, false, next.rank); next = null; f = 0;
       }
     }
     // what to keep decoded: this clip's next frames, the idle's first (to hand back to), a waiting clip's first
@@ -7457,7 +7543,9 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     if (next && want <= next.rank) return false;      // one is already waiting for its cue
     next = { clip, rank: want, at: now };
     // it starts at the playing one-shot's end, or at the idle's next rest pose (~0.75 s at most)
-    const startsAt = cur.clip !== "idle" && cur.clip !== "exit" ? Math.max(now, cur.t0 + lengthOf(cur.clip)) : now + 750;
+    const L = lengthOf("idle");
+    const startsAt = cur.clip !== "idle" && cur.clip !== "exit" ? Math.max(now, cur.t0 + lengthOf(cur.clip))
+      : now < cur.t0 ? now : cur.t0 + L;   // at once while he rests, else where the idle's cycle ends
     rank = want; until = startsAt + lengthOf(clip);
     return true;
   };

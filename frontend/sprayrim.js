@@ -42,6 +42,7 @@ uniform float uL, uFlame, uTime, uBoil, uSeed, uGlow;
 uniform float uBlow;      // a stoke: the flames this much taller (0 = at rest), brighter and wider-glowing with it
 uniform vec3 uTint;       // a flash: the colour the fire (and its glow) burns in for a moment...
 uniform float uTintAmt;   // ...and how much (0 = its own colours)
+uniform float uFireOn;    // how much of the fire burns (1 always; a rim with fireIdle: 0 only while flashed or stoked)
 uniform vec3 uShadow;     // the drop shadow under the outline: offset down, blur (css px), alpha
 uniform sampler2D uSdf;
 uniform vec3 uRimKey, uRimDeep, uRimMid, uRimFleck;           // the sprayed band: keylines, paint, flecks
@@ -126,6 +127,7 @@ void main() {
   // a boxy band of blue round the inside of every outline)
   float glow = uGlow * (1. + 1.6 * uBlow) * exp(-max(dOut, 0.) / (uFlame * .55 * (1. + .7 * uBlow)))
              * (.2 + .08 * sin(uTime * 2.3 + p.x * .013 + p.y * .011)) * smoothstep(-2. * aa, 2. * aa, dOut);
+  glow *= .35 + .65 * uFireOn;   // a rim whose fire is out keeps only a faint glow off its edge
   col = vec4(mix(uGlowC, uTint, uTintAmt) * glow, glow) + col * (1. - glow);
 
   // flames: tongues that climb out of the rim (outward, pulled upward)
@@ -163,6 +165,7 @@ void main() {
   // of each 2x2 pixel block has stopped drawing, its derivatives are garbage, and the bands lit a
   // 1 px line all round the rim (seen once a stoke's headroom put the cut-off on the canvas)
   fa *= 1. - smoothstep(.82 * reach, .95 * reach, beyond);
+  fa *= uFireOn;
   col = vec4(fc * fa, fa) + col * (1. - fa);
 
   // the rim: sprayed paint between a dark keyline on each edge
@@ -227,7 +230,7 @@ void main() {
     U = {};
     const CU = { uRimKey: "rimKey", uRimDeep: "rimDeep", uRimMid: "rimMid", uRimFleck: "rimFleck", uFireKey: "fireKey",
                  uFireBody: "fireBody", uFireLight: "fireLight", uFireCore: "fireCore", uGlowC: "glow", uDropC: "drop" };
-    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uTint", "uTintAmt", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uTint", "uTintAmt", "uFireOn", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
     for (const [u, k] of Object.entries(CU)) gl.uniform3fv(U[u], COLORS[k]);   // set once: every rim shares them
     gl.uniform1i(U.uSdf, 0);
     gl.disable(gl.BLEND);
@@ -293,7 +296,7 @@ void main() {
     if (!r.width || r.right < -200 || r.bottom < -200 || r.left > innerWidth + 200 || r.top > innerHeight + 200) return null;
     if (o.active && !o.active(el)) return null;
     const shown = r.width / W;                                    // fit-to-screen and the element's own transforms
-    let px = Math.min((window.devicePixelRatio || 1) * shown, 3);
+    let px = Math.min((window.devicePixelRatio || 1) * shown, 2);   // 2x at most (perf, 2026-11-04: a 3x phone filled 2.25x the pixels of this shader)
     const g = { W, H, px };
     if (o.box) {                                                   // a rounded box
       const mn = Math.min(W, H) + 2 * (o.grow || 0);
@@ -374,6 +377,8 @@ void main() {
     gl.uniform1f(U.uBlow, lvl * g.flare);
     const fl = flashAt(t.el, now);
     gl.uniform3fv(U.uTint, fl.c); gl.uniform1f(U.uTintAmt, fl.a);
+    // fireIdle: 0 - the fire is out at rest and burns only while the rim is flashed or stoked, fading with them
+    gl.uniform1f(U.uFireOn, t.o.fireIdle === 0 ? Math.min(1, Math.max(fl.a * 1.4, lvl)) : 1);
     if (t.o.box) {
       gl.uniform1f(U.uMode, 0); gl.uniform3f(U.uRound, g.inset, g.radius, g.band);
     } else {

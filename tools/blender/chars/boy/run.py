@@ -42,6 +42,7 @@ def run(path):
 t0 = time.time()
 if "parts" in steps:
     subprocess.run([VENV, os.path.join(HERE, "prep_parts.py")], check=True)
+    subprocess.run([VENV, os.path.join(HERE, "hires_parts.py")], check=True)      # the 4x textures
 if "build" in steps:
     run(os.path.join(HERE, "build_boy.py"))
 else:
@@ -232,7 +233,7 @@ if "meta" in steps:
         entry = {"frames": len(track), "loop": name in loops}
         # rest-pose frames (within 1.5 screen px of rest): the idle's cut points; in a one-shot, where the game
         # may cut out of it early
-        entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.5]
+        entry["cues"] = [i for i, d in enumerate(dist) if d <= 1.5 * RES[1] / 1200]      # 1.5 px of the 1200 px frame
         meta["clips"][name] = entry
         meta["track"][name] = track
         report[name] = {"first_vs_rest_px": round(dist[0], 3), "last_vs_rest_px": round(dist[-1], 3),
