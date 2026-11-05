@@ -25,6 +25,8 @@ import json
 import os
 from collections import Counter
 
+from game_config import BOOST_BONUS, BOOST_COST
+
 from optimization_program.optimization_config import (
     ConstructScaling,
     ConstructParameters,
@@ -155,6 +157,37 @@ class OptimizationSetup:
             ).return_dict(),
             "basegame": ConstructConditions(hr=2.5, rtp=0.566).return_dict(),
         }
+        # Bonus Boost: base's targets with the bonus criteria BOOST_BONUS x as frequent (hr / 1.6)
+        # at the same average win, priced at BOOST_COST. Every rtp here is a share of the boost's
+        # cost (1.25 base bets), so a return of R base bets is asked as R / 1.25. The bonus brings
+        # 1.6 x 0.389 = 0.622 base bets and the base game's own spins 0.578; the 0.008 still
+        # missing to 0.967 x 1.25 = 1.209 goes on the ordinary winning spins (av_win 1.415x ->
+        # 1.436x a win), so wallcover and the 0 criteria are untouched.
+        k, c = BOOST_BONUS, BOOST_COST
+        boost_bonus_rtp = {
+            "wincap": round(0.002 * k / c, 6),
+            "freegame": round(0.34 * k / c, 6),
+            "extremegame": round(0.047 * k / c, 6),
+            "wallcover": round(0.012 / c, 6),
+        }
+        boost_conditions = {
+            "wincap": ConstructConditions(
+                rtp=boost_bonus_rtp["wincap"], av_win=wincaps["boost"], search_conditions=wincaps["boost"]
+            ).return_dict(),
+            "0": ConstructConditions(rtp=0, av_win=0, search_conditions=0).return_dict(),
+            "freegame": ConstructConditions(
+                rtp=boost_bonus_rtp["freegame"], hr=240 / k, search_conditions={"symbol": "scatter"}
+            ).return_dict(),
+            "extremegame": ConstructConditions(
+                rtp=boost_bonus_rtp["extremegame"], hr=8000 / k, search_conditions={"symbol": "scatter_extreme"}
+            ).return_dict(),
+            "wallcover": ConstructConditions(
+                rtp=boost_bonus_rtp["wallcover"], hr=80000, search_conditions={"symbol": "wallcover"}
+            ).return_dict(),
+            "basegame": ConstructConditions(
+                hr=2.5, rtp=round(game_config.rtp - sum(boost_bonus_rtp.values()), 6)
+            ).return_dict(),
+        }
         self.game_config.opt_params = {
             "base": {
                 "conditions": base_conditions,
@@ -208,6 +241,23 @@ class OptimizationSetup:
                     sim_trials=5000,
                     test_spins=[10, 20, 50],
                     test_weights=[0.6, 0.2, 0.2],
+                    score_type="rtp",
+                ).return_dict(),
+            },
+            "boost": {
+                "conditions": boost_conditions,
+                "scaling": ConstructScaling(
+                    base_book_scaling(game_config, boost_conditions, mode="boost")
+                ).return_dict(),
+                "parameters": ConstructParameters(
+                    num_show=1500,
+                    num_per_fence=2000,
+                    min_m2m=1,
+                    max_m2m=400,
+                    pmb_rtp=1.0,
+                    sim_trials=5000,
+                    test_spins=[50, 100, 200],
+                    test_weights=[0.3, 0.4, 0.3],
                     score_type="rtp",
                 ).return_dict(),
             },

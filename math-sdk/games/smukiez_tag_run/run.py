@@ -19,6 +19,10 @@ if __name__ == "__main__":
     parser.add_argument("--base", type=int, default=int(2e4), help="base mode simulation count")
     parser.add_argument("--bonus", type=int, default=int(5e3), help="bonus buy simulation count")
     parser.add_argument("--extreme", type=int, default=int(5e3), help="extreme bonus buy simulation count")
+    parser.add_argument("--boost", type=int, default=int(2e4), help="bonus boost simulation count")
+    parser.add_argument("--modes", nargs="+", default=None,
+                        help="only simulate and optimise these modes (default: all). The other modes' "
+                             "books and tables in publish_files are left exactly as they are.")
     parser.add_argument("--threads", type=int, default=1, help="simulation processes")
     parser.add_argument("--rust-threads", type=int, default=16)
     parser.add_argument("--no-sims", action="store_true", help="skip book generation")
@@ -31,7 +35,11 @@ if __name__ == "__main__":
     compression = True
     profiling = False
 
-    num_sim_args = {"base": args.base, "bonus": args.bonus, "extremebonus": args.extreme}
+    num_sim_args = {"base": args.base, "bonus": args.bonus, "extremebonus": args.extreme, "boost": args.boost}
+    if args.modes:
+        unknown = set(args.modes) - set(num_sim_args)
+        assert not unknown, f"unknown modes {sorted(unknown)}"
+        num_sim_args = {m: n for m, n in num_sim_args.items() if m in args.modes}
     target_modes = list(num_sim_args.keys())
 
     config = GameConfig()

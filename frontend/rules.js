@@ -86,7 +86,7 @@ const RULES = (() => {
   }
 
   /**
-   * opts: { bet: integer 6dp, fmt(amount) -> string, social: bool, modeCost: {bonus, extremebonus} }
+   * opts: { bet: integer 6dp, fmt(amount) -> string, social: bool, modeCost: {bonus, extremebonus, boost} }
    */
   function render(opts) {
     const { bet, fmt, social } = opts;
@@ -124,8 +124,9 @@ const RULES = (() => {
     <tr><td>${t("Base game")}</td><td>${x(1)} <em>${money(1)}</em></td><td>${t("One spin. Free spins trigger naturally from Crew Leader and Phantom symbols.")}</td></tr>
     <tr><td>${t("Buy Bonus")}</td><td>${x(cost.bonus)} <em>${money(cost.bonus)}</em></td><td>${t("A spin guaranteed to trigger the Standard Bonus (10, 12 or 15 free spins). RTP ")}${RTP}.</td></tr>
     <tr><td>${t("Buy Extreme")}</td><td>${x(cost.extremebonus)} <em>${money(cost.extremebonus)}</em></td><td>${t("A spin guaranteed to trigger the Extreme Bonus. RTP ")}${RTP}.</td></tr>
+    ${cost.boost ? `<tr><td>${t("Bonus Boost")}</td><td>${x(cost.boost)} <em>${money(cost.boost)}</em></td><td>${t("A switch, not a buy: while it is on, every spin (autoplay included) costs ")}${x(cost.boost)}${t(" the bet and is 1.6 times as likely to trigger free spins. Everything else plays as in the base game. RTP ")}${RTP}.</td></tr>` : ""}
   </table>
-  <p class="fine">${t("Both are chosen from the Bonus panel, which shows the exact total before you press Play. The max win applies to every mode.")}</p>
+  <p class="fine">${t("All are chosen from the Bonus panel, which shows the exact price at your bet before anything is charged; a buy asks you to confirm. While Bonus Boost is on, the bet in the bar shows the boosted cost of a spin. The max win applies to every mode.")}</p>
 </section>
 
 <section>

@@ -29,6 +29,16 @@ from src.config.distributions import Distribution
 from src.config.betmode import BetMode
 
 
+# Bonus Boost (bet mode "boost"): the bonus - free game, extreme and the wincap that only comes
+# through them - lands this many times as often as in base.
+BOOST_BONUS = 1.6
+BOOSTED_CRITERIA = ("wincap", "extremegame", "freegame")
+# Its price. In base 0.389 of the 0.967 return (40%) comes from the bonus criteria, so 1.6x the
+# bonus is worth 0.967 + 0.6 x 0.389 = 1.200 base bets: at RTP 0.967 that costs 1.241. Rounded to
+# the tidy 1.25, the base game's own winning spins make up the 0.008 left over.
+BOOST_COST = 1.25
+
+
 class GameConfig(Config):
     """Smukiez Tag Run configuration class."""
 
@@ -377,4 +387,35 @@ class GameConfig(Config):
                     ),
                 ],
             ),
+            # Bonus Boost: the base spin, but the bonus (free game and extreme, and the wincap that
+            # only comes through them) lands BOOST_BONUS x as often. Same reels, same everything;
+            # only the optimiser's targets for those criteria and their sim quotas are scaled
+            # (game_optimization). Not a buy: an ante-style spin at a higher price (BOOST_COST).
+            BetMode(
+                name="boost",
+                cost=BOOST_COST,
+                rtp=self.rtp,
+                max_win=self.wincap,
+                auto_close_disabled=False,
+                is_feature=True,
+                is_buybonus=False,
+                distributions=[],   # filled below from base's
+            ),
         ]
+        base_mode = self.bet_modes[0]
+        boost_mode = next(bm for bm in self.bet_modes if bm.get_name() == "boost")
+        boost_mode._distributions = self.boosted_distributions(base_mode.get_distributions())
+
+    def boosted_distributions(self, base_distributions: list) -> list:
+        """Base's distributions, with the bonus criteria's sim quotas BOOST_BONUS x larger and the
+        ordinary base-game criteria taking up the difference (the quotas still sum to 1)."""
+        out = []
+        for d in base_distributions:
+            quota = round(d.get_quota() * (BOOST_BONUS if d.get_criteria() in BOOSTED_CRITERIA else 1), 6)
+            out.append(Distribution(criteria=d.get_criteria(), quota=quota,
+                                    win_criteria=d.get_win_criteria(), conditions=d._conditions))
+        extra = sum(d.get_quota() for d in out) - 1
+        for d in out:
+            if d.get_criteria() == "basegame":
+                d._quota = round(d._quota - extra, 6)
+        return out

@@ -17,6 +17,12 @@
             "cost": 400.0,
             "events": "books_extremebonus.jsonl.zst",
             "weights": "lookUpTable_extremebonus_0.csv"
+        },
+        {
+            "name": "boost",
+            "cost": 1.25,
+            "events": "books_boost.jsonl.zst",
+            "weights": "lookUpTable_boost_0.csv"
         }
     ]
 }

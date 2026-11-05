@@ -2933,20 +2933,28 @@
      wrap stays a clear layer over the page, so a press anywhere outside the panel closes it. */
   #infoWrap {
     align-items: flex-end; padding: 16px 16px calc(var(--hud-top, 150px) + 12px);
-    background: none;
+  }
+  /* The bonus shop and the rules panel blur the whole screen behind them - wall, board, characters
+     and HUD (owner, 2026-11-05) - with a slight dim. The wrap itself is that one layer: it fades in
+     here and out with showMenu's exit, and a press on it outside the panel still closes the menu.
+     A lighter blur on phones, where the GPU has less to spare. */
+  #bonusWrap, #infoWrap {
+    background: rgba(8, 6, 10, .34);
+    -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px);
+    animation: menuBlurIn .18s ease-out;
+  }
+  @keyframes menuBlurIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (max-width: 760px), (max-height: 520px) {
+    #bonusWrap, #infoWrap { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
   }
   #infoWrap .infopanel {
     max-height: calc(100vh - var(--hud-top, 150px) - 44px); transform-origin: 50% 100%;
     animation: infoRise .3s cubic-bezier(.2, .9, .3, 1.1);
   }
   @keyframes infoRise { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
-  /* While the game menu is up the board (with its frame and its numbers) and the two characters fade
-     out, leaving the wall, the HUD and the panel (owner, 2026-11-03) */
-  /* (the fade rides each element's own transition list - .board's carries its zoom's scale too, and a
-     transition set here would replace that and make the lean-in jump; the frame fades with the board) */
-  .charfx { transition: opacity .25s ease; }
-  body.menu-open #board, body.menu-open .charfx, body.menu-open .charshadow { opacity: 0 !important; pointer-events: none; }
-  @media (prefers-reduced-motion: reduce) { #infoWrap .infopanel { animation: none; } }
+  /* (the 2026-11-03 fade of the board and the pair while the menu is up is gone: the menus blur the
+     whole screen instead - #bonusWrap, #infoWrap above) */
+  @media (prefers-reduced-motion: reduce) { #infoWrap .infopanel, #bonusWrap, #infoWrap { animation: none; } }
   /* Portrait phone layout (the characters' own rules are up with the other character rules):
      the tag on the wall moves up to the top quarter so the pair stands in front of it, the
      board drops to the bottom of its column so it sits just above the controls, and the
@@ -3106,9 +3114,39 @@
     --drip: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 24'><path d='M10 1C10 1 3 10 3 15a7 7 0 0 0 14 0C17 10 10 1 10 1z'/></svg>");
     --chev: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9l7 7 7-7'/></svg>");
   }
-  /* upright screens: the cards side by side, a size down */
+  /* Bonus Boost (bet mode "boost"): a switch, not a buy. Its banner is the "1.6x" mark itself, sprayed
+     on the dark ground in vector (crisp at any size); ACTIVATE is an outlined button that fills lime
+     and reads ON while every spin is boosted. */
+  .bsban.boostban {
+    display: grid; place-items: center;
+    background: radial-gradient(120% 90% at 50% 60%, #2a3a17 0%, #18171c 62%);
+  }
+  .bsban .bs16 { width: 86%; height: 92%; overflow: visible; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .6)); }
+  .bs16 text { font-family: "Fredoka", var(--num); font-weight: 700; paint-order: stroke fill; stroke-linejoin: round; }
+  .bscard.on .bs16 .glow { opacity: 1; }
+  .bsban.art .bs16 { display: none; }   /* the banner art (bonus_v2/build.py) carries the mark */
+  /* the banner sits a little dim while Boost is off and lights up, glowing lime, while it is on */
+  .bscard.tog .bsban > img.bsart { filter: brightness(.78) saturate(.85); transition: filter .25s ease; }
+  .bscard.tog.on .bsban > img.bsart { filter: brightness(1.1) saturate(1.1); }
+  .bscard.tog .bsban::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s ease;
+    box-shadow: inset 0 0 28px rgba(184, 242, 58, .55);
+  }
+  .bscard.tog.on .bsban::after { opacity: 1; }
+  .bs16 .glow { opacity: .35; transition: opacity .25s ease; }
+  /* ACTIVATE / ON: Fredoka's pair kerning pulls VA and AT in and leaves CT open - set without it,
+     evenly tracked (the trailing track balanced by the left pad) */
+  .bscard.tog .bsget { font-kerning: none; font-feature-settings: "kern" 0; letter-spacing: .09em; padding-left: .09em; padding-right: 0; font-size: 22px; white-space: nowrap; }
+  @media (max-width: 1100px) and (orientation: portrait) { .bscard.tog .bsget { font-size: 17px; } }
+  .bscard.tog .bsget:not(.lit) {
+    background: rgba(0, 0, 0, .35); color: var(--acc); box-shadow: 0 0 0 2px var(--acc) inset, 0 5px 0 rgba(0, 0, 0, .5);
+  }
+  .bscard.tog .bsget.lit { background: linear-gradient(#D6FF6E, #9CE424); box-shadow: 0 5px 0 #3C6C0C, 0 0 18px rgba(184, 242, 58, .55); }
+  /* the HUD's bet while Bonus Boost is on: what a spin really costs, labelled BOOST */
+  .hudstat.bet.boost .lbl, .hudstat.bet.boost .val { color: var(--hud-on); }
+  /* upright screens: the cards side by side, a size down (three wrap to two rows) */
   @media (max-width: 1100px) and (orientation: portrait) {
-    .bshoprow { gap: 12px; }
+    .bshoprow { gap: 12px; flex-wrap: wrap; }
     .bscard { width: min(250px, 44vw); }
   }
 </style>
@@ -3314,7 +3352,7 @@ for (const [k, def] of Object.entries(SYM)) {   // pre-warm icon cache
 const REELS = 7, ROWS = 7;   // the 7x7 cluster board; the events still pad every reel by one row top and bottom
 // Cost multipliers mirror index.json. The RGS applies them server-side (it debits
 // amount x cost); these are only so the buy buttons can show the right price.
-const MODE_COST = { base: 1, bonus: 100, extremebonus: 400 };
+const MODE_COST = { base: 1, bonus: 100, extremebonus: 400, boost: 1.25 };   // boost: Bonus Boost, free spins 1.6x as likely (math 2026-11-04)
 
 const state = {
   balance: 0,            // integer, 6dp — authoritative value comes from the RGS
@@ -6760,24 +6798,41 @@ async function presentRound(round, { settle = true } = {}) {
 const BUYS = [
   { mode: "bonus", key: "fs", title: "Free Spins", desc: "10, 12 or 15 free spins. Multis stay all bonus.", heat: 3, acc: "#9CE424", icon: () => SYM.BS.img },
   { mode: "extremebonus", key: "xfs", title: "Free Spins", desc: "17 free spins. Every Multi is x2 or more.", heat: 5, acc: "#B454E4", icon: () => SYM.ES.img, x: true },
+  // Bonus Boost is not a buy: it is switched on, and every base spin after it is a boosted one (playRound)
+  { mode: "boost", key: "boost", title: "Bonus Boost", desc: "Every spin 1.6x as likely to land free spins.", heat: 2, acc: "#B8F23A", toggle: true },
 ];
+// the Boost card's banner: "1.6x" sprayed in vector - lime with a fat black outline, a lean, a drip
+const BOOST_MARK = `<svg class="bs16" viewBox="0 0 200 110" aria-hidden="true">
+  <g transform="rotate(-7 100 58)">
+    <text class="glow" x="100" y="80" text-anchor="middle" font-size="78" fill="none" stroke="#B8F23A" stroke-width="14" opacity=".35" style="filter:blur(6px)">1.6x</text>
+    <text x="100" y="80" text-anchor="middle" font-size="78" fill="#B8F23A" stroke="#000" stroke-width="11">1.6x</text>
+    <path d="M62 84 q3 16 0 22 a4 4 0 0 0 8 0 q-3 -6 0 -22z M128 86 q2 10 0 14 a3.4 3.4 0 0 0 7 0 q-2 -4 0 -14z" fill="#B8F23A" stroke="#000" stroke-width="3"/>
+    <text x="100" y="80" text-anchor="middle" font-size="78" fill="none" stroke="#fff" stroke-width="1.6" opacity=".55" transform="translate(-2 -3)">1.6x</text>
+  </g></svg>`;
 let bonusMode = "bonus";
 let bshopArmed = null, bshopArmT = 0;
 function bshopCard(o) {
   const card = document.createElement("div");
-  card.className = "bscard" + (o.x ? " x" : "");
+  card.className = "bscard" + (o.x ? " x" : "") + (o.toggle ? " tog" : "");
   card.dataset.mode = o.mode;
   card.style.setProperty("--acc", o.acc);
   const ban = document.createElement("div");
   ban.className = "bsban";
+  if (o.toggle) {   // Bonus Boost: the vector mark stands in until (or unless) its banner art loads
+    ban.classList.add("boostban");
+    ban.innerHTML = BOOST_MARK;
+  }
   const art = new Image();
   art.className = "bsart"; art.alt = ""; art.draggable = false;
   art.onload = () => ban.classList.add("art");
   art.onerror = () => art.remove();
-  art.src = `assets/bonus/banner_${o.key}.webp`;
-  const ic = new Image();
-  ic.className = "bsico"; ic.alt = ""; ic.draggable = false; ic.src = o.icon();
-  ban.append(art, ic);
+  art.src = `assets/bonus/banner_${o.key}.webp`;   // art/ui-src/bonus_v2/build.py
+  ban.append(art);
+  if (o.icon) {
+    const ic = new Image();
+    ic.className = "bsico"; ic.alt = ""; ic.draggable = false; ic.src = o.icon();
+    ban.append(ic);
+  }
   card.append(ban);
   card.insertAdjacentHTML("beforeend",
     `<div class="bsbody"><div class="bspips">${Array.from({ length: 5 }, (_, i) => `<i class="${i < o.heat ? "on" : ""}"></i>`).join("")}</div>` +
@@ -6789,6 +6844,12 @@ function bshopCard(o) {
   return card;
 }
 function bshopGet(o) {
+  if (o.toggle) {   // Bonus Boost: on or off for the spins that follow
+    state.boost = !state.boost;
+    sfx("toggle", state.boost ? 1.15 : .85);
+    refreshBet();
+    return;
+  }
   if (bshopArmed !== o.mode) {   // the first press asks; the second, within a few seconds, buys
     bshopArmed = o.mode; bonusMode = o.mode;
     clearTimeout(bshopArmT);
@@ -6815,8 +6876,16 @@ function paintBonus() {
     const o = BUYS.find(x => x.mode === card.dataset.mode), cost = MODE_COST[o.mode], price = cost * bet();
     const over = price > state.balance, btn = card.querySelector(".bsget"), armed = bshopArmed === o.mode;
     card.querySelector(".bsprice").textContent = fmt(price);
-    card.querySelector(".bsx").textContent = T(`${fmtMult(cost)}× bet`);
+    card.querySelector(".bsx").textContent = o.toggle ? T(`${fmtMult(cost)}× per spin`) : T(`${fmtMult(cost)}× bet`);
     card.querySelector(".bsmax").textContent = T("Max win") + " x" + RULES.MAX_WIN.toLocaleString("en-US");
+    if (o.toggle) {
+      card.classList.toggle("on", !!state.boost);
+      btn.classList.toggle("lit", !!state.boost);
+      btn.setAttribute("aria-pressed", String(!!state.boost));
+      btn.textContent = state.boost ? T("On") : T("Activate");
+      btn.disabled = false;
+      continue;
+    }
     card.classList.toggle("on", armed);
     btn.classList.toggle("armed", armed && !over);
     btn.textContent = over ? T("Low balance") : armed ? T("Confirm") : T("Get");
@@ -6888,6 +6957,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("bonusW
  *  failed — autoplay stops on false. */
 async function playRound(mode) {
   if (REPLAY) return false;                              // a replay is watched, never played
+  if (mode === "base" && state.boost && MODE_COST.boost > 0) mode = "boost";   // Bonus Boost is on: every base spin (autoplay's too) is boosted
   if (state.playing) { if (!state.noSkip) state.skip = true; return false; }   // fast-forward
   if (screensUp()) return false;                         // nothing is staked behind the opening screens
   if (!RGS.state.authenticated) { notice(T("<b>Not connected</b> — reopen the game from the lobby."), true); return false; }
@@ -6900,7 +6970,7 @@ async function playRound(mode) {
   setButtons(false);
   bounceFx();
   // (the board's fire no longer flares on every spin: it pops only for a line, an FS trigger or a multiplier - boardFlash)
-  tick(T(mode === "base" ? "Spinning..." : "Buying bonus..."));
+  tick(T(mode === "base" || mode === "boost" ? "Spinning..." : "Buying bonus..."));
   const t0 = performance.now();
   let ok = true;
 
@@ -6934,7 +7004,7 @@ function confirmAuto() {
   return new Promise(resolve => {
     const pop = $("autoPop"), opts = $("autoOpts");
     let n = Number(opts.querySelector(".on").dataset.n);
-    $("autoBet").textContent = fmt(bet());
+    $("autoBet").textContent = fmt(bet() * (state.boost && MODE_COST.boost > 0 ? MODE_COST.boost : 1)) + (state.boost && MODE_COST.boost > 0 ? " " + T("(Bonus Boost on)") : "");   // what each round will cost
     $("autoText").firstChild.textContent = T("Rounds at ");
     closeBars();   // the picker opens over the bar: the volume bars go with it
     openPop("autoPop");
@@ -7159,7 +7229,7 @@ function historyHtml() {
   let h = [];
   try { h = JSON.parse(localStorage.getItem(histKey()) || "[]"); } catch (e) { /* ignore */ }
   if (!h.length) return "";
-  const name = { base: T("Spin"), bonus: T("Buy Bonus"), extremebonus: T("Buy Extreme") };
+  const name = { base: T("Spin"), bonus: T("Buy Bonus"), extremebonus: T("Buy Extreme"), boost: T("Boosted spin") };
   const rows = h.slice(0, 20).map(x => {
     const d = new Date(x.t);
     const when = d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -7170,8 +7240,16 @@ function historyHtml() {
     <div class="tbl"><table class="hist"><tr><th>${T("When")}</th><th>${T("Mode")}</th><th>${T("Bet")}</th><th>${T("Win")}</th><th>x</th></tr>${rows}</table></div></section>`;
 }
 function refreshBet() {
-  $("betVal").textContent = fmt(bet());
-  fitFigure($("betVal"), fmt(bet()));
+  // with Bonus Boost on, the bar shows what a spin really costs (bet x 1.25), labelled BOOST
+  const boost = !!state.boost && MODE_COST.boost > 0, shown = bet() * (boost ? MODE_COST.boost : 1);
+  $("betVal").textContent = fmt(shown);
+  fitFigure($("betVal"), fmt(shown));
+  const st = $("betVal").closest(".hudstat");
+  if (st) {
+    st.classList.toggle("boost", boost);
+    const lbl = st.querySelector(".lbl");
+    if (lbl) lbl.textContent = boost ? T("Boost") : T("Bet");
+  }
   if (!REPLAY) rememberBet();
   paintBonus();   // the chooser shows prices at the live bet, so it follows the stepper
   setButtons(!state.playing);
@@ -9515,7 +9593,7 @@ async function bootReplay(p) {
   if (p.currency) RGS.state.currency = p.currency;
   state.bets = [p.amount || RGS.UNIT]; state.betIdx = 0;
   state.mode = p.mode || "base";
-  const modeName = T({ base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme" }[state.mode] || state.mode);
+  const modeName = T({ base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme", boost: "Boosted spin" }[state.mode] || state.mode);
   $("balanceLbl").innerHTML = (SOCIAL ? "Replay" : "Replay bet") + `<span class="cur">${RGS.currencyName()}</span>`;
   $("balance").textContent = fmt(bet());
   refreshBet(); setButtons(false);

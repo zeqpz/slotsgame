@@ -48,6 +48,8 @@ export const gameModes = defineGameModes({
   base: mode("base", 1, false),
   bonus: mode("bonus", 100, true),
   extremebonus: mode("extremebonus", 400, true),
+  // Bonus Boost: a base spin at 1.25x the bet with the free spins 1.6x as likely (not a buy)
+  boost: mode("boost", 1.25, false),
 })
 export type GameModesType = typeof gameModes
 export type GameType = InferGameType<GameModesType, SymbolsType, UserStateType>
