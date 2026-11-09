@@ -5768,12 +5768,14 @@ const sfxBuf = {};
 // Fetched as soon as the page loads, so the first press after the intro has its note ready;
 // only the decode waits for the context, which the browser will not open before a gesture.
 const sfxRaw = {}, sfxDecoding = {};
-// Each effect has an Opus copy beside its WAV (tools/encode_sfx.js; 0.6 MB for the lot against
-// 8.6 MB of WAV): taken wherever the browser plays Opus, the WAV if not, or if the copy fails.
-const wavOf = url => fetch(url).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
+// Each effect ships as Opus (tools/encode_sfx.js), taken wherever the browser plays it, and as AAC
+// (tools/encode_sfx_aac.js) for one that does not - older iOS Safari - or if the Opus copy fails. The
+// names above still say .wav (the masters'); the WAVs themselves are no longer shipped (2026-11-08:
+// 20 MB of WAV against 1.9 MB of AAC).
+const aacOf = url => fetch(url.replace(/\.wav$/, ".aac")).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null);
 const sfxFetch = url => OPUS_OK
-  ? fetch(url.replace(/\.wav$/, ".ogg")).then(r => r.ok ? r.arrayBuffer() : wavOf(url)).catch(() => wavOf(url))
-  : wavOf(url);
+  ? fetch(url.replace(/\.wav$/, ".ogg")).then(r => r.ok ? r.arrayBuffer() : aacOf(url)).catch(() => aacOf(url))
+  : aacOf(url);
 for (const [name, url] of Object.entries(SFX)) sfxRaw[name] = sfxFetch(url);
 
 function bezierY(x1, y1, x2, y2) {          // CSS cubic-bezier as a function of progress
@@ -5833,7 +5835,7 @@ function audio() {
     applyVolumes();
     for (const name of Object.keys(SFX)) {
       sfxDecoding[name] = sfxRaw[name].then(b => b && actx.decodeAudioData(b))
-        .catch(() => wavOf(SFX[name]).then(b => b && actx.decodeAudioData(b)))   // an Opus copy that will not decode: the WAV
+        .catch(() => aacOf(SFX[name]).then(b => b && actx.decodeAudioData(b)))   // an Opus copy that will not decode: the AAC
         .then(buf => { if (buf) sfxBuf[name] = buf; })
         .catch(() => {});   // a missing clip just means silence, never a broken round
     }
