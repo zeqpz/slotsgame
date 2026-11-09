@@ -15,7 +15,8 @@ OUT = os.path.join(ROOT, 'frontend', 'assets', 'intro_letters')
 RND = sys.argv[1] if len(sys.argv) > 1 else 'r1'
 W, H = 2736, 1160
 CAP = 470                 # cap height (letter bodies), px on the canvas
-BASE = 780                # the baseline
+BASE = 780
+GBLUR, GPAD = 26, 110   # the glow's blur, and its padding (> 3x the blur's reach... 4x)                # the baseline
 # per letter: height factor, kerning before it (fraction of CAP, negative overlaps), baseline bob (px)
 SPEC = {'S': (1.08, 0, 30), 'M': (1.0, -.10, -6), 'U': (.92, -.08, 6), 'K': (1.04, -.07, -10),
         'i': (.74, -.10, 4), 'E': (.98, -.06, -4), 'Z': (1.12, -.08, 14)}
@@ -79,12 +80,16 @@ def main():
     sw.save(os.path.join(OUT, 'swash.webp'), 'WEBP', quality=92, method=6)
     tm.save(os.path.join(OUT, 'tm.webp'), 'WEBP', quality=92, method=6)
     # the glow that comes up once the word is in: built from these pieces (the whole word blurred, white)
-    glow = Image.new('RGBA', (W, H), (255, 255, 255, 0))
-    glow.putalpha(canvas.getchannel('A').filter(ImageFilter.GaussianBlur(26)).point(lambda v: min(255, int(v * 1.3))))
+    # (on a canvas padded by GPAD all round - well over 3x the blur - so it fades out to nothing
+    # before any edge: the word reaches the wordmark's own edges; the page sets it GPAD out, pieces.json)
+    big = Image.new('L', (W + 2 * GPAD, H + 2 * GPAD), 0); big.paste(canvas.getchannel('A'), (GPAD, GPAD))
+    glow = Image.new('RGBA', big.size, (255, 255, 255, 0))
+    glow.putalpha(big.filter(ImageFilter.GaussianBlur(GBLUR)).point(lambda v: min(255, int(v * 1.3))))
     glow.save(os.path.join(OUT, 'glow.webp'), 'WEBP', quality=85, method=6)
+    meta['glow'] = [-GPAD, -GPAD, W + 2 * GPAD, H + 2 * GPAD]
     json.dump(dict(size=[W, H], pieces=meta), open(os.path.join(OUT, 'pieces.json'), 'w'), indent=1)
     prev = Image.new('RGBA', (W, H), (0, 0, 0, 255))
-    g2 = glow.copy(); g2.putalpha(glow.getchannel('A').point(lambda v: int(v * .55))); prev.alpha_composite(g2)
+    g2 = glow.crop((GPAD, GPAD, GPAD + W, GPAD + H)); g2.putalpha(g2.getchannel('A').point(lambda v: int(v * .55))); prev.alpha_composite(g2)
     prev.alpha_composite(canvas)
     prev.convert('RGB').resize((W // 2, H // 2), Image.LANCZOS).save(os.path.join(HERE, 'preview_word.png'))
     print(json.dumps(meta))

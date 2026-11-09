@@ -8388,7 +8388,7 @@ const INTRO_SFX = ["introWhoosh", "introHit", "introShimmer", "introOut", "landB
 // word (art/ui-src/intro_letters_v2: gen.py, build.py -> assets/intro_letters/pieces.json; the seal is
 // the old wordmark's):
 // [x, y, w, h] on the 2736x1160 wordmark, the letters in the order they drop
-const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[26,302,401,549],"M":[380,282,499,533],"U":[841,321,412,509],"K":[1220,246,358,532],"i":[1531,431,103,355],"E":[1606,306,424,515],"Z":[1993,220,567,622],"swash":[420,705,2180,360],"tm":[2578,230,144,94],"seal":[2481,950,139,140]};
+const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[26,302,401,549],"M":[380,282,499,533],"U":[841,321,412,509],"K":[1220,246,358,532],"i":[1531,431,103,355],"E":[1606,306,424,515],"Z":[1993,220,567,622],"swash":[420,705,2180,360],"tm":[2578,230,144,94],"seal":[2481,950,139,140],"glow":[-110,-110,2956,1380]};
 const INTRO_DROP = ["S", "M", "U", "K", "i", "E", "Z"];
 function runIntro() {
   const wrap = $("intro"), fill = $("introFill");
@@ -8404,7 +8404,12 @@ function runIntro() {
   const IDENT = 3300;   // ms the ident needs before it may hand over
   // the letters, laid on the wordmark's box where each one sits in it
   const word = $("introWord"), pieceEl = {};
+  const at = (el, [x, y, w, h]) => Object.assign(el.style, { left: (x / INTRO_SIZE[0] * 100) + "%", top: (y / INTRO_SIZE[1] * 100) + "%",
+                                                           width: (w / INTRO_SIZE[0] * 100) + "%", height: (h / INTRO_SIZE[1] * 100) + "%" });
+  // the glow is on a canvas padded well past the word on every side (so it fades out before any edge)
+  if (word && INTRO_PIECES.glow) at(word.querySelector(".iwglow"), INTRO_PIECES.glow);
   if (word) for (const [k, [x, y, w, h]] of Object.entries(INTRO_PIECES)) {
+    if (k === "glow") continue;
     const im = new Image();
     im.className = "iwl"; im.alt = ""; im.draggable = false; im.src = `assets/intro_letters/${k}.webp`;
     Object.assign(im.style, { left: (x / INTRO_SIZE[0] * 100) + "%", top: (y / INTRO_SIZE[1] * 100) + "%",
