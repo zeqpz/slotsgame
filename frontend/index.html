@@ -815,6 +815,25 @@
   /* upright screens have the height for bigger plates (two rows): a tablet's are big enough to
      read again, a phone's still only show the icon and title */
   @media (orientation: portrait) { .fbox { width: clamp(150px, 40vw, 340px); } }
+  /* The game's title over the three plates (owner, 2026-11-08: art/ui-src/title/v2 - his real
+     SMUKIEZ tag with an "& skelly" slap sticker across its foot and Skelly peeking over it). It pops in as the plates are dealt out (fanPlates), and on a wide screen the
+     plates give up height to it so the whole screen still fits without scrolling. */
+  .features .ftitle {
+    flex: none; display: block; height: clamp(90px, 31vh, 360px); width: auto; max-width: 84vw; object-fit: contain;
+    margin-bottom: -.6vh; pointer-events: none;
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .6));
+    opacity: 0;
+  }
+  .features.up .ftitle { animation: ftitleIn .8s cubic-bezier(.2, .9, .3, 1.25) .12s both; }
+  @keyframes ftitleIn {
+    0% { opacity: 0; transform: translateY(-3vh) scale(.62) rotate(-3deg); }
+    60% { opacity: 1; transform: translateY(0) scale(1.05) rotate(.6deg); }
+    100% { opacity: 1; transform: none; }
+  }
+  @media (orientation: landscape) {
+    .fbox { width: min(clamp(150px, 26vw, 340px), calc((100vh - 51vh - 48px) * 560 / 716)); }
+  }
+  @media (orientation: portrait) { .features .ftitle { height: auto; width: min(92vw, 640px); max-width: none; } }
   @container (max-width: 230px) {
     .fbox .fin { justify-content: center; }
     .fbox p { display: none; }
@@ -846,19 +865,21 @@
   }
   .features .fcont:has(.fhit:hover) { animation-play-state: paused; }
   @media (prefers-reduced-motion: reduce) {
-    .fbox, .fbox .fmult, .features .fcont { animation: none !important; }
+    .fbox, .fbox .fmult, .features .fcont, .features .ftitle { animation: none !important; }
+    .features.up .ftitle { opacity: 1; }
     .fbox, .features .fcont .ftxt { transform: none !important; }   /* flat: tiltPlates does not run either */
     .fbox::after { display: none; }
     body.features-fade #app, body.features-fade .charfx, .features { transition: none !important; }
   }
-  /* The loading screen (owner, 2026-11-03): a black-and-white studio ident. A hair of light is
-     drawn across the dark, a spark runs along it and the SMUKIEZ wordmark - his graffiti hand with a
-     brush-calligraphy edge (art/ui-src/intro_wordmark) - is painted on behind the spark like a
-     brush stroke, half see-through, like light; it lands with a small punch, a bloom and its glow
-     coming up, a sheen passes along the strokes; then it holds, the glow breathing, while the
-     loading bar at the foot fills. Faint film grain and a vignette over all of it. runIntro()
-     starts it (.go) once the wordmark and the few sounds are ready, and ends it (.out) by lifting
-     the word away. --iw is the wordmark's width; its strokes fill .88 of it. */
+  /* The loading screen: a black-and-white studio ident (owner, 2026-11-08: an old arcade ident's
+     drop-and-bounce, replacing the 11-03 line of light). The SMUKIEZ wordmark - his graffiti hand
+     with a brush-calligraphy edge (art/ui-src/intro_wordmark) - cut into its letters
+     (art/ui-src/intro_letters): one after another they drop out of the dark and land with a
+     squash and a bounce or two (runIntro), the swash sweeps in under them, the seal stamps on, the
+     glow comes up and a small trademark line rolls up underneath; then it holds while the loading
+     bar at the foot fills. Faint film grain and a vignette over all of it. runIntro() starts it
+     (.go) once the letters and the few sounds are ready, and ends it (.out) by lifting the word
+     away. --iw is the wordmark's width; its strokes fill .88 of it. */
   .intro { --iw: min(88vw, 1080px, 110vh); }
   .intro::before {   /* the vignette */
     content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
@@ -874,81 +895,32 @@
     position: relative; z-index: 1; display: flex; align-items: center; justify-content: center;
     width: 100%; height: 44vh; margin-top: -6vh;
   }
-  /* the hair of light, and the spark running along it */
-  .introline {
-    position: absolute; left: 50%; top: 50%; width: calc(var(--iw) * .9); height: 2px; translate: -50% -50%;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0), #fff 20%, #fff 80%, rgba(255, 255, 255, 0));
-    box-shadow: 0 0 10px rgba(255, 255, 255, .75), 0 0 28px rgba(255, 255, 255, .3);
-    opacity: 0; transform: scaleX(0);
-  }
-  .intro.go .introline { animation: introLine 1.75s cubic-bezier(.2, .7, .2, 1) .15s both; }
-  @keyframes introLine {
-    0%   { opacity: 0; transform: scaleX(0); }
-    10%  { opacity: 1; }
-    42%  { opacity: 1; transform: scaleX(1); }
-    76%  { opacity: .45; transform: scaleX(1.06) scaleY(.6); }
-    100% { opacity: 0; transform: scaleX(1.14) scaleY(.3); }
-  }
-  .introspark {
-    position: absolute; left: 50%; top: 50%; z-index: 2; width: 140px; height: 28px; margin: -14px 0 0 -70px;
-    background: radial-gradient(ellipse at center, #fff 0%, rgba(255, 255, 255, .7) 18%, rgba(255, 255, 255, 0) 62%);
-    opacity: 0;
-  }
-  .intro.go .introspark { animation: introSpark .84s cubic-bezier(.5, 0, .3, 1) .58s both; }
-  @keyframes introSpark {
-    0%   { opacity: 0; transform: translateX(calc(var(--iw) * -.45)) scaleX(.6); }
-    12%  { opacity: 1; }
-    88%  { opacity: 1; }
-    100% { opacity: 0; transform: translateX(calc(var(--iw) * .45)) scaleX(1.4); }
-  }
   /* the wordmark: its strokes, its glow under them, and a sheen masked to the strokes over them */
   .introword { position: relative; width: var(--iw); aspect-ratio: 2736 / 1160; }
   .introword > img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; user-select: none; }
   .introword .iwglow { opacity: 0; }
-  .introword .iwink {
-    opacity: 0;
-    /* painted on left to right behind the spark: a soft-edged mask wiped across */
-    -webkit-mask-image: linear-gradient(90deg, #000 47%, transparent 53%); mask-image: linear-gradient(90deg, #000 47%, transparent 53%);
-    -webkit-mask-size: 300% 100%; mask-size: 300% 100%;
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-position: 78% 0; mask-position: 78% 0;
-  }
-  .intro.go .introword .iwink { animation: introWipe .84s cubic-bezier(.5, 0, .3, 1) .58s both; }
-  @keyframes introWipe {
-    0%   { opacity: 0; -webkit-mask-position: 78% 0; mask-position: 78% 0; filter: blur(5px); }
-    12%  { opacity: .84; }
-    100% { opacity: .84; -webkit-mask-position: 22% 0; mask-position: 22% 0; filter: blur(0); }
-  }
-  .intro.go .introword .iwglow { animation: introGlow 1.2s ease-out 1.42s both, introGlowBreathe 3.2s ease-in-out 2.62s infinite alternate; }
+  /* the letters (built by runIntro from INTRO_PIECES), each at its own place on the wordmark, and
+     the trademark: a TM by the arrow and a line under the word that rolls up into view */
+  .introword .iwl { position: absolute; display: block; transform-origin: 50% 100%; opacity: 0; will-change: transform; }
+  .introword .iwl.flat { opacity: 1; }
+  .intro.go .introword .iwglow.up { animation: introGlow 1.2s ease-out both, introGlowBreathe 3.2s ease-in-out 1.2s infinite alternate; }
   @keyframes introGlow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: .55; } }
   @keyframes introGlowBreathe { from { opacity: .55; } to { opacity: .78; } }
-  /* the landing: a small punch, then a slow breath while the game loads */
-  .intro.go .introword {
-    animation: introPunch .7s cubic-bezier(.2, .9, .3, 1) 1.44s both, introHold 5s ease-in-out 2.2s infinite alternate;
+  .introtm {
+    position: absolute; left: 0; right: 0; top: calc(50% + var(--iw) * .21); z-index: 1; overflow: hidden;
+    display: flex; justify-content: center; pointer-events: none;
   }
-  @keyframes introPunch { 0% { transform: scale(1); } 22% { transform: scale(1.05); } 100% { transform: scale(1); } }
-  @keyframes introHold { from { transform: scale(1); } to { transform: scale(1.02); } }
-  /* the sheen: a band of light passing along the strokes (masked to them) */
-  .introword .iwsheen {
-    position: absolute; inset: 0; overflow: hidden; opacity: 0;
-    -webkit-mask: url("assets/intro_wordmark.webp") center / 100% 100% no-repeat; mask: url("assets/intro_wordmark.webp") center / 100% 100% no-repeat;
+  .introtm span {
+    display: block; padding: .2em 0 .3em; transform: translateY(120%);
+    font: 600 clamp(9px, calc(var(--iw) * .016), 15px)/1.2 var(--plain); letter-spacing: .34em; text-transform: uppercase; color: #a9a9a9;
   }
-  .introword .iwsheen > b {
-    position: absolute; top: 0; bottom: 0; left: 0; width: 26%;
-    background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .95) 50%, rgba(255, 255, 255, 0));
-    transform: translateX(-120%);
-  }
-  .intro.go .introword .iwsheen { animation: introSheenOn 1.1s linear 1.95s both; }
-  .intro.go .introword .iwsheen > b { animation: introSheen 1.1s cubic-bezier(.45, 0, .25, 1) 1.95s both; }
-  @keyframes introSheenOn { 0%, 100% { opacity: 1; } }
-  @keyframes introSheen { from { transform: translateX(-120%); } to { transform: translateX(400%); } }
   /* the bloom as it lands */
   .introflash {
     position: absolute; left: 50%; top: 50%; width: min(90vw, 1100px); height: 46vh; translate: -50% -50%;
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, .5) 0%, rgba(255, 255, 255, .12) 34%, rgba(255, 255, 255, 0) 66%);
     opacity: 0; pointer-events: none;
   }
-  .intro.go .introflash { animation: introFlash .9s cubic-bezier(.2, .7, .3, 1) 1.42s both; }
+  .introflash.on { animation: introFlash .9s cubic-bezier(.2, .7, .3, 1) both; }
   @keyframes introFlash { 0% { opacity: 0; transform: scale(.6); } 18% { opacity: 1; } 100% { opacity: 0; transform: scale(1.3); } }
   /* the foot: the loading bar, a hair of white that fills as the game's pieces arrive, and the
      disclosure under it in small type, where it can be read and ignored */
@@ -977,7 +949,8 @@
   @keyframes introExit { from { opacity: 1; transform: none; filter: blur(0); } to { opacity: 0; transform: scale(1.14); filter: blur(6px); } }
   @keyframes introFootOut { from { opacity: 1; } to { opacity: 0; } }
   /* no motion: the wordmark, its glow and the bar, simply there */
-  .intro.static .introword .iwink { opacity: .84; -webkit-mask: none; mask: none; }
+  .intro.static .introword .iwl { opacity: 1; }
+  .intro.static .introtm span { transform: none; }
   .intro.static .introword .iwglow { opacity: .55; }
   .intro.static .introfoot { opacity: 1; }
   /* Short screens (the 400x225 popout, a phone on its side): the three plates stand in one
@@ -986,7 +959,8 @@
   @media (max-height: 520px) {
     .features { padding: 2.5vh 3vw; gap: 1.5vh; overflow: hidden; justify-content: center; }
     .fboxes { flex-wrap: nowrap; gap: 1.8vw; }
-    .fbox { width: min(30vw, calc((100vh - 15vh - 44px) * 560 / 716)); }
+    .fbox { width: min(30vw, calc((100vh - 15vh - 44px - 21vh) * 560 / 716)); }
+    .features .ftitle { height: 19vh; margin-bottom: 0; }
     .features .fcont { position: static; font-size: clamp(11px, 4.2vh, 20px); }
     .features .fcont .fhit { padding: .35em 1.2em; }
     .intro { padding: 3vh 6vw; }
@@ -1454,11 +1428,27 @@
   .reel.spinning > .cell { visibility: hidden; }  /* result stays hidden until the overlay lands */
   .reel.tumbling { clip-path: inset(-24px -60px); }
   /* the near-miss column: the same rounded corner the multiplier boxes carry */
+  /* (owner, 2026-11-08) a violet neon tube now, not gold: a pale-lilac core in a violet glow, lit
+     inside and out, breathing slowly - and the board rim's fire (sprayrim, inward: anticOn) burning
+     on the inside of it, flashing as each icon lands and roaring up for a bonus symbol (anticHit). */
   .reel.antic {
-    border-color: var(--gold); border-radius: 14px;
-    /* lit from the inside as well as out, the way a multiplier's box is */
-    box-shadow: 0 0 16px rgba(245,197,24,.5), inset 0 0 20px rgba(245,197,24,.4);
+    border-color: #E3C4FF; border-radius: 14px; isolation: isolate;
+    box-shadow: 0 0 0 1px rgba(180, 84, 228, .9), 0 0 12px rgba(180, 84, 228, .85), 0 0 30px rgba(180, 84, 228, .45),
+                inset 0 0 0 1px rgba(180, 84, 228, .9), inset 0 0 16px rgba(180, 84, 228, .5);
+    animation: anticTube 1.2s ease-in-out infinite alternate;
   }
+  @keyframes anticTube {
+    to { box-shadow: 0 0 0 1px rgba(196, 110, 240, 1), 0 0 18px rgba(196, 110, 240, 1), 0 0 44px rgba(180, 84, 228, .6),
+                     inset 0 0 0 1px rgba(196, 110, 240, 1), inset 0 0 24px rgba(180, 84, 228, .65); }
+  }
+  /* a bonus symbol lands in the held column: the tube flares white-hot for a moment */
+  .reel.antic.anticburst { animation: anticBurst .7s ease-out; }
+  @keyframes anticBurst {
+    0% { border-color: #fff; box-shadow: 0 0 0 2px #fff, 0 0 26px rgba(220, 160, 255, 1), 0 0 70px rgba(184, 242, 58, .7), inset 0 0 0 2px #fff, inset 0 0 40px rgba(220, 160, 255, .9); }
+    100% { box-shadow: 0 0 0 1px rgba(180, 84, 228, .9), 0 0 12px rgba(180, 84, 228, .85), 0 0 30px rgba(180, 84, 228, .45),
+                       inset 0 0 0 1px rgba(180, 84, 228, .9), inset 0 0 16px rgba(180, 84, 228, .5); }
+  }
+  @media (prefers-reduced-motion: reduce) { .reel.antic, .reel.antic.anticburst { animation: none; } }
   .spincol {
     position: absolute; top: 3px; left: 3px; width: calc(100% - 6px); z-index: 2;
     display: flex; flex-direction: column; gap: var(--cell-gap); will-change: transform, filter;
@@ -3261,16 +3251,13 @@
 </div>
 
 <div class="intro" id="intro">
-  <!-- the studio ident (runIntro): a line of light, SMUKIEZ resolving out of it, the loading bar -->
+  <!-- the studio ident (runIntro): SMUKIEZ dropped in letter by letter, a trademark line, the loading bar -->
   <div class="introstage">
     <i class="introflash" aria-hidden="true"></i>
-    <i class="introline" aria-hidden="true"></i>
-    <i class="introspark" aria-hidden="true"></i>
     <div class="introword" id="introWord" role="img" aria-label="Smukiez">
-      <img class="iwglow" src="assets/intro_wordmark_glow.webp" alt="" draggable="false">
-      <img class="iwink" src="assets/intro_wordmark.webp" alt="" draggable="false">
-      <i class="iwsheen" aria-hidden="true"><b></b></i>
+      <img class="iwglow" src="assets/intro_letters/glow.webp" alt="" draggable="false">
     </div>
+    <div class="introtm" aria-hidden="true"><span>&copy; 2026 Smukiez &middot; All rights reserved</span></div>
   </div>
   <div class="introfoot">
     <div class="introbar" id="introBar"><i class="introfill" id="introFill"></i></div>
@@ -3562,7 +3549,7 @@ function wander(targets, frames, { seg = 6, rate = 8 } = {}) {
 // art keeps its painted outlines.
 const RIM_SLICE_INFO = [.049, .0625, .049, .0625], RIM_SLICE_AUTO = [.09, .09, .09, .09];
 const RIM_RULES = [   // shadow: [down, blur, alpha], the drop shadow the art had in CSS
-  { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7 },   // stoked under the mouse (runFeatures)
+  { sel: ".fbox", art: "feature_box", fit: "stretch", flameK: 1.3, shadow: [10, 18, .65], flare: .7, fireIdle: 0 },   // fire out at rest: it burns only while stoked under the mouse (runFeatures; owner 2026-11-08)
 ];
 function startRims() {
   if (!window.SprayFX || /[?&]norim\b/.test(location.search)) return;   // QA: ?norim shows the painted outlines
@@ -4987,6 +4974,36 @@ const Cam = (() => {
 // under the gold, then its tiles come in slower than usual, each a little later than the one before
 // (slow > 1: the fall, the gaps and the notes all stretch by it), for an edge-of-the-seat build.
 // Skip lands the whole column at once.
+// The held column's fire (owner, 2026-11-08): the board rim's flames, burning on the INSIDE of the
+// violet tube (sprayrim's inward box), low while the column waits; every icon that lands in it
+// flashes the fire, and a bonus symbol (Crew Leader or Phantom) roars it up in lime and violet.
+// One rim per held column, attached when the hold lights and taken away - canvas and all - when
+// the column settles. Reduced motion: only the tube.
+const ANTIC_RIM = { box: true, inward: true, inset: 0, band: .04, radius: .16, flameK: 7, flameMin: 14, flameMax: 40,
+                    flare: 1.3, fireIdle: .55, glow: .9, shadow: [0, 0, 0], z: -1, cls: "anticfx" };
+const VIOLET = [.71, .33, .89], LIME = [.72, .95, .23];
+function anticOn(reel) {
+  if (REDUCED_MOTION || !window.SprayFX || !SprayFX.ok || !SprayFX.attach) return;
+  SprayFX.attach(reel, ANTIC_RIM);
+  SprayFX.stoke(reel, { peak: .7 });
+  SprayFX.flash(reel, { colors: [VIOLET, [1, 1, 1], VIOLET], ms: 700, speed: 5, peak: .8 });
+}
+function anticHit(reel, bonus) {
+  if (REDUCED_MOTION || !window.SprayFX || !reel.__rim) return;
+  if (bonus) {   // the moment: the fire roars up the column, strobing lime, white and violet
+    SprayFX.stoke(reel, { peak: 1 });
+    SprayFX.flash(reel, { colors: [LIME, [1, 1, 1], VIOLET, [1, 1, 1]], ms: 1500 * tempo(), speed: 7, peak: 1 });
+    reel.classList.remove("anticburst"); restyle(reel); reel.classList.add("anticburst");
+    setTimeout(() => reel.classList.remove("anticburst"), 750);
+  } else {        // an ordinary icon: a quick breath and a violet flick through the flames
+    SprayFX.stoke(reel, { peak: .45 });
+    SprayFX.flash(reel, { colors: [VIOLET, [1, 1, 1]], ms: 420 * tempo(), speed: 5, peak: .7 });
+  }
+}
+function anticOff(reel) {
+  reel.classList.remove("anticburst");
+  if (window.SprayFX && SprayFX.detach) SprayFX.detach(reel);
+}
 const OUT_MS = 300;    // the top tile's fall out of the frame, at tempo 1 (a lower tile is out sooner)
 const OUT_GAP = 12;    // ms between the rows starting to fall out, bottom first
 const IN_GAP = 46;     // ms between a held reel's tiles coming in, bottom first
@@ -5016,6 +5033,7 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
         for (const v of DROP_VARS) c.style.removeProperty(v);
         c.style.visibility = "";
       }
+      anticOff(reel);   // the held column's fire goes out with its hold
       reel.classList.remove("tumbling", "antic");
       reel.style.removeProperty("--tempo");
       resolve();
@@ -5051,8 +5069,9 @@ function dropReel(r, ev, wait, inExtra = 0, onCrewLeader = null, slow = 1) {
       const c = cells[y];
       sfx("dripLand", landRate(y, pace));
       landFoley(shownSym[r] && shownSym[r][y]);   // and what it is made of
-      const crew = c.classList.contains("scat");
-      if (crew || c.classList.contains("escat")) {
+      const crew = c.classList.contains("scat"), bonusSym = crew || c.classList.contains("escat");
+      if (reel.classList.contains("antic")) anticHit(reel, bonusSym);   // the held column's fire answers every landing
+      if (bonusSym) {
         c.classList.add("scatland");
         sfxGap("scatterLand", 140, 1 + r * .02);
         later(800 * tt, () => c.classList.remove("scatland"));
@@ -5143,7 +5162,7 @@ async function renderReveal(ev) {
   let crewDown = 0;
   const onCrewLeader = () => {
     if (++crewDown !== 2) return;
-    goldReels.forEach(el => el.classList.add("antic"));
+    goldReels.forEach(el => { el.classList.add("antic"); anticOn(el); });
     // and the board leans in for the wait, reaching full size as the last held icon lands
     boardZoom(true, goldReels, revealMs - (performance.now() - revealStart) - 250 * t);
   };
@@ -8364,7 +8383,13 @@ function startIntroIcons(canvas, avoid) {
 // silently where it does not, then holds while the loading bar fills. Loading is what ends the
 // screen (never sooner than the ident has played): pressing through it would only put the player
 // into a game whose pieces have not arrived.
-const INTRO_SFX = ["introRise", "introWhoosh", "introHit", "introShimmer", "introOut"];
+const INTRO_SFX = ["introWhoosh", "introHit", "introShimmer", "introOut", "landBrick"];
+// the wordmark's pieces - each letter, the swoosh and the TM generated on its own and laid out as one
+// word (art/ui-src/intro_letters_v2: gen.py, build.py -> assets/intro_letters/pieces.json; the seal is
+// the old wordmark's):
+// [x, y, w, h] on the 2736x1160 wordmark, the letters in the order they drop
+const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[26,302,401,549],"M":[380,282,499,533],"U":[841,321,412,509],"K":[1220,246,358,532],"i":[1531,431,103,355],"E":[1606,306,424,515],"Z":[1993,220,567,622],"swash":[420,705,2180,360],"tm":[2578,230,144,94],"seal":[2481,950,139,140]};
+const INTRO_DROP = ["S", "M", "U", "K", "i", "E", "Z"];
 function runIntro() {
   const wrap = $("intro"), fill = $("introFill");
   if (!wrap) return;
@@ -8376,7 +8401,17 @@ function runIntro() {
   // a beat's sound, only into audio that is actually running: a clip started into a suspended
   // context would sound late, all at once, on the player's first press
   const play = (name, rate = 1) => { if (actx && actx.state === "running") sfx(name, rate); };
-  const IDENT = 2900;   // ms the ident needs before it may hand over
+  const IDENT = 3300;   // ms the ident needs before it may hand over
+  // the letters, laid on the wordmark's box where each one sits in it
+  const word = $("introWord"), pieceEl = {};
+  if (word) for (const [k, [x, y, w, h]] of Object.entries(INTRO_PIECES)) {
+    const im = new Image();
+    im.className = "iwl"; im.alt = ""; im.draggable = false; im.src = `assets/intro_letters/${k}.webp`;
+    Object.assign(im.style, { left: (x / INTRO_SIZE[0] * 100) + "%", top: (y / INTRO_SIZE[1] * 100) + "%",
+                              width: (w / INTRO_SIZE[0] * 100) + "%", height: (h / INTRO_SIZE[1] * 100) + "%" });
+    word.appendChild(im);
+    pieceEl[k] = im;
+  }
   let beganAt = performance.now();
   const finish = () => {
     if (done) return;
@@ -8391,7 +8426,7 @@ function runIntro() {
   const loaded = preloadAll(p => { if (fill) fill.style.width = (p * 100).toFixed(1) + "%"; });
   loaded.then(() => { if (fill) fill.style.width = "100%"; warmBursts(); makeSmears(); });
   if (REDUCED_MOTION) {
-    wrap.classList.add("static");
+    wrap.classList.add("static");   // (the word, its trademark and the bar, simply there)
     loaded.then(() => after(600, finish));
   } else {
     // film grain: a tile of noise made once, shuffled about by the stylesheet
@@ -8414,15 +8449,71 @@ function runIntro() {
       if (done) return;
       beganAt = performance.now();
       wrap.classList.add("go");
-      // the rise (1.62 s, ending on its peak) starts with the ident and runs a touch fast so its peak is the hit
-      after(0, () => play("introRise", 1.62 / 1.46));
-      after(600, () => play("introWhoosh"));     // the spark sweeps along it
-      after(1460, () => play("introHit"));       // the word lands
-      after(1950, () => play("introShimmer"));   // the sheen passes over it
+      dropLetters();
     });
     Promise.all([loaded, ready]).then(() => after(Math.max(0, IDENT - (performance.now() - beganAt)), finish));
   }
   after(20000, finish);   // a piece that never answers must not hold the game shut for ever
+
+  // The drop: each letter falls out of the dark (stretched a little by its speed), lands squashed
+  // flat, bounces back up a fraction of the way and settles - an old arcade ident's bounce - one
+  // after another, a tick on each landing a step higher than the last. The last lands on the hit
+  // (a bloom and a nudge of the whole word); the swash sweeps in under them, the seal stamps on,
+  // the glow comes up and the trademark rolls up underneath on the shimmer.
+  function dropLetters() {
+    const STAGGER = 105, FALL = 980, LAND = .42;   // the landing is 42% into a letter's animation
+    const drop = -(innerHeight * .75 + (word ? word.getBoundingClientRect().top : 0));
+    const fallKeys = [
+      { offset: 0, transform: `translateY(${drop.toFixed(0)}px) scale(.94, 1.12)`, opacity: 1, easing: "cubic-bezier(.5, 0, .9, .55)" },
+      { offset: LAND, transform: "translateY(0) scale(1.2, .7)", easing: "cubic-bezier(.2, .7, .4, 1)" },
+      { offset: .6, transform: "translateY(-11%) scale(.95, 1.07)", easing: "cubic-bezier(.5, 0, .8, .5)" },
+      { offset: .74, transform: "translateY(0) scale(1.08, .9)", easing: "cubic-bezier(.2, .7, .4, 1)" },
+      { offset: .85, transform: "translateY(-2.5%) scale(.99, 1.02)", easing: "cubic-bezier(.5, 0, .8, .5)" },
+      { offset: .93, transform: "translateY(0) scale(1.02, .98)" },
+      { offset: 1, transform: "none", opacity: 1 },
+    ];
+    let t = 120;
+    INTRO_DROP.forEach((k, i) => {
+      const el = pieceEl[k];
+      if (!el) return;
+      after(t, () => el.animate(fallKeys, { duration: FALL, fill: "both" }).finished.then(() => el.classList.add("flat"), () => {}));
+      const landAt = t + FALL * LAND, last = i === INTRO_DROP.length - 1;
+      after(landAt, () => {
+        play("landBrick", .82 + i * .07);
+        if (last) {
+          play("introHit");
+          const fl = wrap.querySelector(".introflash");
+          if (fl) { fl.classList.remove("on"); void fl.offsetWidth; fl.classList.add("on"); }
+          word.animate([{ transform: "none" }, { transform: "translateY(1.2%) scale(1.03)" }, { transform: "none" }], { duration: 420, easing: "cubic-bezier(.2, .9, .3, 1)" });
+        }
+      });
+      t += STAGGER;
+    });
+    const landed = 120 + (INTRO_DROP.length - 1) * STAGGER + FALL * LAND;
+    after(landed + 140, () => {   // the swash sweeps in under the word, left to right
+      const sw = pieceEl.swash;
+      if (!sw) return;
+      play("introWhoosh");
+      sw.animate([{ clipPath: "inset(0 100% 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 0)", opacity: 1 }],
+                 { duration: 420, easing: "cubic-bezier(.5, 0, .2, 1)", fill: "both" }).finished.then(() => sw.classList.add("flat"), () => {});
+    });
+    after(landed + 520, () => {   // the seal stamps on
+      const se = pieceEl.seal;
+      if (!se) return;
+      se.style.transformOrigin = "50% 50%";
+      se.animate([{ transform: "scale(2.2) rotate(-14deg)", opacity: 0 }, { transform: "scale(.9) rotate(3deg)", opacity: 1, offset: .6 }, { transform: "none", opacity: 1 }],
+                 { duration: 340, easing: "cubic-bezier(.3, 0, .2, 1)", fill: "both" }).finished.then(() => se.classList.add("flat"), () => {});
+      word.querySelector(".iwglow").classList.add("up");
+    });
+    after(landed + 760, () => {   // the trademark rolls up underneath, and the TM pops on by the arrow
+      const line = wrap.querySelector(".introtm span"), tm = pieceEl.tm;
+      if (line) line.animate([{ transform: "translateY(120%)" }, { transform: "translateY(-12%)", offset: .7 }, { transform: "none" }],
+                             { duration: 620, easing: "cubic-bezier(.2, .8, .3, 1)", fill: "both" });
+      if (tm) tm.animate([{ opacity: 0, transform: "translateY(40%) scale(.6)" }, { opacity: 1, transform: "none" }],
+                         { duration: 360, delay: 160, easing: "cubic-bezier(.2, .9, .3, 1.4)", fill: "both" }).finished.then(() => tm.classList.add("flat"), () => {});
+      after(520, () => play("introShimmer"));
+    });
+  }
 }
 runIntro();
 // the tag on the wall wanders at random for as long as the page is up: a slow, small drift
@@ -9034,6 +9125,7 @@ function runFeatures() {
   wrap.setAttribute("aria-label", T("How the game works"));
   const box = (icon, title, text) => `<div class="fbox"><div class="fin"><div class="ficon">${icon}</div><h3>${title}</h3><p>${text}</p></div></div>`;
   wrap.innerHTML =
+    `<img class="ftitle" src="assets/title_logo.webp" alt="${T("Smukiez & Skelly")}" draggable="false">` +
     `<div class="fboxes">` +
       box(`<img src="${SYM.M.img}" alt="${T("Multi")}" draggable="false"><div class="fmult" id="featMult">x${fmtMult(FEATURE_VALUES[0])}</div>`,
         T("Multi"),

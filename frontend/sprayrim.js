@@ -44,6 +44,7 @@ uniform vec3 uTint;       // a flash: the colour the fire (and its glow) burns i
 uniform float uTintAmt;   // ...and how much (0 = its own colours)
 uniform float uFireOn;    // how much of the fire burns (1 always; a rim with fireIdle: 0 only while flashed or stoked)
 uniform vec3 uShadow;     // the drop shadow under the outline: offset down, blur (css px), alpha
+uniform float uInward;    // box mode, 1: the fire burns INSIDE the box, licking inward off its edge (no band, no shadow)
 uniform sampler2D uSdf;
 uniform vec3 uRimKey, uRimDeep, uRimMid, uRimFleck;           // the sprayed band: keylines, paint, flecks
 uniform vec3 uFireKey, uFireBody, uFireLight, uFireCore;      // the flames: outline, body, hot band, core
@@ -89,7 +90,16 @@ void main() {
   float aa = .7 / uPx;
   float reach = max(uFlame * (1. + uBlow) * 2.1, uShadow.x + uShadow.y) + 6. * aa;
   float D, band, beyond; vec2 n;   // beyond: how far out this is, as the cut-off below measures it
-  if (uMode < .5) {
+  if (uMode < .5 && uInward > .5) {
+    // inward: the same fire, measured from the edge into the box - D runs positive inward, the
+    // flames' "outside" begins a band's width in, and they climb toward the middle (pulled up)
+    float o = roundBox(lp, WH);
+    band = uRound.z; D = -o; beyond = D - band;
+    if (o > 2. * aa || beyond > reach) { gl_FragColor = vec4(0.); return; }
+    vec2 e = vec2(.75, 0.);
+    vec2 g = vec2(roundBox(lp + e.xy, WH) - roundBox(lp - e.xy, WH), roundBox(lp + e.yx, WH) - roundBox(lp - e.yx, WH));
+    n = -g / max(length(g), 1e-4);
+  } else if (uMode < .5) {
     float o = roundBox(lp, WH);
     beyond = o;
     if (o < -uRound.z - 6. * aa - .5 * uL || o > reach) { gl_FragColor = vec4(0.); return; }
@@ -169,7 +179,7 @@ void main() {
   col = vec4(fc * fa, fa) + col * (1. - fa);
 
   // the rim: sprayed paint between a dark keyline on each edge
-  float ra = smoothstep(aa, -aa, dOut) * smoothstep(-aa, aa, dIn);
+  float ra = uInward > .5 ? 0. : smoothstep(aa, -aa, dOut) * smoothstep(-aa, aa, dIn);   // inward: the element's own border is the outline
   if (ra > 0.) {
     vec3 c = mix(uRimDeep, uRimMid, smoothstep(.25, .8, fbm(p / max(.6 * uL, 2. * fmin) + uSeed * 2.)));
     c = mix(c, uRimFleck, smoothstep(.6, .67, fbm(p / max(.32 * uL, 2. * fmin) + 3. + uSeed)));
@@ -230,7 +240,7 @@ void main() {
     U = {};
     const CU = { uRimKey: "rimKey", uRimDeep: "rimDeep", uRimMid: "rimMid", uRimFleck: "rimFleck", uFireKey: "fireKey",
                  uFireBody: "fireBody", uFireLight: "fireLight", uFireCore: "fireCore", uGlowC: "glow", uDropC: "drop" };
-    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uTint", "uTintAmt", "uFireOn", "uShadow", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ["uRes", "uPx", "uBox", "uMode", "uRound", "uSrc", "uField", "uFit", "uLin", "uMapX", "uMapY", "uBandSrc", "uL", "uFlame", "uTime", "uBoil", "uSeed", "uGlow", "uBlow", "uTint", "uTintAmt", "uFireOn", "uShadow", "uInward", "uSdf", ...Object.keys(CU)]) U[n] = gl.getUniformLocation(prog, n);
     for (const [u, k] of Object.entries(CU)) gl.uniform3fv(U[u], COLORS[k]);   // set once: every rim shares them
     gl.uniform1i(U.uSdf, 0);
     gl.disable(gl.BLEND);
@@ -329,6 +339,11 @@ void main() {
     const sh = o.shadow || [0, 0, 0];
     g.shadow = sh;
     g.margin = Math.ceil(Math.max(g.flame * 2.15 + 8, sh[0] + sh[1] + 6));
+    if (o.inward) {   // nothing is drawn outside the box: a few px of canvas past it, and room to flare inside
+      g.margin = 4;
+      g.flare = o.flare && !still ? o.flare : 0;
+      return finishGeometry(t, g, el, host, r, px);
+    }
     const room = o.box ? Infinity : (g.m.pad - 4) / g.J;          // the field only reaches so far past the art
     if (g.margin > room) { g.margin = Math.floor(room); g.flame = Math.max(2, (g.margin - 8) / 2.15); }
     // a rim that can be stoked has room for its tallest flames from the start, as far as the field
@@ -339,6 +354,10 @@ void main() {
       if (m > g.margin) g.margin = m;
       g.flare = Math.max(0, Math.min(o.flare, (g.margin - 8) / 2.15 / g.flame - 1));
     }
+    return finishGeometry(t, g, el, host, r, px);
+  }
+  function finishGeometry(t, g, el, host, r, px) {
+    const W = g.W, H = g.H;
     const cw = W + 2 * g.margin, ch = H + 2 * g.margin;
     // A pop, a bounce or a lean-in scales the element for a moment: keep the density the canvas
     // already has through it rather than reallocating the canvas on every frame of the move (the
@@ -369,6 +388,7 @@ void main() {
     gl.uniform2f(U.uRes, g.dw, g.dh); gl.uniform1f(U.uPx, g.dw / g.cw);
     gl.uniform4f(U.uBox, g.margin, g.margin, g.margin + g.W, g.margin + g.H);
     gl.uniform3f(U.uShadow, g.shadow[0], g.shadow[1], g.shadow[2]);
+    gl.uniform1f(U.uInward, t.o.inward ? 1 : 0);
     gl.uniform1f(U.uL, g.L); gl.uniform1f(U.uFlame, g.flame); gl.uniform1f(U.uSeed, t.seed); gl.uniform1f(U.uGlow, t.o.glow ?? 1);
     const tt = now / 1000, lvl = g.flare ? stokeLevel(t.el, now) : 0;
     // the flames' own clock, which runs quicker while they are stoked
@@ -378,7 +398,11 @@ void main() {
     const fl = flashAt(t.el, now);
     gl.uniform3fv(U.uTint, fl.c); gl.uniform1f(U.uTintAmt, fl.a);
     // fireIdle: 0 - the fire is out at rest and burns only while the rim is flashed or stoked, fading with them
-    gl.uniform1f(U.uFireOn, t.o.fireIdle === 0 ? Math.min(1, Math.max(fl.a * 1.4, lvl)) : 1);
+    // (a held breath - a pointer resting on the rim - keeps the fire fully lit, not just at the hold's level)
+    const held = t.el.__stoke ? Math.min(1, t.el.__stoke.held * 4) : 0;
+    // (fireIdle between 0 and 1: a low fire at rest, brought up the same way)
+    const idle = typeof t.o.fireIdle === "number" ? t.o.fireIdle : 1;
+    gl.uniform1f(U.uFireOn, idle >= 1 ? 1 : Math.min(1, Math.max(idle, fl.a * 1.4, lvl, held)));
     if (t.o.box) {
       gl.uniform1f(U.uMode, 0); gl.uniform3f(U.uRound, g.inset, g.radius, g.band);
     } else {
@@ -495,5 +519,16 @@ void main() {
     scan(rules);
     return true;
   }
-  window.SprayFX = { start, stop: stopAll, stoke, flash, get ok() { return ok; }, targets };
+  // A rim for a moment (the held near-miss column): attach one to an element now, and take it away
+  // again - canvas and all - when it is done. Only once start() has set the context up.
+  function attachNow(el, o) { if (ok && alive && el) attach(el, o); }
+  function detach(el) {
+    const t = el && el.__rim;
+    if (!t) return;
+    t.cv.remove();
+    const i = targets.indexOf(t);
+    if (i >= 0) targets.splice(i, 1);
+    delete el.__rim; el.__stoke = null; el.__flash = null;
+  }
+  window.SprayFX = { start, stop: stopAll, stoke, flash, attach: attachNow, detach, get ok() { return ok; }, targets };
 })();
