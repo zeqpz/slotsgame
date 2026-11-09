@@ -3,9 +3,12 @@ RGBA, glow and effects composited in) into the sheets the game plays: one WebP p
 grid, every frame of a clip cropped to the same box (the union of everything any of its frames shows - an idle
 stays near the icon, a hit's rings reach the edge), and frontend/assets/sym/manifest.json saying where each clip's
 box sits on the icon and how the clip runs.
-Densities are atlas px per rig unit, as the old rigs' (an icon is 100 units across its longer side): 1.6 for a
-1080p screen or a phone, 2.4 between, 3.2 for a 2x screen - the game loads the one that suits the screen.
-usage: python tools/blender/pack_frames.py <ID,ID..|all> [densities, default 1.6,2.4,3.2]
+Densities are atlas px per rig unit, as the old rigs' (an icon is 100 units across its longer side). The game
+loads the smallest one that covers the screen with 25% to spare (symWantDensity): 1.0 for a phone, 1.2 for a
+desktop at 1x, 1.6 for 1.25x-1.5x, 2.4 for a 2x screen. The board never draws an icon over 0.86 css px per unit
+and caps the canvas at 2x, so nothing needs more than 2.16 (3.2 was dropped 2026-11-09: no screen picked it;
+1.6 was everyone's before then - about twice what a 1080p screen or a phone shows).
+usage: python tools/blender/pack_frames.py <ID,ID..|all> [densities, default 1.0,1.2,1.6,2.4]
        python tools/blender/pack_frames.py fit   (re-apply FIT_TO_ART to the manifest only)"""
 import glob, json, math, os, sys
 from concurrent.futures import ProcessPoolExecutor
@@ -127,7 +130,7 @@ if __name__ == "__main__":
         json.dump(manifest, open(man_path, "w"), indent=1)
         sys.exit()
     ids = sys.argv[1].split(",") if sys.argv[1] != "all" else sorted(os.listdir(REN))
-    densities = [float(v) for v in (sys.argv[2].split(",") if len(sys.argv) > 2 else ("1.6", "2.4", "3.2"))]
+    densities = [float(v) for v in (sys.argv[2].split(",") if len(sys.argv) > 2 else ("1.0", "1.2", "1.6", "2.4"))]
     man_path = os.path.join(OUT, "manifest.json")
     packed = {}
     with ProcessPoolExecutor(max_workers=min(6, len(ids))) as ex:
@@ -137,7 +140,13 @@ if __name__ == "__main__":
                 packed[sid] = entry
     # read the manifest only now, so two packs of different symbols running at once each keep the other's entries
     manifest = json.load(open(man_path)) if os.path.exists(man_path) else {"densities": [], "symbols": {}}
-    manifest["densities"] = sorted(set(manifest.get("densities", [])) | set(densities))
     manifest["symbols"].update(packed)
+    # the densities the game may pick: those every symbol has sheets at (a density packed for no symbol any more
+    # drops out, so its folder can go)
+    have = [{float(d[1:]) / 10 for d in e["sheets"]} for e in manifest["symbols"].values()]
+    manifest["densities"] = sorted(set.intersection(*have)) if have else []
+    stale = sorted(set().union(*have) - set(manifest["densities"])) if have else []
+    if stale:
+        print("note: only some symbols have", ", ".join(f"d{round(d * 10)}" for d in stale), "- the game will not pick it")
     json.dump(manifest, open(man_path, "w"), indent=1)
     print("->", man_path, "|", len(manifest["symbols"]), "symbols")

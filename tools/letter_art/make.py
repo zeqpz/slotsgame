@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cartoon as C
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-FONTS = {"comic": ("C:/Windows/Fonts/comicbd.ttf", False), "segoe": ("C:/Windows/Fonts/seguibl.ttf", False), "arial": ("C:/Windows/Fonts/ariblk.ttf", False), "jraot": (os.path.join(ROOT, "frontend/assets/jraot-hollow.ttf"), True)}
+FONTS = {"comic": ("C:/Windows/Fonts/comicbd.ttf", False), "segoe": ("C:/Windows/Fonts/seguibl.ttf", False), "arial": ("C:/Windows/Fonts/ariblk.ttf", False), "jraot": (os.path.join(ROOT, "art/fonts/jraot-hollow.ttf"), True)}
 
 LIME = dict(fill=(.64, .91, .10), shade=(.39, .64, .05), block=(.22, .40, .03), hi=(.86, 1.0, .52))
 # the scatters' griddy texture, in source px: coarse and bold enough to survive the board's
@@ -233,7 +233,7 @@ def traced(name, out_dir=None, seed=11):
 # line the way the hand-drawn BONUS letters sit, softened and fattened to the traced letters'
 # weight, and tucked behind BONUS's top. Everything is painted with the same ink, block, shine
 # and drips, at the same scale, in the scatter purple.
-BROMO = os.path.join(ROOT, "frontend/assets/bromo.otf")
+BROMO = os.path.join(ROOT, "art/fonts/bromo.otf")
 XB = dict(top=150,          # source px added above BONUS for the XTREME line
           cap=124,          # XTREME's letter height, source px (BONUS's are ~270)
           sink=8,           # how far XTREME's bottom tucks behind BONUS's top, source px

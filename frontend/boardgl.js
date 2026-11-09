@@ -44,6 +44,8 @@
         await app.init({ backgroundAlpha: 0, antialias: false, autoDensity: true, resolution: resolution(), width: 4, height: 4, preference: "webgl" });
       } catch (e) { console.warn("board canvas unavailable:", e.message); app = null; return false; }
       app.ticker.remove(app.render, app);
+      app.canvas.addEventListener("webglcontextlost", onLost, false);
+      app.canvas.addEventListener("webglcontextrestored", onRestored, false);
       app.canvas.className = "boardgl";
       app.canvas.setAttribute("aria-hidden", "true");
       const ml = document.getElementById("multLayer");
@@ -78,11 +80,16 @@
   // ---------------------------------------------------------------- atlases
   // One clip's frames as one texture: the sheet decoded off the main thread and resized as a whole, on a
   // whole-pixel grid, to k of its size; each frame a rectangle of it. Built a couple at a time.
+  // Once the texture is on the GPU its decoded pixels are let go (perf, 2026-11-09: every atlas was held
+  // twice over, 100-180 MB of ImageBitmaps behind the GPU's own copy). So the texture is kept on the GPU
+  // for good - never handed to Pixi's idle-texture GC, which would want those pixels to upload it again -
+  // and if the GPU context is lost, every atlas is built afresh from its file (rebuild) once it is back.
   let busy = 0;
   const waiting = [];
   const slot = () => busy < 2 ? (busy++, Promise.resolve()) : new Promise(r => waiting.push(r));
   const free = () => { const n = waiting.shift(); if (n) n(); else busy--; };
-  async function atlas(id, clip, url, k) {
+  const built = new Set();   // every atlas handed out: { id, clip, url, k, frames, source }
+  async function build(id, clip, url, k) {
     await slot();
     try {
       const m = SYMF.man.symbols[id], sh = m.sheets[SYMF.density][clip], n = m.clips[clip].frames;
@@ -97,11 +104,35 @@
       }
       const base = PIXI.Texture.from(bmp);
       base.source.scaleMode = "linear";
-      try { app.renderer.texture.initSource(base.source); } catch (e) { /* uploaded on first draw instead */ }
+      base.source.autoGarbageCollect = false;
+      let up = false;
+      try { app.renderer.texture.initSource(base.source); up = !lost; } catch (e) { /* uploaded on first draw instead */ }
+      if (up) bmp.close();   // the GPU has it
       const frames = [];
       for (let f = 0; f < n; f++) frames.push(new PIXI.Texture({ source: base.source, frame: new PIXI.Rectangle((f % cols) * fw, Math.floor(f / cols) * fh, fw, fh) }));
-      return { frames, fw, fh, k };
+      return { frames, fw, fh, k, source: base.source };
     } finally { free(); }
+  }
+  async function atlas(id, clip, url, k) {
+    const a = await build(id, clip, url, k);
+    const rec = { id, clip, url, k, frames: a.frames, source: a.source };
+    built.add(rec);
+    return { frames: rec.frames, fw: a.fw, fh: a.fh, k };   // the same array the rebuild refills
+  }
+  // the GPU context gone: its textures with it. Nothing is drawn from them until each is built again.
+  let lost = false;
+  function onLost(e) {
+    e.preventDefault();   // ask for it back
+    lost = true;
+    for (const r of built) { r.frames.length = 0; try { r.source.destroy(); } catch (err) { /* already gone */ } }
+    dirty = true;
+  }
+  async function onRestored() {
+    lost = false;
+    for (const r of built) {
+      build(r.id, r.clip, r.url, r.k).then(a => { r.source = a.source; r.frames.push(...a.frames); dirty = true; },
+        err => console.warn("board atlas not rebuilt:", r.id, r.clip, err.message));
+    }
   }
 
   function smearTexture(cell) {

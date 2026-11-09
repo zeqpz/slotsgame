@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Smukiez's City</title>
+<title>Smukiez &amp; Skelly</title>
+<link rel="icon" href="data:,">
 <style>
   :root {
     --bg: #141218;
@@ -65,57 +66,59 @@
     --cell-h: 98px;
     --cell-gap: 7px;
   }
+  /* The faces ship as subset WOFF2 (tools/make_webfonts.py, from the masters in art/fonts): every
+     character the game, the rules and the social wording can show, outlines and features unchanged. */
   @font-face {
     font-family: "Fredoka";
-    src: url("assets/fredoka.ttf") format("truetype");
+    src: url("assets/fredoka.woff2") format("woff2");
     font-weight: 300 700; font-display: swap;
   }
   @font-face {
     font-family: "Jraot Hollow";
-    src: url("assets/jraot-hollow.ttf") format("truetype");
+    src: url("assets/jraot-hollow.woff2") format("woff2");
     font-display: swap;
   }
   @font-face {
     font-family: "Timegoing";
-    src: url("assets/timegoing.ttf") format("truetype");
+    src: url("assets/timegoing.woff2") format("woff2");
     font-display: swap;
   }
   @font-face {
     font-family: "BROMO";
-    src: url("assets/bromo.otf") format("opentype");
+    src: url("assets/bromo.woff2") format("woff2");
     font-display: swap;
   }
   /* the lettered buttons: PLAY in the bonus buy panel, START in the auto play picker */
   @font-face {
     font-family: "LLambozy";
-    src: url("assets/llambozy.ttf") format("truetype");
+    src: url("assets/llambozy.woff2") format("woff2");
     font-display: swap;
   }
   /* the bonus screen's own three: YOU WON, the trigger line, and FREE SPINS (the fat cut) */
   @font-face {
     font-family: "Apocalypse Grunge";
-    src: url("assets/apocalypse_grunge.ttf") format("truetype");
+    src: url("assets/apocalypse_grunge.woff2") format("woff2");
     font-display: swap;
   }
   @font-face {
     font-family: "aaaiight";
-    src: url("assets/aaaiight.ttf") format("truetype");
+    src: url("assets/aaaiight.woff2") format("woff2");
     font-display: swap;
   }
   @font-face {
     font-family: "aaaiight fat";
-    src: url("assets/aaaiight-fat.ttf") format("truetype");
+    src: url("assets/aaaiight-fat.woff2") format("woff2");
     font-display: swap;
   }
   /* the trigger line: the fill cut and its outline cut, laid one over the other */
   @font-face {
     font-family: "Smashed Graffiti";
-    src: url("assets/smashed_graffiti_fill.otf") format("opentype");   /* the Fill cut: it shares the Outline cut's widths */
+    src: url("assets/smashed_graffiti_fill.woff2") format("woff2");   /* the Fill cut: it shares the Outline cut's widths */
     font-display: swap;
   }
   @font-face {
     font-family: "Smashed Graffiti Outline";
-    src: url("assets/smashed_graffiti_outline.otf") format("opentype");
+    src: url("assets/smashed_graffiti_outline.woff2") format("woff2");
     font-display: swap;
   }
   * { box-sizing: border-box; }
@@ -1264,6 +1267,7 @@
   .ptile.livemult .fmult.tick { animation: fmultpop .38s cubic-bezier(.2, .9, .3, 1.3); }
   @media (prefers-reduced-motion: reduce) { .ptile.livemult .fmult.tick { animation: none; } }
   /* Close (and the replay's Play, the error's Reload): a plain outlined pill */
+  html .infopanel .infoclose[hidden] { display: none; }   /* the replay's Play stays hidden until the round has loaded */
   html .infopanel .infoclose, html #infoClose {
     display: block; margin: 8px auto 2px; min-width: 170px; padding: 13px 30px;
     border: 2px solid var(--hud-line); border-image: none; border-radius: 999px; background: rgba(255, 255, 255, .08);
@@ -3309,6 +3313,7 @@
 <script src="rules.js"></script>
 <script src="sprayrim.js"></script>
 <script src="wallfx.js"></script>
+<script src="charrig.js"></script>
 <script src="boardgl.js"></script>
 <script>
 "use strict";
@@ -3369,6 +3374,9 @@ const $ = id => document.getElementById(id);
 // of a full page layout - once per landing icon, dozens of times per drop.
 const restyle = (...els) => { for (const el of els) if (el) void getComputedStyle(el).animationName; };
 const fmt = v => RGS.money(v);
+const TOUCH = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;   // phones/tablets say Tap, not Click
+// A mode's own bet cap from authenticate (gameModes[].maxBet): over it the RGS refuses the round; 0 = the mode is off (XGC)
+const modeOpen = (mode, b = bet()) => { const mx = RGS.modeMaxBet(mode); return mx === null || (mx > 0 && b <= mx); };
 // Social casinos (Stake.us) forbid a list of gambling terms. Every player-facing string
 // goes through T(): a no-op normally, the sweeps vocabulary when the lobby says social=true.
 const SOCIAL = RGS.social;
@@ -3385,7 +3393,7 @@ const cents = c => Math.round(c / 100 * bet());
 // so nothing is ever dropped, it just happens faster. Skip's one instant effect is on the
 // reels themselves (spinReel lands them the moment it is pressed): a spin that then hits
 // nothing is over at once, a spin that hits plays its hits at pace.
-const TEMPO_FAST = .4;
+const TEMPO_FAST = .3;   // was .4: a losing Rapid spin with a drop took 2.5-4.3 s (approval audit 2026-11-09 wants ~2 s)
 const tempo = () => (state.skip || $("turbo").checked) ? TEMPO_FAST : 1;
 // The Multi's whole show - the can spraying its value on, the blow-out and its neighbours' pops,
 // the value landing - plays this many times faster than it was first timed (owner, 2026-10-22:
@@ -3657,7 +3665,7 @@ function setCell(r, y, sym) {
 // in a paid cluster, "multi" when a Multi powers it (and the Multi itself as it goes off), "idle" looping on every
 // symbol of a resting board. Every clip starts and ends on the rest pose, so a finished one simply
 // leaves the rest pose showing, and a new one cuts the one running.
-const SYM_DENSITY = [1.6, 2.4, 3.2];   // sheet px per rig unit (an icon is 100 across), as the old atlas's
+const SYM_DENSITY = [1.0, 1.2, 1.6, 2.4];   // sheet px per rig unit (an icon is 100 across); the manifest's list wins (pack_frames.py)
 const SYM_HEADROOM = 1.25;            // sheet px per screen px at rest: crisp at rest, through the lit pop and the hit
 const SYM_IDLE_STAGGER = 2400;        // ms over which a resting board's idles start up, each symbol at its own moment
 const SYM_IDLE_REST = [8000, 20000];   // ms an icon rests between its idle cycles, at random (the first 0 to the most after it lands)
@@ -3701,7 +3709,9 @@ function symHoldScale() {
   const L = Math.max(screen.availWidth || 0, screen.availHeight || 0);
   const grow = Math.max(1, Math.min(L / innerWidth, L / innerHeight) || 1);
   const k = unit * (fit > 0 ? fit : 1) * dpr * grow * SYM_HOLD_HEADROOM / (parseInt(SYMF.density.slice(1), 10) / 10);
-  return k >= .85 || !isFinite(k) ? 1 : Math.max(.3, k);
+  // left at the sheet's own size only when it is that already: with the denser-fitting sheets (2026-11-09)
+  // a k of .85-.97 is common, and keeping the whole sheet there held a third more on the GPU than needed
+  return k >= .97 || !isFinite(k) ? 1 : Math.max(.3, k);
 }
 // One clip's sheet, fetched and decoded once and held for as long as the page is up
 function symSheet(id, clip) {
@@ -5665,12 +5675,21 @@ const MUSIC = {
 };
 const MUSIC_RATE = 48000;
 const OPUS_OK = (() => { try { return !!new Audio().canPlayType('audio/ogg; codecs="opus"'); } catch (e) { return false; } })();
-// the bytes come down with the page - the base game's first, the others once it is in; only the
-// decode waits for the context
+// Sound that the loading screen does not play waits until it has gone (perf, 2026-11-09: 4.7 MB of
+// music and effects came down ahead of the first playable screen). The ident's own clips and the
+// press that closes the features screen come with the page (SFX_EARLY); the rest are asked for the
+// moment the loading screen lifts (runIntro), or at the first press if that is sooner, or after 25 s.
+let audioLaterGo;
+const audioLater = new Promise(r => { audioLaterGo = r; });
+const releaseAudio = () => audioLaterGo();
+addEventListener("pointerdown", releaseAudio, { once: true });
+setTimeout(releaseAudio, 25000);
+// the bytes come down once the game opens - the base game's first, the others once it is in; only
+// the decode waits for the context (a cue asked for sooner is fetched then)
 const musicRaw = {};
 const fetchMusic = name => musicRaw[name] || (musicRaw[name] =
   fetch(OPUS_OK ? MUSIC[name].ogg : MUSIC[name].aac).then(r => r.ok ? r.arrayBuffer() : null).catch(() => null));
-fetchMusic("base").then(() => Object.keys(MUSIC).forEach(name => fetchMusic(name)));
+audioLater.then(() => fetchMusic("base")).then(() => Object.keys(MUSIC).forEach(name => fetchMusic(name)));
 const musicTrack = {};   // name -> Promise<{ buf, at } | null>; at: where the cue's first frame sits in buf, in seconds
 function loadTrack(name) {
   if (musicTrack[name]) return musicTrack[name];
@@ -5765,9 +5784,12 @@ function startMusic() {
   musicTo(music.want, 2.5);
 }
 const sfxBuf = {};
-// Fetched as soon as the page loads, so the first press after the intro has its note ready;
-// only the decode waits for the context, which the browser will not open before a gesture.
-const sfxRaw = {}, sfxDecoding = {};
+// The loading screen's own clips (runIntro's INTRO_SFX) and the press that closes the features screen
+// are fetched as soon as the page loads; every other effect once the loading screen lifts
+// (audioLater), well before the first spin. Only the decode waits for the context, which the browser
+// will not open before a gesture. A file two names share (dripB, dripLand) is fetched and decoded once.
+const SFX_EARLY = ["introWhoosh", "introHit", "introShimmer", "introOut", "landBrick", "bet"].flatMap(n => SFX_VARS[n] || [n]);
+const sfxRaw = {}, sfxDecoding = {}, sfxRawByUrl = {}, sfxDecodeByUrl = {};
 // Each effect ships as Opus (tools/encode_sfx.js), taken wherever the browser plays it, and as AAC
 // (tools/encode_sfx_aac.js) for one that does not - older iOS Safari - or if the Opus copy fails. The
 // names above still say .wav (the masters'); the WAVs themselves are no longer shipped (2026-11-08:
@@ -5776,7 +5798,9 @@ const aacOf = url => fetch(url.replace(/\.wav$/, ".aac")).then(r => r.ok ? r.arr
 const sfxFetch = url => OPUS_OK
   ? fetch(url.replace(/\.wav$/, ".ogg")).then(r => r.ok ? r.arrayBuffer() : aacOf(url)).catch(() => aacOf(url))
   : aacOf(url);
-for (const [name, url] of Object.entries(SFX)) sfxRaw[name] = sfxFetch(url);
+for (const [name, url] of Object.entries(SFX)) {
+  sfxRaw[name] = sfxRawByUrl[url] || (sfxRawByUrl[url] = SFX_EARLY.includes(name) ? sfxFetch(url) : audioLater.then(() => sfxFetch(url)));
+}
 
 function bezierY(x1, y1, x2, y2) {          // CSS cubic-bezier as a function of progress
   const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx;
@@ -5834,8 +5858,10 @@ function audio() {
     musicBus = actx.createGain(); musicBus.connect(actx.destination);
     applyVolumes();
     for (const name of Object.keys(SFX)) {
-      sfxDecoding[name] = sfxRaw[name].then(b => b && actx.decodeAudioData(b))
-        .catch(() => aacOf(SFX[name]).then(b => b && actx.decodeAudioData(b)))   // an Opus copy that will not decode: the AAC
+      const url = SFX[name];   // one decode per file: the names sharing it share the buffer
+      const dec = sfxDecodeByUrl[url] || (sfxDecodeByUrl[url] = sfxRaw[name].then(b => b && actx.decodeAudioData(b))
+        .catch(() => aacOf(url).then(b => b && actx.decodeAudioData(b))));   // an Opus copy that will not decode: the AAC
+      sfxDecoding[name] = dec
         .then(buf => { if (buf) sfxBuf[name] = buf; })
         .catch(() => {});   // a missing clip just means silence, never a broken round
     }
@@ -6823,7 +6849,7 @@ async function presentRound(round, { settle = true } = {}) {
 // have (no MODE_COST) shows no card.
 const BUYS = [
   { mode: "bonus", key: "fs", title: "Free Spins", desc: "10, 12 or 15 free spins. Multis stay all bonus.", heat: 3, acc: "#9CE424", icon: () => SYM.BS.img },
-  { mode: "extremebonus", key: "xfs", title: "Free Spins", desc: "17 free spins. Every Multi is x2 or more.", heat: 5, acc: "#B454E4", icon: () => SYM.ES.img, x: true },
+  { mode: "extremebonus", key: "xfs", title: "Free Spins", desc: "17 free spins, or the trigger's own count when upgraded. Every Multi is x2 or more.", heat: 5, acc: "#B454E4", icon: () => SYM.ES.img, x: true },
   // Bonus Boost is not a buy: it is switched on, and every base spin after it is a boosted one (playRound)
   { mode: "boost", key: "boost", title: "Bonus Boost", desc: "Every spin 1.6x as likely to land free spins.", heat: 2, acc: "#B8F23A", toggle: true },
 ];
@@ -6904,18 +6930,19 @@ function paintBonus() {
     card.querySelector(".bsprice").textContent = fmt(price);
     card.querySelector(".bsx").textContent = o.toggle ? T(`${fmtMult(cost)}× per spin`) : T(`${fmtMult(cost)}× bet`);
     card.querySelector(".bsmax").textContent = T("Max win") + " x" + RULES.MAX_WIN.toLocaleString("en-US");
+    const capped = !modeOpen(o.mode);
     if (o.toggle) {
       card.classList.toggle("on", !!state.boost);
       btn.classList.toggle("lit", !!state.boost);
       btn.setAttribute("aria-pressed", String(!!state.boost));
-      btn.textContent = state.boost ? T("On") : T("Activate");
-      btn.disabled = false;
+      btn.textContent = state.boost ? T("On") : capped ? T("Lower the bet") : T("Activate");
+      btn.disabled = capped && !state.boost;   // it can always be switched off
       continue;
     }
     card.classList.toggle("on", armed);
     btn.classList.toggle("armed", armed && !over);
-    btn.textContent = over ? T("Low balance") : armed ? T("Confirm") : T("Get");
-    btn.disabled = over;
+    btn.textContent = capped ? T("Lower the bet") : over ? T("Low balance") : armed ? T("Confirm") : T("Get");
+    btn.disabled = over || capped;
   }
   $("bshopBal").textContent = fmtBal(state.balance);
   $("bonusBetVal").textContent = fmt(bet());
@@ -6987,6 +7014,7 @@ async function playRound(mode) {
   if (state.playing) { if (!state.noSkip) state.skip = true; return false; }   // fast-forward
   if (screensUp()) return false;                         // nothing is staked behind the opening screens
   if (!RGS.state.authenticated) { notice(T("<b>Not connected</b> — reopen the game from the lobby."), true); return false; }
+  if (!modeOpen(mode)) { notice(T("<b>Bet too high for this mode</b> — lower the bet."), true); return false; }
   const price = (MODE_COST[mode] || 1) * bet();
   if (price > state.balance) { notice(T("<b>Not enough balance</b> — lower the bet."), true); return false; }
   if (performance.now() - (state.lastPlayAt || 0) < 250) return false;
@@ -7283,10 +7311,14 @@ function refreshBet() {
 
 /* ---------- character ---------- */
 // The two characters are made and animated in Blender (tools/blender/chars/<char>/: a cutout rig, every clip
-// keyed there, the skull's smoke drawn there too), rendered to frames and packed by tools/blender/pack_chars.py:
-// each clip one file of small WebP frames back to back (assets/chars/<char>/<density>/<clip>.bin). A figure is
-// big on screen, so its frames are never all decoded at once - only the few about to show, a handful ahead,
-// then let go. They are drawn on their own Pixi canvas inside .charfx, so all the sizing and responsive CSS
+// keyed there, the skull's smoke drawn there too). Since 2026-11-09 each is a LIVE RIG (frontend/charrig.js):
+// tools/blender/pack_chars.py packs off the .blend the parts' images (one small atlas per density) and Blender's
+// own per-frame part transforms and bone deforms, and the figure is drawn live from them - a few MB instead of
+// 40-150 MB of rendered frames, and nothing decoded per frame. What a rig cannot be (Grease Pencil: dust, glints,
+// the ember's glow, ash; the smoke loop) still comes as frames: each clip's one file of small WebP frames back to
+// back, never all decoded at once - only the few about to show, a handful ahead, then let go. (A figure without
+// a rig plays its rendered frames the same way: assets/chars/<char>/<density>/<clip>.bin.)
+// They are drawn on their own Pixi canvas inside .charfx, so all the sizing and responsive CSS
 // above still governs them, the tag's neon still lights them (neonRim) and their shoes still throw shadows.
 //
 // Each figure plays one clip at a time. It rests on "idle", which loops, and is interrupted by two kinds of
@@ -7347,7 +7379,7 @@ const charWorker = (() => {
         try {
           const b = await file(q.url);
           if (q.a === undefined) { postMessage({ id: q.id }); return; }
-          const bmp = await createImageBitmap(b.slice(q.a, q.b, "image/webp"));
+          const bmp = await createImageBitmap(b.slice(q.a, q.b, "image/webp"), q.opt || undefined);
           postMessage({ id: q.id, bmp }, [bmp]);
         } catch (err) { postMessage({ id: q.id, err: String((err && err.message) || err) }); }
       };`;
@@ -7359,7 +7391,7 @@ const charWorker = (() => {
   const ask = q => new Promise((ok, no) => { q.id = ++n; wait.set(q.id, { ok, no }); w.postMessage(q); });
   return {
     file: url => ask({ url: new URL(url, location.href).href }),
-    frame: (url, a, b) => ask({ url: new URL(url, location.href).href, a, b }),
+    frame: (url, a, b, opt) => ask({ url: new URL(url, location.href).href, a, b, opt }),
     drop: url => w.postMessage({ drop: new URL(url, location.href).href }),
   };
 })();
@@ -7373,9 +7405,16 @@ async function charFrames(name, figurePx) {
   const dval = n => (man.density_of && man.density_of[n]) || parseInt(n.slice(1), 10) / 10;   // (older packs: tenths in the name)
   const dd = man.densities.find(n => dval(n) >= want) || man.densities[man.densities.length - 1];
   const d = dval(dd);
+  // a figure with a live rig (man.rig, frontend/charrig.js) draws its parts from an atlas a little finer than the
+  // picture (CharRig.SUPER), and its effect tracks at that density too; only the smoke still comes at dd
+  const rig = !!(man.rig && window.CharRig);
+  const ad = rig ? (man.densities.find(n => dval(n) >= want * CharRig.SUPER) || man.densities[man.densities.length - 1]) : dd;
+  const fxOf = (kind, clip) => rig && man.rig.fx && man.rig.fx.tracks[clip] && man.rig.fx.tracks[clip][kind];
   const files = new Map(), frames = new Map();
-  const urlOf = (kind, clip) => kind === "unlit" ? `${base}/unlit/${clip}.bin` : `${base}/${dd}/${clip}.bin`;
-  const file = (kind, clip) => {   // kind: "art", "unlit" or "smoke" (clip "smoke": the figure's own smoke loop)
+  const urlOf = (kind, clip) => kind === "unlit" ? `${base}/unlit/${clip}.bin`
+    : kind === "fx" || kind === "fxmask" ? `${base}/${ad}/${fxOf(kind, clip).files[ad].file}` : `${base}/${dd}/${clip}.bin`;
+  let opt = { fx: undefined, fxmask: undefined };   // how an effect frame is decoded (the rig sets it: CharRig.bitmapOptions)
+  const file = (kind, clip) => {   // kind: "art", "unlit", "smoke" (clip "smoke": the figure's own smoke loop), "fx", "fxmask" (a rig's effect tracks)
     const key = kind + ":" + clip;
     if (!files.has(key)) {
       const url = urlOf(kind, clip);
@@ -7385,7 +7424,8 @@ async function charFrames(name, figurePx) {
   };
   const info = (kind, clip) => {
     if (kind === "smoke") return man.smoke && man.smoke.files[dd];
-    const c = man.clips[clip]; return kind === "art" ? c.files[dd] : c.unlit;
+    if (kind === "fx" || kind === "fxmask") { const t = fxOf(kind, clip); return t && t.files[ad]; }
+    const c = man.clips[clip]; return kind === "art" ? c.files && c.files[dd] : c.unlit;
   };
   // A frame that will not decode (a file cut short in transit, or swapped under a page that had the old
   // manifest) is not asked for again every tick: its clip's file is fetched afresh and the frame retried a
@@ -7407,8 +7447,8 @@ async function charFrames(name, figurePx) {
       f = { bmp: null, busy: true };
       frames.set(key, f);
       inflight++;
-      (charWorker ? charWorker.frame(urlOf(kind, clip), inf.offsets[i], inf.offsets[i + 1])
-        : file(kind, clip).then(b => createImageBitmap(b.slice(inf.offsets[i], inf.offsets[i + 1], "image/webp"))))
+      (charWorker ? charWorker.frame(urlOf(kind, clip), inf.offsets[i], inf.offsets[i + 1], opt[kind])
+        : file(kind, clip).then(b => createImageBitmap(b.slice(inf.offsets[i], inf.offsets[i + 1], "image/webp"), opt[kind])))
         .finally(() => { inflight--; f.busy = false; })
         .then(bmp => { failed.delete(key); if (frames.get(key) === f) f.bmp = bmp; else bmp.close(); })
         .catch(e => {
@@ -7436,7 +7476,7 @@ async function charFrames(name, figurePx) {
       await new Promise(r => setTimeout(r, 10));
     }
   };
-  return { man, dd, d, file, get, keep, ready };
+  return { man, dd, d, ad, rig, base, file, get, keep, ready, decodeFx: o => { opt = { fx: o, fxmask: o }; } };
 }
 
 // The tag's neon lights the pair (owner, 2026-10-25; lit for real 2026-10-27): each figure takes a
@@ -7489,7 +7529,7 @@ void main(void) {
   float paint = smoothstep(0.06, 0.12, dot(rgb, vec3(0.2126, 0.7152, 0.0722)));
   if (paint <= 0.0) return;
   vec2 pos = uOutputFrame.xy + vTextureCoord * uInputSize.xy;
-  float keep = 1.0 - texture(uUnlit, pos / uStage).a;
+  float keep = 1.0 - texture(uUnlit, pos / uStage).r;   // (red: a rig's mask carries it there; the frames' white masks have it in every channel)
   if (keep <= 0.0) return;
   vec2 to = uLight - pos;
   float d = length(to);
@@ -7543,7 +7583,8 @@ function neonRim(app, actor, unlit, touch = () => {}) {
   filter.enabled = false;   // until the tube has been read
   actor.filters = [filter];
   const u = filter.resources.neonRim.uniforms;
-  const repose = () => { if (unlit) app.renderer.render({ container: unlit, target: mask, clear: true, clearColor: [0, 0, 0, 0] }); };
+  // (unlit: a container, or a live rig's own drawing of its mask: a function given the texture)
+  const repose = () => { if (typeof unlit === "function") unlit(mask); else if (unlit) app.renderer.render({ container: unlit, target: mask, clear: true, clearColor: [0, 0, 0, 0] }); };
   app.renderer.on("resize", () => {
     mask.resize(app.screen.width, app.screen.height);
     u.uStage[0] = app.screen.width; u.uStage[1] = app.screen.height;
@@ -7670,6 +7711,16 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   app.ticker.remove(app.render, app);
   app.ticker.add(() => { if (dirty) { dirty = false; app.render(); } }, null, PIXI.UPDATE_PRIORITY.LOW);
   app.renderer.on("resize", touch);
+  // A figure with a live rig (2026-11-09: frontend/charrig.js, packed off its .blend by tools/blender/pack_chars.py)
+  // draws its parts live from one small atlas instead of decoding and uploading a frame 30 times a second; only
+  // its effect tracks and the smoke are still frames. Without one, its rendered frames as before.
+  let rig = null, rigStale = true;
+  if (F.rig) {
+    try { rig = await CharRig.create(app, F.base, man, F.ad); F.decodeFx(CharRig.bitmapOptions(rig.linear)); }
+    catch (e) { console.warn("character rig failed to load:", name, e.message); app.destroy(true); return null; }
+  }
+  const FXK = ["fx", "fxmask"];
+  const rigTrack = (kind, clip) => !!(man.rig.fx && man.rig.fx.tracks[clip] && man.rig.fx.tracks[clip][kind]);
 
   // Each frame is laid on a "paper" the size of the whole frame at this density (its clip's box in place):
   // a container of sprites - the frame, the one fading out over it on a cut, the smoke - each showing a
@@ -7706,8 +7757,11 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     s.position.set(x, y); s.alpha = a; s.visible = true;
   };
   const hide = s => { s.visible = false; };
-  const art = paper(d), ud = (man.clips.idle.unlit || {}).density || .5, un = has("idle") && man.clips.idle.unlit ? paper(ud) : null;
-  const actor = art.cont;
+  const art = paper(d), ud = (man.clips.idle.unlit || {}).density || .5, un = !rig && has("idle") && man.clips.idle.unlit ? paper(ud) : null;
+  // the light's filter sits on `actor`: the paper itself, or (a rig) the rig's picture with the paper (the smoke)
+  // over it - the smoke laid on the canvas over the figure, as it always was
+  const actor = rig ? new PIXI.Container() : art.cont;
+  if (rig) actor.addChild(rig.view, art.cont);
   app.stage.addChild(actor);
   let unlitStage = null, unlitSprite = null;
   if (un) {
@@ -7715,7 +7769,8 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     unlitSprite = un.cont;
     unlitStage.addChild(unlitSprite);
   }
-  const repose = neonRim(app, actor, unlitStage, touch);   // the tag's light on them from behind
+  // the tag's light on them from behind (a rig draws the light's mask itself, from its unlit parts)
+  const repose = neonRim(app, actor, rig ? target => rig.mask(target) : unlitStage, touch);
 
   // The figure is drawn feet-on-the-floor, centred: scaled so its standing height fills the box the
   // CSS vars were calibrated against - the box minus the headroom, which is there so a clip that
@@ -7723,9 +7778,10 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   const fit = () => {
     const w = app.renderer.width, h = app.renderer.height;
     if (!w || !h) return;
-    actor.scale.set(h / headroom() / man.rest_height / d);
-    actor.position.set(w / 2, h);
-    if (unlitSprite) { unlitSprite.scale.set(actor.scale.x * d / ud); unlitSprite.position.copyFrom(actor.position); }
+    art.cont.scale.set(h / headroom() / man.rest_height / d);
+    art.cont.position.set(w / 2, h);
+    if (rig) { rig.resize(); rig.place(w / 2, h, h / headroom() / man.rest_height); rig.invalidate(); rigStale = true; }
+    if (unlitSprite) { unlitSprite.scale.set(art.cont.scale.x * d / ud); unlitSprite.position.copyFrom(art.cont.position); }
     if (repose) repose();
     touch();
   };
@@ -7748,9 +7804,9 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   const fig = {
     showing: () => shown,
     shoes: (clip, i) => { const t = man.track[clip]; return t && t[i] && t[i].shoes; },
-    scale: () => actor.scale.x * d,
+    scale: () => art.cont.scale.x * d,
     alpha: () => 1,
-    toStage: (x, y) => ({ x: actor.position.x + (x - W / 2) * actor.scale.x * d, y: actor.position.y + (y - man.ground_y) * actor.scale.x * d }),
+    toStage: (x, y) => ({ x: art.cont.position.x + (x - W / 2) * art.cont.scale.x * d, y: art.cont.position.y + (y - man.ground_y) * art.cont.scale.x * d }),
   };
   if (shadow) footShadow(app, fig, root);   // and their shadows on the pavement, under each shoe
 
@@ -7777,13 +7833,54 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     return true;
   };
 
-  const nextReady = () => F.get("art", next.clip, 0) && (!un || !man.clips[next.clip].unlit || F.get("unlit", next.clip, 0));
+  // A rig's frame: its pose, its effect frames (decoded ahead as the frames were; until they are in, the picture
+  // showing stays, as it did), the smoke on the ember as before. -> 0 (not yet), 1 (only the smoke may have
+  // moved), 2 (the figure changed: its picture and the light's mask are drawn again)
+  const drawRig = (clip, i) => {
+    const sf = rig.fxSlot("fx", clip, i), sm = rig.fxSlot("fxmask", clip, i);
+    const fb = sf >= 0 ? F.get("fx", clip, sf) : null, mb = sm >= 0 ? F.get("fxmask", clip, sm) : null;
+    if ((sf >= 0 && !fb) || (sm >= 0 && !mb)) return 0;
+    let changed = rig.pose(clip, i);
+    if (rig.setFx("fx", fb, clip, sf)) changed = true;
+    if (rig.setFx("fxmask", mb, clip, sm)) changed = true;
+    hide(art.smoke);
+    const em = SM && man.track[clip] && man.track[clip][i] && man.track[clip][i].ember;
+    if (em) {
+      const fresh = F.get("smoke", "smoke", smokeAt);
+      if (fresh) smokeLast = fresh;
+      const sb = smokeLast && smokeLast.width ? smokeLast : null;   // (a released frame is closed: width 0)
+      if (sb) {
+        put(art.smoke, sb, (em[0] - SM.origin[0] + SM.box[0]) * d, (em[1] - SM.origin[1] + SM.box[1]) * d, 1);
+        art.smoke.scale.set(d / (SM.files[F.dd].density || d));   // (the smoke comes at half the figure's density)
+      }
+    }
+    if (!changed && !rigStale) return 1;
+    rigStale = false;
+    rig.redraw();
+    return 2;
+  };
+  const rigReady = clip => FXK.every(k => { const s = rig.fxSlot(k, clip, 0); return s < 0 || !!F.get(k, clip, s); });
+  const nextReady = () => rig ? rigReady(next.clip) : F.get("art", next.clip, 0) && (!un || !man.clips[next.clip].unlit || F.get("unlit", next.clip, 0));
   const start = (clip, now, cut, r = -1) => {
-    fade = cut && shown ? { clip: shown.clip, i: shown.i, t0: now } : null;
+    // (a rig cuts without the old frames' 3-frame blend: it has no second picture to fade out)
+    fade = cut && shown && !rig ? { clip: shown.clip, i: shown.i, t0: now } : null;
     cur = { clip, t0: now, rank: r };
     if (clip !== "idle") { until = now + lengthOf(clip); }
   };
 
+  const wanted = new Set(), want = (clip, i0, n) => {
+    const c = man.clips[clip];
+    for (let k = 0; k < n; k++) {
+      const i = c.loop ? (i0 + k) % c.frames : i0 + k;
+      if (i >= c.frames) break;
+      if (rig) {
+        for (const kd of FXK) { const s = rig.fxSlot(kd, clip, i); if (s >= 0) { wanted.add(kd + ":" + clip + ":" + s); F.get(kd, clip, s); } }
+        continue;
+      }
+      wanted.add("art:" + clip + ":" + i); F.get("art", clip, i);
+      if (un && c.unlit) { wanted.add("unlit:" + clip + ":" + i); F.get("unlit", clip, i); }
+    }
+  };
   app.ticker.add(() => {
     const now = performance.now();
     let f = frameAt(cur, now);
@@ -7813,15 +7910,8 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
       }
     }
     // what to keep decoded: this clip's next frames, the idle's first (to hand back to), a waiting clip's first
-    const wanted = new Set(), want = (clip, i0, n) => {
-      const c = man.clips[clip];
-      for (let k = 0; k < n; k++) {
-        const i = c.loop ? (i0 + k) % c.frames : i0 + k;
-        if (i >= c.frames) break;
-        wanted.add("art:" + clip + ":" + i); F.get("art", clip, i);
-        if (un && c.unlit) { wanted.add("unlit:" + clip + ":" + i); F.get("unlit", clip, i); }
-      }
-    };
+    // (a rig: only its effect frames)
+    wanted.clear();
     want(cur.clip, f, CHAR_AHEAD);
     if (SM) {
       smokeAt = Math.floor((now - smokeT0) * fps / 1000) % SM.frames;
@@ -7835,7 +7925,16 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     // draw when the frame changes (or while a cut blends)
     const a = fade ? 1 - (now - fade.t0) * fps / 1000 / CHAR_XFADE : 0;
     if (fade && a <= 0) fade = null;
-    if (shown && shown.clip === cur.clip && shown.i === f && shown.smoke === smokeAt && !fade) return;
+    if (shown && shown.clip === cur.clip && shown.i === f && shown.smoke === smokeAt && !fade && !rigStale) return;
+    if (rig) {
+      const r = drawRig(cur.clip, f);
+      if (r) {
+        shown = { clip: cur.clip, i: f, smoke: smokeAt };
+        if (r === 2 && repose) repose();
+        touch();
+      }
+      return;
+    }
     const prev = fade && { clip: fade.clip, i: fade.i, a };
     if (draw(art, "art", cur.clip, f, prev)) {
       if (un && man.clips[cur.clip].unlit) draw(un, "unlit", cur.clip, f, prev);
@@ -7844,7 +7943,10 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
       touch();
     }
   });
-  (window.__chars || (window.__chars = [])).push({ name, app, actor, F, fig, state: () => ({ cur, next, shown, rank }) });   // debug handle
+  (window.__chars || (window.__chars = [])).push({ name, app, actor, F, fig, rig, state: () => ({ cur, next, shown, rank }) });   // debug handle
+  // a lost WebGL context (a phone dropping it in the background): Pixi brings the textures back from their
+  // sources; the rig's picture and mask are drawn again
+  app.canvas.addEventListener("webglcontextrestored", () => { if (rig) { rig.invalidate(); rigStale = true; } shown = null; touch(); });
 
   const pick = list => list[Math.floor(Math.random() * list.length)];
   const oneShot = (clip, want) => {
@@ -7887,7 +7989,12 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
     rank = -1; until = 0; next = null;
     clearTimeout(fadeTimer);
     app.canvas.classList.add("on");
-    if (REDUCED_MOTION) { app.ticker.stop(); start("idle", performance.now(), false); draw(art, "art", "idle", 0); if (un) draw(un, "unlit", "idle", 0); app.render(); return; }
+    if (REDUCED_MOTION) {
+      app.ticker.stop(); start("idle", performance.now(), false);
+      if (rig) { rigStale = true; drawRig("idle", 0); if (repose) repose(); }
+      else { draw(art, "art", "idle", 0); if (un) draw(un, "unlit", "idle", 0); }
+      app.render(); return;
+    }
     // the walk-on starts at once, not on a cue
     if (has("enter")) charSfx(name, "enter");
     start(has("enter") ? "enter" : "idle", performance.now(), false);
@@ -7912,10 +8019,19 @@ async function makeCharacter({ el, name, flavour, swap = {}, shadow = true }) {
   };
 
   // the loading screen waits for the walk-on and the idle's first frames (decoded, ready to show)
-  await Promise.all([F.ready("art", "enter", CHAR_AHEAD), F.ready("art", "idle", CHAR_AHEAD), SM && F.ready("smoke", "smoke", CHAR_AHEAD),
-                     un && F.ready("unlit", "enter", CHAR_AHEAD), un && F.ready("unlit", "idle", CHAR_AHEAD)]);
-  // the rest of the clips' files come down behind it, kept compressed until they play
-  for (const clip of Object.keys(man.clips)) { F.file("art", clip).catch(() => {}); if (un) F.file("unlit", clip).catch(() => {}); }
+  if (rig) {
+    // a rig: its atlas and shaders onto the GPU now (one drawing of the walk-on's first pose and its mask), the
+    // smoke's and the walk-on's / idle's effect frames decoded
+    rig.pose("enter", 0); rig.redraw(); if (repose) repose(); rig.invalidate(); rigStale = true;
+    await Promise.all([SM && F.ready("smoke", "smoke", CHAR_AHEAD),
+                       ...["enter", "idle"].flatMap(c => FXK.filter(k => rigTrack(k, c)).map(k => F.ready(k, c, CHAR_AHEAD)))]);
+    for (const clip of Object.keys(man.clips)) for (const k of FXK) if (rigTrack(k, clip)) F.file(k, clip).catch(() => {});
+  } else {
+    await Promise.all([F.ready("art", "enter", CHAR_AHEAD), F.ready("art", "idle", CHAR_AHEAD), SM && F.ready("smoke", "smoke", CHAR_AHEAD),
+                       un && F.ready("unlit", "enter", CHAR_AHEAD), un && F.ready("unlit", "idle", CHAR_AHEAD)]);
+    // the rest of the clips' files come down behind it, kept compressed until they play
+    for (const clip of Object.keys(man.clips)) { F.file("art", clip).catch(() => {}); if (un) F.file("unlit", clip).catch(() => {}); }
+  }
 
   // a backgrounded tab throttles rAF; Pixi resumes on its own, but re-fit in case the
   // pane was resized while hidden
@@ -8088,7 +8204,18 @@ if (window.ResizeObserver) {
 }
 
 buildBoard();
-eachCell((el, r, y) => setCell(r, y, { name: ["L1","L2","L3","L4","L5"][(r + y) % 5] }));
+// The board before the first round: a fixed, natural-looking mix (a seeded shuffle, no two equal
+// neighbours, so nothing reads as a cluster) - not a striped test pattern (approval audit 2026-11-09)
+{
+  const pool = ["L1","L2","L3","L4","L5","L1","L2","L3","L4","L5","H1","H2","H3","H4","H5"];
+  let seed = 20261109; const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 2 ** 32;
+  const grid = [];
+  for (let r = 0; r < REELS; r++) { grid[r] = [];
+    for (let y = 0; y < ROWS; y++) { let n;
+      do n = pool[Math.floor(rnd() * pool.length)]; while ((r && grid[r - 1][y] === n) || (y && grid[r][y - 1] === n));
+      grid[r][y] = n; } }
+  eachCell((el, r, y) => setCell(r, y, { name: (grid[r] && grid[r][y]) || "L1" }));
+}
 fitToScreen();   // fit once the board exists; `load` and fonts.ready refine it after art settles
 
 // the button doubles as Skip mid-round — only clunk when it actually starts a spin
@@ -8156,18 +8283,24 @@ let introDone = Promise.resolve();
 // Everything the game draws, fetched before it is needed. The picture list is read off the
 // stylesheet itself, so a piece of art added to a rule is preloaded without being listed
 // twice; the numerals and the symbols are named here because nothing in the CSS mentions
-// them. The sounds are already in flight from page load, and the fonts report their own.
+// them. The loading screen's sounds are already in flight from page load, and the fonts are
+// loaded as fonts (preloadAll): an @font-face's file read off the sheet and fetched as a picture
+// came down twice, once as each (2026-11-09). A mask's picture is fetched the way the mask
+// fetches it (CORS), so the mask finds it already in instead of asking again (maskUrls).
+const maskUrls = new Set(), picRules = new Map();   // picRules: url -> the selectors that draw it (releaseGonePics)
 function assetUrls() {
   const urls = new Set();
-  const fromText = text => {
+  const fromText = (text, mask, sel) => {
     for (const m of text.matchAll(/url\((['"]?)([^'")]+)\1\)/g)) {
       const u = m[2].trim();
-      if (u && !u.startsWith("data:")) urls.add(u);
+      if (u && !u.startsWith("data:")) { urls.add(u); if (!picRules.has(u)) picRules.set(u, []); picRules.get(u).push(sel || ""); }
     }
+    if (mask) for (const m of mask.matchAll(/url\((['"]?)([^'")]+)\1\)/g)) maskUrls.add(m[2].trim());
   };
   const walk = rules => {
     for (const r of rules) {
-      if (r.style) fromText(r.style.cssText || "");
+      if (typeof CSSFontFaceRule !== "undefined" && r instanceof CSSFontFaceRule) continue;
+      if (r.style) fromText(r.style.cssText || "", (r.style.maskImage || "") + (r.style.webkitMaskImage || ""), r.selectorText);
       if (r.cssRules) walk(r.cssRules);
     }
   };
@@ -8188,16 +8321,35 @@ function assetUrls() {
 // ready the moment it is made, so a figure or a headline shown for the first time is there on
 // its first frame instead of loading in a beat late.
 const heldPics = [];
+// ...except what can never show again once the game is in (perf, 2026-11-09): a held picture that has
+// been on screen keeps its decoded pixels in the browser's caches - ~100 MB in the page and ~110 MB in
+// the GPU process on a 1080p desktop, almost all of it the features screen's plates (gone for good)
+// and the painted-rim or plain twin of each plate the page is not using (html.sprayfx picks one).
+function releaseGonePics() {
+  const live = document.documentElement.classList.contains("sprayfx");
+  const names = new Set(heldPics.map(i => new URL(i.src, location.href).pathname));
+  const gone = img => {
+    const p = new URL(img.src, location.href).pathname, rel = p.replace(/^.*?\/assets\//, "assets/");
+    const sels = picRules.get(rel) || [];
+    if (sels.length && sels.every(s => /\.fbox|\.features|\.ftitle/.test(s))) return true;   // the features screen's own
+    const rimTwin = p.replace("/assets/", "/assets/rim/");
+    if (live && rimTwin !== p && names.has(rimTwin)) return true;   // the live rim's art draws instead of this one
+    if (!live && p.includes("/assets/rim/")) return true;            // no live rims: the plain art draws
+    return false;
+  };
+  for (let i = heldPics.length - 1; i >= 0; i--) if (gone(heldPics[i])) heldPics.splice(i, 1);
+}
 // Reports how far along it is, from 0 to 1, and settles once everything has either arrived
 // or failed - a missing piece must never hold the game shut.
 function preloadAll(onProgress) {
   const pics = assetUrls();
-  const sounds = Object.values(sfxRaw || {});
+  const sounds = SFX_EARLY.map(n => sfxRaw[n]).filter(Boolean);   // the rest come once the screen lifts
   let jobs = 0, done = 0;   // every promise one() is handed counts, so the bar ends at 100% exactly
   const tick = () => onProgress(jobs ? Math.min(1, done / jobs) : 1);
   const one = pr => { jobs++; return pr.then(() => { done++; tick(); }, () => { done++; tick(); }); };
   const waits = pics.map(u => one(new Promise((res, rej) => {
     const img = new Image();
+    if (maskUrls.has(u)) img.crossOrigin = "anonymous";
     img.onload = res; img.onerror = rej;
     img.src = u;
     heldPics.push(img);
@@ -8207,10 +8359,9 @@ function preloadAll(onProgress) {
   waits.push(one(loadSymFrames()));  // the animated symbols: Blender's frames (the landings; the rest follows)
   waits.push(one(charsLoaded));      // the two characters, every atlas page on the GPU
   waits.push(one(document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()));
-  // the bonus screen's faces are not on the page yet, so fonts.ready would not wait for them
-  if (document.fonts && document.fonts.load) {
-    for (const f of ['1em "Apocalypse Grunge"', '1em "aaaiight"', '1em "aaaiight fat"', '1em "Smashed Graffiti"', '1em "Smashed Graffiti Outline"']) waits.push(one(document.fonts.load(f)));
-  }
+  // every face the stylesheet declares, loaded now: the bonus screen's, the buy panel's and the
+  // rest are not on the page yet, so fonts.ready alone would not wait for them
+  if (document.fonts && document.fonts.forEach) document.fonts.forEach(f => waits.push(one(f.load())));
   tick();
   return Promise.all(waits);
 }
@@ -8399,9 +8550,10 @@ const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[26,302,401,549],"M":[380,2
 const INTRO_DROP = ["S", "M", "U", "K", "i", "E", "Z"];
 function runIntro() {
   const wrap = $("intro"), fill = $("introFill");
-  if (!wrap) return;
+  if (!wrap) { releaseAudio(); return; }
   let done = false, settle;
-  introDone = new Promise(r => { settle = r; });
+  // the screen lifting is the game opening: the sound it did not need comes down from here (audioLater)
+  introDone = new Promise(r => { settle = () => { releaseAudio(); r(); }; });
   const timers = [];
   const after = (ms, fn) => timers.push(setTimeout(fn, ms));
   const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -8717,7 +8869,7 @@ const WIN_TIERS = [
   { at: 100, art: "xtreme_win.webp", label: "Xtreme win", rate: 1.5 },
 ];
 const OVER_BOARD_AT = 10;   // a spin has to pay MORE than this many times the bet for the popup
-for (const t of WIN_TIERS) { const i = new Image(); i.src = "assets/" + t.art; }   // ready before it is wanted
+// (the lettering is preloaded and held with every other picture: assetUrls names it)
 // Icons raining down behind the figure, as a small physics toy: every icon falls under gravity
 // through a little air, tumbles on its own spin, and bounces off any icon it runs into - round
 // bodies, overlap pushed apart by mass, momentum traded along the line between centres, and the
@@ -8865,7 +9017,7 @@ function totalWinScreen(amount, { total = true } = {}) {
         `</div>` +
         `<div class="twamount"><div class="twfig">${numeralRow(fmt(0))}</div></div>` +
       `</div>` +
-      `<div class="twcont">${T("Click to continue")}</div>`;
+      `<div class="twcont">${T(TOUCH ? "Tap to continue" : "Click to continue")}</div>`;
     // the figure sits dead centre on the board, and stays there if the window changes under it
     const centre = () => {
       const r = $("board").getBoundingClientRect();
@@ -9149,7 +9301,7 @@ function runFeatures() {
         T("The Phantom \u00b7 Extreme"),
         T(`<b>2</b> anywhere award <b>17</b> free spins under Extreme rules: Multis land more often still, drop in lines, and every value is <b>x2</b> or more. A Crew Leader trigger with a Phantom on the same spin is upgraded to Extreme.`)) +
     `</div>` +
-    `<div class="fcont"><span class="fhit"><span class="ftxt">${T("Click to play")}</span></span></div>`;
+    `<div class="fcont"><span class="fhit"><span class="ftxt">${T(TOUCH ? "Tap to play" : "Click to play")}</span></span></div>`;
   document.body.appendChild(wrap);
   // the plate under the mouse tips toward it, and so does CLICK TO PLAY under them
   const tilt = tiltPlates([...wrap.querySelectorAll(".fbox"), wrap.querySelector(".fcont .fhit")]);
@@ -9191,6 +9343,7 @@ function runFeatures() {
 }
 runFeatures();
 introDone = introDone.then(() => featuresDone);   // a resumed round waits for this screen too
+introDone.then(() => setTimeout(releaseGonePics, 1500));   // its plates are gone for good: let their pictures go
 
 /* ---------- bonus intro ---------- */
 // The bonus lands: the game fades to black, the wall comes up with the BONUS lettering (XTREME
@@ -9225,7 +9378,7 @@ function bonusIntro(spins, extreme) {
         `<div class="bnum" aria-label="${spins}"><i class="brays" aria-hidden="true"></i><div class="bfig">${numeralRow(REDUCED_MOTION ? String(spins) : "0")}</div></div>` +
         `<div class="bfs">${T("Free spins")}</div>` +
         `<div class="bhow">${bonusIntroHow(extreme)}</div>` +
-        `<div class="bcont">${T("Click or press Space to continue")}</div>` +
+        `<div class="bcont">${T(TOUCH ? "Tap to continue" : "Click or press Space to continue")}</div>` +
       `</div></div>`;
     document.body.appendChild(wrap);
     const stack = wrap.querySelector(".bstack");

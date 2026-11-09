@@ -1,0 +1,43 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>character rig parity</title>
+<style>html,body{margin:0;background:transparent}</style></head>
+<body>
+<script src="/frontend/assets/spine/pixi.min.js"></script>
+<script src="/frontend/charrig.js"></script>
+<script>
+// The game's own rig player (frontend/charrig.js), drawing a clip frame over the whole master frame at density dd
+// (atlas: the density the game would draw that size from), read back raw (premultiplied RGBA, rows bottom-up).
+// Served from the repo root by parity.mjs: ?char=boy&dd=d35&atlas=d5
+const Q = new URLSearchParams(location.search);
+const CH = Q.get("char"), DD = Q.get("dd"), AD = Q.get("atlas") || DD, BASE = `/frontend/assets/chars/${CH}`;
+window.P = (async () => {
+  const man = await (await fetch(`${BASE}/manifest.json`)).json();
+  const d = man.density_of[DD], W = Math.round(man.size[0] * d), H = Math.round(man.size[1] * d);
+  const app = new PIXI.Application();
+  await app.init({ width: W, height: H, backgroundAlpha: 0, antialias: false, preference: "webgl", preserveDrawingBuffer: true, resolution: 1, autoDensity: false });
+  document.body.appendChild(app.canvas);
+  const rig = await CharRig.create(app, BASE, man, AD);
+  app.stage.addChild(rig.view);
+  rig.resize();
+  rig.frame.pivot.set(0, 0); rig.frame.scale.set(W / man.size[0], H / man.size[1]); rig.frame.position.set(0, 0);
+  const bins = {};
+  const fxbmp = async (kind, clip, slot) => {
+    const f = man.rig.fx.tracks[clip][kind].files[AD];
+    if (!bins[kind + clip]) bins[kind + clip] = await (await fetch(`${BASE}/${AD}/${f.file}`)).blob();
+    return createImageBitmap(bins[kind + clip].slice(f.offsets[slot], f.offsets[slot + 1], "image/webp"), CharRig.bitmapOptions(rig.linear));
+  };
+  const b64 = u8 => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+  return {
+    man, linear: rig.linear, W, H,
+    shot: async (clip, i) => {
+      rig.invalidate(); rig.pose(clip, i);
+      for (const kind of ["fx", "fxmask"]) { const s = rig.fxSlot(kind, clip, i); rig.setFx(kind, s >= 0 ? await fxbmp(kind, clip, s) : null, clip, s); }
+      rig.redraw(); app.render();
+      const gl = app.renderer.gl, px = new Uint8Array(W * H * 4);
+      gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      return b64(px);
+    },
+  };
+})();
+</script>
+</body></html>

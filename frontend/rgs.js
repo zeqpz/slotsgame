@@ -33,6 +33,7 @@ const RGS = (() => {
     XSC: { symbol: "SC", decimals: 2, after: true },
     XEC: { symbol: "SC", decimals: 2, after: true },
   };
+  const CURRENCY_SOCIAL = new Set(["XGC", "XSC", "XEC"]);
   // thousands grouped: 1,000,000.00 - the integer part only
   const group = s => s.replace(/^(\d+)/, d => d.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
 
@@ -222,6 +223,14 @@ const RGS = (() => {
       return (m && typeof m.costMultiplier === "number") ? m.costMultiplier : null;
     },
 
+    /** A mode's own bet cap (gameModes[].maxBet, micro-units) or null when the RGS gives none.
+     *  0 means the mode is disabled for this player/currency (seen for every mode under XGC). */
+    modeMaxBet(mode) {
+      const modes = (state.config && state.config.gameModes) || [];
+      const m = modes.find(x => x.mode === mode);
+      return (m && typeof m.maxBet === "number") ? m.maxBet : null;
+    },
+
     /** Optional progress marker so a disconnect can resume mid-round. */
     async event(name) {
       try { return await call("/bet/event", { event: name }); }
@@ -253,6 +262,7 @@ const RGS = (() => {
         if (s.split(".")[1] && s.split(".")[1].length < meta.decimals) s = v.toFixed(meta.decimals);
       }
       s = group(s);
+      if (social && !CURRENCY_SOCIAL.has(currency || state.currency)) return `${s} ${currency || state.currency}`;   // social mode: never a $ / € sign
       return meta.after ? `${s} ${meta.symbol}` : `${meta.symbol}${s}`;
     },
 

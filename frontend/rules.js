@@ -55,7 +55,7 @@ const RULES = (() => {
     ["bought", "instantly triggered"], ["buy", "get"], ["purchase", "play"],
     ["cash", "coins"], ["money", "coins"], ["currency", "token"], ["credit", "balance"],
     ["wager", "play"], ["gamble", "play"], ["stake", "play amount"],
-    ["pays", "wins"], ["paid", "won"], ["pay", "win"], ["cost", "amount"],
+    ["pays", "wins"], ["paid", "won"], ["pay", "win"], ["costs", "is played for"], ["cost", "amount"],
   ];
   // Each replacement word borrows the case of the word it replaces ("Buy Bonus" -> "Get
   // Bonus", "BET" -> "PLAY"), so headings and buttons keep their look.
@@ -108,7 +108,7 @@ const RULES = (() => {
     const html = `
 <section>
   <h4>${t("About the game")}</h4>
-  <p>${t(`Smukiez's City is a 7-reel, 7-row video slot with cluster pays and tumbling reels. A cluster is 5 or more matching symbols touching horizontally or vertically, anywhere on the board; every cluster on the board pays, winning symbols are removed, new ones drop in, and the new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
+  <p>${t(`Smukiez &amp; Skelly is a 7-reel, 7-row video slot with cluster pays and tumbling reels. A cluster is 5 or more matching symbols touching horizontally or vertically, anywhere on the board; every cluster on the board pays, winning symbols are removed, new ones drop in, and the new board is paid again. The values below are multiples of the total bet, shown at your current bet of ${fmt(bet)}.`)}</p>
   <div class="kvgrid">
     <div><span>RTP</span><b>${RTP}</b><small>${t("every mode")}</small></div>
     <div><span>${t("Max win")}</span><b>${x(MAX_WIN)}</b><small>${t("of the total bet")} · ${money(MAX_WIN)}</small></div>
