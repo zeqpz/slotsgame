@@ -727,6 +727,11 @@
      The wall is the real one behind the game: the game itself is faded out beneath. */
   body.features-fade #app, body.features-fade .charfx, body.features-fade .charshadow { transition: opacity .7s ease; }
   body.features-up #app, body.features-up .charfx, body.features-up .charshadow { opacity: 0; }
+  /* and the wall's SMUKIEZ tag (its neon, drips and light with it) steps out too: the title stands
+     over the plates (owner, 2026-11-08); it fades back in with the game */
+  body.features-fade #walltag, body.features-fade .tagfx, body.features-fade #walllight { transition: opacity .7s ease, visibility .7s; }
+  body.features-up #walltag, body.features-up .tagfx { opacity: 0 !important; }
+  body.features-up #walllight { visibility: hidden; }
   .features {
     position: fixed; inset: 0; z-index: 58;
     /* never sideways: a plate's drift tilts it a degree past its box, and that alone would
