@@ -1310,8 +1310,70 @@
   @keyframes autospin { to { transform: rotate(360deg); } }
   /* replay mode: a viewer, not a player — every way of staking is gone, not just disabled */
   body.replay .betbox, body.replay #bonusBtn, body.replay #autoBtn, body.replay #spinBtn { display: none; }
-  .replaymeta { font-family: var(--legible); font-size: 13px; color: var(--ink); margin: 0 0 10px; line-height: 1.6; }
-  .replayres { font-family: var(--mono); font-size: 17px; letter-spacing: .08em; color: var(--gold); margin: 0 0 16px; line-height: 1.7; }
+  /* ---------- the Bet Replay window (Engine review 2026-11-16; ported from Voodoo on Bourbon) ----------
+     Laid out as Stake's example: a REPLAY pill and the title, one dark panel listing Mode, Base Bet, Cost
+     Multiplier, Total Bet Cost (boxed), Payout Multiplier and Total Win (boxed), the wide gold Start Replay
+     button and a line of small print. It is up when a replay link opens and again when the round has played
+     out, with Play Again. One natural size per layout; fitReplay() scales it to any window (Popout S 400x225 too). */
+  .rpwrap { padding: 8px; overflow: hidden; background: rgba(6, 8, 18, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  .rpwrap.done { background: rgba(6, 8, 18, .35); -webkit-backdrop-filter: none; backdrop-filter: none; }   /* the final board stays sharp behind the result */
+  .rpcard {
+    flex: none; box-sizing: border-box; width: 420px; padding: 26px 30px 22px; text-align: center;
+    font-family: "Fredoka", system-ui, sans-serif; color: #fff;
+    background: linear-gradient(180deg, #1b1e33 0%, #182040 100%);
+    border: 1.5px solid rgba(214, 170, 60, .45); border-radius: 22px;
+    box-shadow: 0 22px 50px rgba(0, 0, 0, .6);
+    animation: bonuspop .42s cubic-bezier(.2,.9,.3,1.35);
+  }
+  .rphead { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .rptag {
+    padding: 5px 22px 6px; border-radius: 999px; background: linear-gradient(90deg, #FFD21F, #FFA41B); color: #1a1405;
+    font-weight: 700; font-size: 13px; line-height: 1.2; letter-spacing: .26em; text-indent: .26em; text-transform: uppercase;
+  }
+  .rptitle { margin: 0; font-family: "Fredoka", system-ui, sans-serif; font-weight: 700; font-size: 32px; line-height: 1.1; color: #fff; }
+  .rppanel { display: flex; flex-direction: column; padding: 14px 12px; border-radius: 14px; background: #11142a; }
+  .rpsep { flex: none; height: 1.5px; margin: 10px 12px; background: rgba(160, 170, 200, .25); }
+  .rprow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 9px 13px; text-align: left; }
+  .rprow .k { font-weight: 400; font-size: 17px; line-height: 1.3; color: #a4a9ba; }
+  .rprow .v { margin-left: auto; font-weight: 700; font-size: 19px; line-height: 1.2; color: #FFD21F; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rprow .v.mode { font-size: 21px; letter-spacing: .08em; text-transform: uppercase; }
+  .rprow .v.win { color: #2ecc71; }
+  .rprow.box { margin: 2px 0; padding: 13px 13px; border-radius: 10px; background: #2a2a28; }
+  .rprow.box .v { font-size: 26px; }
+  .rpcard.nores .rprow .v.win { color: #6f7590; }   /* no result yet (loading, or the link failed): a quiet dash */
+  .rpstatus { margin: 16px 0 0; font-weight: 500; font-size: 15px; line-height: 1.35; color: #a4a9ba; }
+  .rpstatus[hidden] { display: none; }
+  .rpstatus.err { color: #ff9a85; }
+  .rpgo {
+    display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 22px; width: 100%; padding: 15px 0 16px;
+    border: 0; border-radius: 14px; cursor: pointer;
+    font-family: "Fredoka", system-ui, sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1; color: #1a1405;
+    background: linear-gradient(90deg, #FFD21F, #FFA41B); box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+    transition: transform .1s ease, filter .15s ease;
+  }
+  .rpgo[hidden] { display: none; }
+  .rpgo i { width: 0; height: 0; border-style: solid; border-width: 9px 0 9px 15px; border-color: transparent transparent transparent #1a1405; }
+  .rpgo.retry i { display: none; }
+  .rpgo:hover { filter: brightness(1.07); }
+  .rpgo:active { transform: translateY(2px) scale(.99); }
+  .rpgo:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .rpnote { margin: 16px 0 0; font-weight: 400; font-size: 13.5px; line-height: 1.4; color: #7c8299; }
+  .rpcol { display: flex; flex-direction: column; min-width: 0; }
+  /* a window that is short and wider than tall (Popout S 400x225, a small laptop, a phone on its side): the bet
+     on the left, the result on the right, so the card scaled to fit keeps readable words */
+  @media (max-height: 560px) and (min-aspect-ratio: 1/1) {
+    .rpcard { width: 660px; padding: 16px 22px 14px; }
+    .rphead { flex-direction: row; justify-content: center; gap: 14px; margin-bottom: 12px; }
+    .rptitle { font-size: 28px; }
+    .rppanel { flex-direction: row; align-items: stretch; padding: 8px 6px; }
+    .rpcol { flex: 1 1 0; }
+    .rppanel > .rpsep { width: 1.5px; height: auto; margin: 6px 8px; }
+    .rprow { padding: 7px 11px; }
+    .rpgo { margin-top: 14px; padding: 12px 0 13px; }
+    .rpstatus { margin-top: 12px; }
+    .rpnote { margin-top: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .rpcard { animation: none; } .rpgo { transition: none; } }
   .meter[hidden] { display: none; }
   .infopanel h3 {
     margin: 0 0 12px; font-family: var(--disp); font-size: 22px; letter-spacing: .06em;
@@ -3148,6 +3210,49 @@
     .bshoprow { gap: 12px; flex-wrap: wrap; }
     .bscard { width: min(250px, 44vw); }
   }
+
+  /* ---- the shop in a very short wide window (Popout S 400x225; Engine review sizes, after Tipsy Harvest) ----
+     The whole panel is scaled to fit (fitBonus), and at full size that left 5 px words. Here the cards are
+     narrower, their banner a strip and their words bigger for the card, so after the same scaling the names,
+     prices and buttons read at about 10 px. */
+  @media (max-height: 340px) and (min-aspect-ratio: 1/1) {
+    #bonusWrap { padding: 4px; }
+    .bshop { gap: 8px; padding: 4px 6px 6px; }
+    .bshoptitle { font-size: 20px; }
+    .bshopx { top: -2px; right: 0; width: 44px; height: 44px; }
+    .bshoprow { gap: 10px; }
+    .bscard { width: 204px; border-radius: 14px; }
+    .bsban { aspect-ratio: auto; height: 56px; }
+    .bsbody { gap: 4px; padding: 6px 10px 4px; }
+    .bspips i { width: 16px; height: 16px; }
+    .bsttl { font-size: 23px; }
+    .bsdesc { font-size: 17.5px; line-height: 1.2; min-height: 3.6em; color: #d8d1e4; }
+    .bsmax { padding-top: 4px; font-size: 14.5px; letter-spacing: .06em; color: #b9b1c7; }
+    .bsfoot { padding: 6px 10px 10px; gap: 0; }
+    .bsprice { font-size: 27px; }
+    .bsx { font-size: 15px; letter-spacing: .1em; color: #b9b1c7; }
+    .bsget { margin-top: 6px; padding: 7px 0 9px; font-size: 23px; border-radius: 12px; }
+    .bsget.armed { font-size: 21px; }
+    .bshopbar { padding: 6px 20px; gap: 18px; border-radius: 14px; }
+    .bsstat .lbl { font-size: 15px; } .bsstat .val { font-size: 26px; }
+  }
+  /* the bonus intro in a short wide window (Popout S 400x225, a phone on its side; after Tipsy Harvest): as one
+     column the how-it-works text was scaled to a few px. Here the title, the count and the prompt stand on the
+     left and the text on the right at its full width, so the column that is scaled to fit is half as tall */
+  @media (max-height: 480px) and (orientation: landscape) {
+    .bonusintro .inner { padding: 2vh 2vw; }
+    .bonusintro .bstack { display: grid; grid-template-columns: auto 62vw; grid-template-rows: repeat(5, auto); column-gap: 2vw; align-content: center; align-items: center; justify-items: center; }
+    .bonusintro .bstack > * { grid-column: 1; }
+    .bonusintro .blogo { width: min(30vw, 34vh); }
+    html .bonusintro .bhow, html.sprayfx .bonusintro .bhow { grid-column: 2; grid-row: 1 / span 5; margin-top: 0; max-width: none; width: 62vw; box-sizing: border-box;
+      padding: 6px 10px; border-width: 2px; border-radius: 12px; font-size: clamp(10.5px, 3.3vh, 14px); line-height: 1.32; -webkit-text-stroke-width: 2px; }
+    .bonusintro .bhow b, .bonusintro .bhow strong { -webkit-text-stroke-width: 2.4px; }
+    .bonusintro .bhow p { margin-bottom: .45em; }
+    .bonusintro .bnum img { height: clamp(40px, 15vh, 64px); }
+    .bonusintro .bnum { padding: 2vh 3vw 2.4vh; }
+    .bonusintro .byou { font-size: clamp(18px, 6vh, 26px); } .bonusintro .bfs { font-size: clamp(22px, 7.5vh, 32px); }
+    .bonusintro .bcont { font-size: clamp(10px, 3vh, 13px); margin-top: 6px; max-width: 30vw; }
+  }
 </style>
 </head>
 <body>
@@ -3203,7 +3308,7 @@
        read as part of the HUD: the auto play picker over Auto, the volume panel over the speaker. -->
   <div class="popover hudpop" id="autoPop" hidden role="dialog" aria-label="Auto play">
     <div class="poptitle">Auto play</div>
-    <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Stops early if the balance can't cover the next round, or when you press the button again.</div>
+    <div class="popsub" id="autoText">Rounds at <b id="autoBet"></b>. Only the next round has to be covered. Stops when the balance can't cover it, or when you press Auto or Spin.</div>
     <div class="autoopts" id="autoOpts">
       <button type="button" data-n="10" class="on" aria-pressed="true"><b>10</b><small>rounds</small></button>
       <button type="button" data-n="25" aria-pressed="false"><b>25</b><small>rounds</small></button>
@@ -3280,13 +3385,29 @@
   <i class="intrograin" aria-hidden="true"></i>
 </div>
 
-<div class="infowrap" id="replayWrap" hidden>
-  <div class="infopanel" role="dialog" aria-modal="true" aria-label="Round replay">
-    <h3>Round replay</h3>
-    <p class="replaymeta" id="replayMeta"></p>
-    <p class="replayres" id="replayResult" hidden></p>
-    <p class="fine" id="replayStatus">Loading the round…</p>
-    <button class="infoclose" id="replayPlay" hidden>Play</button>
+<!-- The Bet Replay window (Engine review 2026-11-16, after Stake's example; the same window as Voodoo on Bourbon's):
+     up when a replay link opens - loading, then every figure of the round and START REPLAY - and back again when the
+     round has played out, with PLAY AGAIN. bootReplay() writes every word (in the link's language, or the social
+     wording) and fitReplay() shrinks the card to any window. -->
+<div class="infowrap rpwrap" id="replayWrap" hidden>
+  <div class="rpcard" id="rpCard" role="dialog" aria-modal="true" aria-labelledby="rpTitle">
+    <div class="rphead"><span class="rptag" id="rpTag">Replay</span><h3 class="rptitle" id="rpTitle"></h3></div>
+    <div class="rppanel">
+      <div class="rpcol">
+        <div class="rprow"><span class="k" id="rpModeLbl"></span><b class="v mode" id="rpMode">&mdash;</b></div>
+        <div class="rprow"><span class="k" id="rpBaseLbl"></span><b class="v" id="rpBase">&mdash;</b></div>
+        <div class="rprow"><span class="k" id="rpCostLbl"></span><b class="v" id="rpCost">&mdash;</b></div>
+        <div class="rprow box"><span class="k" id="rpTotalLbl"></span><b class="v" id="rpTotal">&mdash;</b></div>
+      </div>
+      <i class="rpsep" aria-hidden="true"></i>
+      <div class="rpcol">
+        <div class="rprow"><span class="k" id="rpMultLbl"></span><b class="v win" id="rpMult">&mdash;</b></div>
+        <div class="rprow box"><span class="k" id="rpWinLbl"></span><b class="v win" id="rpWin">&mdash;</b></div>
+      </div>
+    </div>
+    <p class="rpstatus" id="rpStatus" role="status"></p>
+    <button type="button" class="rpgo" id="replayPlay" hidden><i aria-hidden="true"></i><span id="rpGoTxt"></span></button>
+    <p class="rpnote" id="rpNote"></p>
   </div>
 </div>
 
@@ -3375,12 +3496,16 @@ const $ = id => document.getElementById(id);
 const restyle = (...els) => { for (const el of els) if (el) void getComputedStyle(el).animationName; };
 const fmt = v => RGS.money(v);
 const TOUCH = matchMedia("(pointer: coarse)").matches && !matchMedia("(pointer: fine)").matches;   // phones/tablets say Tap, not Click
-// A mode's own bet cap from authenticate (gameModes[].maxBet): over it the RGS refuses the round; 0 = the mode is off (XGC)
-const modeOpen = (mode, b = bet()) => { const mx = RGS.modeMaxBet(mode); return mx === null || (mx > 0 && b <= mx); };
+// A mode's bet cap from authenticate: over it the RGS refuses the round. gameModes[].maxBet 0 (or none) is NO cap of
+// the mode's own - config.maxBet then (RGS.maxBetOf). Under XGC the RGS sends 0 for every mode; reading it as "off"
+// greyed every bonus card to LOWER THE PLAY and refused every base spin at any level (Engine review 2026-11-16).
+const modeOpen = (mode, b = bet()) => RGS.modeAllowed(mode, b);
 // Social casinos (Stake.us) forbid a list of gambling terms. Every player-facing string
 // goes through T(): a no-op normally, the sweeps vocabulary when the lobby says social=true.
-const SOCIAL = RGS.social;
+let SOCIAL = RGS.social;   // `let`: authenticate's jurisdiction.socialCasino can turn it on (applySocial)
 const T = s => RULES.T(s, SOCIAL);
+// a math mode's one display name (RULES.MODE_NAMES): the shop, the rules, the recent rounds and the replay window all say it the same
+const modeName = m => RULES.modeName(m, SOCIAL);
 // the symbols' short names reach the board as alt text and the ticker: they follow the rule too
 if (SOCIAL) for (const d of Object.values(SYM)) { d.label = T(d.label); d.sub = T(d.sub); }
 const bet = () => state.bets[state.betIdx] || 0;
@@ -5204,6 +5329,7 @@ async function renderReveal(ev) {
 async function banner(big, sub, ms, cls) {
   const b = $("banner");
   b.className = "banner show " + (cls || "");
+  big = T(big); sub = T(sub || "");   // every line a player can read passes the social word list (a no-op outside social mode)
   $("bannerBig").textContent = big;
   // the figures in the line take the number font; the words keep theirs
   const esc = str => str.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -5212,11 +5338,15 @@ async function banner(big, sub, ms, cls) {
   if (!REDUCED_MOTION) { b.classList.add("out"); await new Promise(r => setTimeout(r, 200)); }
   b.className = "banner";
 }
-function tick(html) { $("ticker").innerHTML = html; }
+// The ticker, the notices and the blocking error panel are where text made up at run time lands (a server's
+// own error message included), so each passes what it is given through T() itself - already-worded text comes
+// back unchanged, and nothing reaches a social player unswept because a caller forgot.
+function tick(html) { $("ticker").innerHTML = T(html); }
 // What the player has to see goes up as a notice as well as into the (hidden) ticker:
 // errors in red, everything else in the game's lime, gone again after a few seconds.
 let noticeTimer = 0;
 function notice(html, err = false, ms = 3400) {
+  html = T(html);
   tick(html);
   const el = $("notice");
   if (!el) return;
@@ -5229,6 +5359,7 @@ function notice(html, err = false, ms = 3400) {
 // No session, no game: a blocking panel over everything (the loading and feature screens
 // included) instead of a board that looks ready and a button that does nothing.
 function fatal(title, html) {
+  title = T(title); html = T(html);
   tick(html);
   $("errorTitle").textContent = title;
   $("errorMsg").innerHTML = html;
@@ -5287,10 +5418,15 @@ function cashFx(el, dir) {
 }
 
 const fmtBal = v => RGS.money(v, null, 0);   // balance shows the usual 2 decimals, never more
+// The bar runs shorter upright (buildHud), and there a social-coin balance ("1,000.00 GC") ran into the WIN
+// readout beside it (review sizes 2026-11-16, 390x844): the balance steps down sooner on an upright phone.
+const HUD_UPRIGHT = matchMedia("(max-width: 1100px) and (orientation: portrait)");
 function fitFigure(el, text) {
-  el.classList.toggle("long", text.length > 12 && text.length <= 16);
-  el.classList.toggle("vlong", text.length > 16);
+  const [a, b] = el.id === "balance" && HUD_UPRIGHT.matches ? [8, 11] : [12, 16];
+  el.classList.toggle("long", text.length > a && text.length <= b);
+  el.classList.toggle("vlong", text.length > b);
 }
+HUD_UPRIGHT.addEventListener?.("change", () => { if (!REPLAY) fitFigure($("balance"), fmtBal(state.balance)); });
 function setBalance(v, dir) {
   const el = $("balance"), from = state.balance;
   state.balance = v;
@@ -6752,17 +6888,20 @@ function placeWinChip(positions, amount, mult) {
 }
 
 const RGS_MESSAGE = {
-  ERR_IPB: "Not enough balance — lower the bet.",
+  ERR_IPB: "Not enough balance — lower the {bet|play amount}.",
   ERR_IS: "Session expired — reopen the game from the lobby.",
   ERR_ATE: "Session expired — reopen the game from the lobby.",
-  ERR_GLE: "Gambling limits reached.",
+  ERR_GLE: "{Gambling|Play} limits reached.",
   ERR_LOC: "Not available in your location.",
-  ERR_VAL: "That bet was rejected — try another amount.",
+  ERR_VAL: "That {bet|play} was rejected — try another amount.",
   ERR_MAINTENANCE: "The game is under maintenance, try again shortly.",
   ERR_GEN: "Something went wrong — try again.",
   ERR_ACT: "Slow down — give it a second.",
 };
-for (const k of Object.keys(RGS_MESSAGE)) RGS_MESSAGE[k] = T(RGS_MESSAGE[k]);
+// What the player reads for a failed call: our own line for the code, else the server's message, else `fallback`.
+// Worded when it is shown (T), not at load: the jurisdiction can turn social mode on after authenticate, and a
+// message the server wrote passes through the same word list as ours.
+const rgsMessage = (err, fallback) => T(RGS_MESSAGE[err && err.code] || (err && err.message) || fallback || "Something went wrong — try again.");
 
 /** Animate a round's event stream, then settle it. Shared by play, resume and replay —
  *  a replay is watched, not played, so it never touches the wallet (settle: false). */
@@ -6812,7 +6951,7 @@ async function presentRound(round, { settle = true } = {}) {
       await RGS.endRound();
       setBalance(RGS.state.balance, win > 0 ? "up" : null);
     } catch (err) {
-      notice(`<b>${RGS_MESSAGE[err.code] || err.message}</b>`, true, 6000);
+      notice(`<b>${rgsMessage(err)}</b>`, true, 6000);
       return;
     }
   }
@@ -6820,7 +6959,7 @@ async function presentRound(round, { settle = true } = {}) {
   if (settle) recordRound(round.mode || state.mode, round.amount || bet(), win, mult);
 
   if (win > 0) {
-    tick(T(`Round paid <b>${fmt(win)}</b> (${mult.toFixed(2)}x bet)`));
+    tick(T(`Round {paid|won} <b>${fmt(win)}</b> (${mult.toFixed(2)}x {bet|play amount})`));
     // A spin that pays over 10x gets the popup over the board: the figure counts itself up dead
     // centre on the icons while they rain down, and the lettering pops in above it at each mark
     // it passes (BIG -> MEGA -> XTREME, the same marks the bonus uses). It holds a moment and
@@ -6846,7 +6985,9 @@ async function presentRound(round, { settle = true } = {}) {
 // the last two. It is also the only route into the bonus modes — nothing else calls
 // playRound() with anything but "base".
 // The shop's cards (owner, 2026-11-05, Tipsy Harvest's format), in order. A mode the math does not
-// have (no MODE_COST) shows no card.
+// have (no MODE_COST) shows no card. A card's title is its mode's one display name (modeName /
+// RULES.MODE_NAMES: Bonus, Extreme Bonus, Bonus Boost) - the words the rules, the recent rounds and the
+// replay window use too.
 const BUYS = [
   { mode: "bonus", key: "fs", title: "Free Spins", desc: "10, 12 or 15 free spins. Multis stay all bonus.", heat: 3, acc: "#9CE424", icon: () => SYM.BS.img },
   { mode: "extremebonus", key: "xfs", title: "Free Spins", desc: "17 free spins, or the trigger's own count when upgraded. Every Multi is x2 or more.", heat: 5, acc: "#B454E4", icon: () => SYM.ES.img, x: true },
@@ -6890,7 +7031,7 @@ function bshopCard(o) {
     `<div class="bsbody"><div class="bspips">${Array.from({ length: 5 }, (_, i) => `<i class="${i < o.heat ? "on" : ""}"></i>`).join("")}</div>` +
     `<div class="bsttl"></div><div class="bsdesc"></div><div class="bsmax"></div></div>` +
     `<div class="bsfoot"><div class="bsprice"></div><div class="bsx"></div><button type="button" class="bsget"></button></div>`);
-  card.querySelector(".bsttl").textContent = T(o.title);
+  card.querySelector(".bsttl").textContent = modeName(o.mode);
   card.querySelector(".bsdesc").textContent = T(o.desc);
   card.querySelector(".bsget").addEventListener("click", () => bshopGet(o));
   return card;
@@ -6919,10 +7060,17 @@ function paintBonus() {
   const wrap = $("bonusWrap");
   if (!wrap || wrap.hidden) return;
   const row = $("bshopRow");
+  // Every mode the math has gets its card, always (Engine review 2026-11-16: under XGC the RGS sends
+  // gameModes[].maxBet 0 for every mode, and reading that as "switched off" turned every card to LOWER THE
+  // PLAY). A cap of 0 is no cap of its own (RGS.maxBetOf falls back to config.maxBet); only a bet over a real
+  // cap turns the button to "Lower the bet", and a price over the balance to "Low balance". The cards are
+  // rebuilt when social mode came on after they were made.
   const live = BUYS.filter(o => MODE_COST[o.mode] > 0);
-  if (row.dataset.modes !== live.map(o => o.mode).join()) {
+  if (state.boost && !modeOpen("boost")) state.boost = false;   // over Boost's cap: back to plain spins
+  const made = live.map(o => o.mode).join() + (SOCIAL ? "|social" : "");
+  if (row.dataset.modes !== made) {
     row.replaceChildren(...live.map(bshopCard));
-    row.dataset.modes = live.map(o => o.mode).join();
+    row.dataset.modes = made;
   }
   for (const card of row.children) {
     const o = BUYS.find(x => x.mode === card.dataset.mode), cost = MODE_COST[o.mode], price = cost * bet();
@@ -6975,8 +7123,9 @@ function openBonus() {
 function fitBonus() {
   const pop = document.querySelector("#bonusWrap .bonuspop"), panel = document.querySelector("#bonusWrap .bshop");
   if (!pop || !panel || $("bonusWrap").hidden) return;
-  // the panel drifts a few px, and the wrap keeps a 20 px margin: room for both
-  const k = Math.min((innerHeight - 28) / (panel.offsetHeight + 12), (innerWidth - 28) / (panel.offsetWidth + 12));
+  // the panel drifts a few px, and the wrap keeps a 20 px margin: room for both (a popout's 225 px cannot spare it: 4 px there)
+  const m = innerHeight < 340 && innerWidth > innerHeight ? 8 : 28, slack = m < 28 ? 4 : 12;
+  const k = Math.min((innerHeight - m) / (panel.offsetHeight + slack), (innerWidth - m) / (panel.offsetWidth + slack));
   pop.style.scale = k < 1 ? k.toFixed(3) : "";
 }
 addEventListener("resize", fitBonus);
@@ -7010,13 +7159,13 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("bonusW
  *  failed — autoplay stops on false. */
 async function playRound(mode) {
   if (REPLAY) return false;                              // a replay is watched, never played
-  if (mode === "base" && state.boost && MODE_COST.boost > 0) mode = "boost";   // Bonus Boost is on: every base spin (autoplay's too) is boosted
+  if (mode === "base" && boostOn()) mode = "boost";   // Bonus Boost is on: every base spin (autoplay's too) is boosted
   if (state.playing) { if (!state.noSkip) state.skip = true; return false; }   // fast-forward
   if (screensUp()) return false;                         // nothing is staked behind the opening screens
   if (!RGS.state.authenticated) { notice(T("<b>Not connected</b> — reopen the game from the lobby."), true); return false; }
-  if (!modeOpen(mode)) { notice(T("<b>Bet too high for this mode</b> — lower the bet."), true); return false; }
+  if (!modeOpen(mode)) { notice(T("<b>Not available at this {bet|play amount}</b> — lower the {bet|play amount}."), true); return false; }
   const price = (MODE_COST[mode] || 1) * bet();
-  if (price > state.balance) { notice(T("<b>Not enough balance</b> — lower the bet."), true); return false; }
+  if (price > state.balance) { notice(T("<b>Not enough balance</b> — lower the {bet|play amount}."), true); return false; }
   if (performance.now() - (state.lastPlayAt || 0) < 250) return false;
   state.lastPlayAt = performance.now();
 
@@ -7024,7 +7173,7 @@ async function playRound(mode) {
   setButtons(false);
   bounceFx();
   // (the board's fire no longer flares on every spin: it pops only for a line, an FS trigger or a multiplier - boardFlash)
-  tick(T(mode === "base" || mode === "boost" ? "Spinning..." : "Buying bonus..."));
+  tick(T(mode === "base" || mode === "boost" ? "Spinning..." : "{Buying|Starting} bonus..."));
   const t0 = performance.now();
   let ok = true;
 
@@ -7036,7 +7185,7 @@ async function playRound(mode) {
     await presentRound(d.round);
   } catch (err) {
     ok = false;
-    notice(`<b>${RGS_MESSAGE[err.code] || err.message || T("Round failed")}</b>`, true, 5000);
+    notice(`<b>${rgsMessage(err, "Round failed")}</b>`, true, 5000);
     try { await RGS.balance(); setBalance(RGS.state.balance); } catch (e) { /* offline */ }
   }
 
@@ -7052,13 +7201,26 @@ async function playRound(mode) {
 
 /* ---------- autoplay ---------- */
 // Never starts on one click: the player picks a count and confirms it. The same button
-// stops it. It also stops itself when a round fails or the balance can't cover the next.
+// stops it, and so does Spin between two of its rounds. It also stops itself when a round fails or
+// the balance can't cover the NEXT round - the balance never has to cover the whole count, to start
+// or to go on (Engine review 2026-11-16). Every way it ends goes through stopAuto(), which retires the
+// loop at once and hands the bar back with plain Spin working at any level the balance covers.
 let autoDismiss = null;   // closes an open picker; set while one is up
+// Bonus Boost turns every base spin into a boosted one, at its own price (MODE_COST.boost x the bet)
+const boostOn = () => !!state.boost && MODE_COST.boost > 0 && modeOpen("boost");
+const spinPrice = () => Math.round(bet() * (boostOn() ? MODE_COST.boost : 1));
+let autoRun = 0;   // the running autoplay's ticket: a stop, or a new run, retires the old loop
+function stopAuto() {
+  autoRun++;
+  state.auto = 0;
+  setAutoBtn();
+  setButtons(!state.playing);
+}
 function confirmAuto() {
   return new Promise(resolve => {
     const pop = $("autoPop"), opts = $("autoOpts");
     let n = Number(opts.querySelector(".on").dataset.n);
-    $("autoBet").textContent = fmt(bet() * (state.boost && MODE_COST.boost > 0 ? MODE_COST.boost : 1)) + (state.boost && MODE_COST.boost > 0 ? " " + T("(Bonus Boost on)") : "");   // what each round will cost
+    $("autoBet").textContent = fmt(spinPrice()) + (boostOn() ? " " + T("(Bonus Boost on)") : "");   // what each round will cost
     $("autoText").firstChild.textContent = T("Rounds at ");
     closeBars();   // the picker opens over the bar: the volume bars go with it
     openPop("autoPop");
@@ -7140,27 +7302,35 @@ const spinArrows = (() => {
   };
 })();
 async function runAuto(n) {
+  const run = ++autoRun;
   state.auto = n; autoStopped = false; setAutoBtn();
   sfx("autoStart");
-  while (state.auto > 0) {
+  let short = false;
+  while (state.auto > 0 && run === autoRun) {
     if (state.playing) { await hold(120); continue; }    // let a running round finish first (hold, not
                                                           // delay: delay collapses to nothing on a skipped
                                                           // round and this would spin the page frozen)
-    if (bet() > state.balance) { notice(T("<b>Auto play stopped</b> — not enough balance for the next round."), true); break; }
+    // each round on its own: what THIS one costs (Boost included) against the balance now
+    if (spinPrice() > state.balance) { short = true; break; }
     state.auto--; setAutoBtn();
     turnSpinArrows();   // the round is starting; nobody pressed the button for it
     if (!(await playRound("base"))) break;
-    if (state.auto > 0) await delay(450);   // a breath between rounds, so each result can be read
+    if (state.auto > 0 && run === autoRun) await delay(450);   // a breath between rounds, so each result can be read
   }
-  state.auto = 0; setAutoBtn();
+  if (run !== autoRun) return;   // stopped (or replaced) from outside: stopAuto() has already reset everything
+  stopAuto();
+  if (short) notice(T("<b>Auto play stopped</b> — not enough balance for the next round. Lower the {bet|play amount} to keep playing."), true, 5000);
   if (!autoStopped) sfx("autoStop");   // count ran out, balance ran out, or a round failed
 }
 $("autoBtn").addEventListener("click", async () => {
   if (autoDismiss) { autoDismiss(); return; }   // same button closes the picker (done() plays the close)
-  if (state.auto > 0) { state.auto = 0; autoStopped = true; setAutoBtn(); sfx("autoStop"); return; }   // the press is the moment
+  if (state.auto > 0) { autoStopped = true; stopAuto(); sfx("autoStop"); return; }   // the press is the moment
   if (REPLAY || !RGS.state.authenticated) return;
   const n = await confirmAuto();
-  if (n > 0) runAuto(n);
+  if (!(n > 0) || state.auto > 0 || state.playing) return;
+  // it only has to cover the first round to start; with not even that, it says so and stays off
+  if (spinPrice() > state.balance) { notice(T("<b>Not enough balance</b> — lower the {bet|play amount}."), true); return; }
+  runAuto(n);
 });
 
 /* ---------- controls ---------- */
@@ -7283,12 +7453,12 @@ function historyHtml() {
   let h = [];
   try { h = JSON.parse(localStorage.getItem(histKey()) || "[]"); } catch (e) { /* ignore */ }
   if (!h.length) return "";
-  const name = { base: T("Spin"), bonus: T("Buy Bonus"), extremebonus: T("Buy Extreme"), boost: T("Boosted spin") };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const rows = h.slice(0, 20).map(x => {
     const d = new Date(x.t);
     const when = d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
     const cls = x.payout > 0 ? "win" : "zero";
-    return `<tr><td>${when}</td><td>${name[x.mode] || x.mode}</td><td>${fmt(x.amount)}</td><td class="${cls}">${fmt(x.payout)}</td><td class="${cls}">${(x.mult || 0).toFixed(2)}x</td></tr>`;
+    return `<tr><td>${when}</td><td>${esc(modeName(x.mode))}</td><td>${fmt(x.amount)}</td><td class="${cls}">${fmt(x.payout)}</td><td class="${cls}">${(x.mult || 0).toFixed(2)}x</td></tr>`;
   }).join("");
   return `<section><h4>${T("Recent rounds")}</h4><p class="fine">${T("Your last rounds on this device, in the token you are playing with. The balance shown in the game is always the amount the server reports.")}</p>
     <div class="tbl"><table class="hist"><tr><th>${T("When")}</th><th>${T("Mode")}</th><th>${T("Bet")}</th><th>${T("Win")}</th><th>x</th></tr>${rows}</table></div></section>`;
@@ -8223,6 +8393,9 @@ $("spinBtn").addEventListener("click", e => {
   const b = e.currentTarget;
   b.classList.remove("punch"); restyle(b); b.classList.add("punch");   // restart on every press
   if (state.playing && state.noSkip) return;   // jurisdiction forbids slam-stopping a round
+  // between two autoplay rounds a press of Spin stops the autoplay (and starts nothing): one press and
+  // the bar is the player's again (Engine review 2026-11-16)
+  if (state.auto > 0 && !state.playing) { autoStopped = true; stopAuto(); sfx("autoStop"); return; }
   sfx(state.playing ? "skip" : "spin");
   if (!state.playing) sfx("canShake");   // the can's ball rattles as the round goes
   playRound("base");
@@ -8542,11 +8715,13 @@ function startIntroIcons(canvas, avoid) {
 // screen (never sooner than the ident has played): pressing through it would only put the player
 // into a game whose pieces have not arrived.
 const INTRO_SFX = ["introWhoosh", "introHit", "introShimmer", "introOut", "landBrick"];
-// the wordmark's pieces - each letter, the swoosh and the TM generated on its own and laid out as one
-// word (art/ui-src/intro_letters_v2: gen.py, build.py -> assets/intro_letters/pieces.json; the seal is
-// the old wordmark's):
+// the wordmark's pieces - each letter, the slash under them and the TM on its own, laid out as one word.
+// 2026-11-16 (owner: "change the black and white smukiez introduction to simple font"): SMUKIEZ in Fredoka Bold
+// (OFL, the game's own bundled face), even caps and spacing, the slash in the same rounded stroke - the studio
+// ident Tipsy Harvest and Voodoo on Bourbon open with (zeqpz/fallslotsga tools/fall/make_intro_letters.py), white
+// on the intro's black as before. The timing and the drop are unchanged.
 // [x, y, w, h] on the 2736x1160 wordmark, the letters in the order they drop
-const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[26,302,401,549],"M":[380,282,499,533],"U":[841,321,412,509],"K":[1220,246,358,532],"i":[1531,431,103,355],"E":[1606,306,424,515],"Z":[1993,220,567,622],"swash":[420,705,2180,360],"tm":[2578,230,144,94],"seal":[2481,950,139,140],"glow":[-110,-110,2956,1380]};
+const INTRO_SIZE = [2736, 1160], INTRO_PIECES = {"S":[322,236,275,372],"M":[615,246,388,362],"U":[1021,240,325,368],"K":[1364,236,283,372],"i":[1665,245,119,363],"E":[1802,245,292,363],"Z":[2112,244,301,364],"swash":[532,656,1877,184],"tm":[2417,242,125,73],"glow":[-110,-110,2956,1380]};
 const INTRO_DROP = ["S", "M", "U", "K", "i", "E", "Z"];
 function runIntro() {
   const wrap = $("intro"), fill = $("introFill");
@@ -8661,13 +8836,13 @@ function runIntro() {
       sw.animate([{ clipPath: "inset(0 100% 0 0)", opacity: 1 }, { clipPath: "inset(0 0 0 0)", opacity: 1 }],
                  { duration: 420, easing: "cubic-bezier(.5, 0, .2, 1)", fill: "both" }).finished.then(() => sw.classList.add("flat"), () => {});
     });
-    after(landed + 520, () => {   // the seal stamps on
+    after(landed + 520, () => {   // the glow comes up (and the seal stamps on, where the wordmark has one)
+      word.querySelector(".iwglow").classList.add("up");
       const se = pieceEl.seal;
       if (!se) return;
       se.style.transformOrigin = "50% 50%";
       se.animate([{ transform: "scale(2.2) rotate(-14deg)", opacity: 0 }, { transform: "scale(.9) rotate(3deg)", opacity: 1, offset: .6 }, { transform: "none", opacity: 1 }],
                  { duration: 340, easing: "cubic-bezier(.3, 0, .2, 1)", fill: "both" }).finished.then(() => se.classList.add("flat"), () => {});
-      word.querySelector(".iwglow").classList.add("up");
     });
     after(landed + 760, () => {   // the trademark rolls up underneath, and the TM pops on by the arrow
       const line = wrap.querySelector(".introtm span"), tm = pieceEl.tm;
@@ -9293,7 +9468,7 @@ function runFeatures() {
     `<div class="fboxes">` +
       box(`<img src="${SYM.M.img}" alt="${T("Multi")}" draggable="false"><div class="fmult" id="featMult">x${fmtMult(FEATURE_VALUES[0])}</div>`,
         T("Multi"),
-        T(`Lands with a value from <b>x1.25</b> to <b>x1000</b> - sometimes in a line of 3 or 4, and once in a long while over the whole board. Every winning cluster is paid first; then it blows out and leaves its value on five cells, and a cluster on those cells is multiplied by the <b>sum</b> it covers. Winning clusters drop small multipliers under themselves too.`)) +
+        T(`Lands with a value from <b>x1.25</b> to <b>x1000</b> - sometimes in a line of 3 or 4, and once in a long while over the whole board. Every winning cluster is {paid|counted} first; then it blows out and leaves its value on five cells, and a cluster on those cells is multiplied by the <b>sum</b> it covers. Winning clusters drop small multipliers under themselves too.`)) +
       box(`<img src="${SYM.BS.img}" alt="${T("Crew Leader")}" draggable="false">`,
         T("Crew Leader \u00b7 Bonus"),
         T(`<b>3</b>, <b>4</b> or <b>5</b> anywhere award <b>10</b>, <b>12</b> or <b>15</b> free spins. Multis land more often and drop in lines, and every value - a Multi's or a cluster's drop - stays on the board for the whole bonus.`)) +
@@ -9355,7 +9530,7 @@ const MULTI_RANGE = ["x1.25", "x1000"];   // the Multi's values, as rules.js sta
 const EXTREME_DIRECT_SPINS = 17;          // two Phantoms, straight in (DESIGN.md, bonus rounds)
 function bonusIntroHow(extreme) {
   return `<p><strong>${T("How the Multi works in here")}</strong></p>` +
-    `<p>${T(`A Multi lands with a value from <b>${MULTI_RANGE[0]}</b> to <b>${MULTI_RANGE[1]}</b>. Every winning cluster is paid first; then it blows out, clearing itself and the four symbols beside it, and each of those five cells keeps its value. A cluster that lands on those cells is multiplied by the <strong>sum</strong> of the values it covers, and values that meet add together.`)}</p>` +
+    `<p>${T(`A Multi lands with a value from <b>${MULTI_RANGE[0]}</b> to <b>${MULTI_RANGE[1]}</b>. Every winning cluster is {paid|counted} first; then it blows out, clearing itself and the four symbols beside it, and each of those five cells keeps its value. A cluster that lands on those cells is multiplied by the <strong>sum</strong> of the values it covers, and values that meet add together.`)}</p>` +
     `<p>${T(extreme
       ? `In the Extreme Bonus every value stays on the board for the whole feature, Multis land more often, and every value is <b>x2</b> or more.`
       : `In the bonus every value stays on the board for the whole feature: nothing is wiped between spins, so the board only gets richer.`)}</p>` +
@@ -9382,7 +9557,7 @@ function bonusIntro(spins, extreme) {
       `</div></div>`;
     document.body.appendChild(wrap);
     const stack = wrap.querySelector(".bstack");
-    const fit = () => stack.style.setProperty("--fit", Math.min(1, wrap.clientHeight * .94 / stack.offsetHeight).toFixed(3));
+    const fit = () => stack.style.setProperty("--fit", Math.min(1, wrap.clientHeight * .94 / stack.offsetHeight, wrap.clientWidth * .97 / stack.offsetWidth).toFixed(3));
     fit();
     wrap.querySelector(".blogo").addEventListener("load", fit);   // held from the loading screen, but in case
     addEventListener("resize", fit);
@@ -9760,9 +9935,10 @@ $("rapidBtn").addEventListener("click", () => { setRapid(!$("turbo").checked); s
 let rapidWas = false;
 try { rapidWas = localStorage.getItem("smukiez.rapid") === "1"; } catch (e) { /* storage blocked */ }
 setRapid(rapidWas);
-if (SOCIAL) {   // restricted vocabulary: every static word on the page goes through T() too -
-                // labels, buttons, the chooser, the loading screen - and so do the names
-                // screen readers and tooltips use
+// restricted vocabulary: every static word on the page goes through T() too - labels, buttons, the
+// chooser, the loading screen - and so do the names screen readers and tooltips use. Run at load for
+// social=true, and again after authenticate when only the jurisdiction says socialCasino.
+function applySocial() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   for (let n = walker.nextNode(); n; n = walker.nextNode()) {
     if (n.parentElement && /^(SCRIPT|STYLE)$/.test(n.parentElement.tagName)) continue;
@@ -9776,6 +9952,7 @@ if (SOCIAL) {   // restricted vocabulary: every static word on the page goes thr
     }
   }
 }
+if (SOCIAL) applySocial();
 setAutoBtn();
 
 // Phones suspend the audio context and may drop the session's balance display while the
@@ -9843,51 +10020,182 @@ document.addEventListener("visibilitychange", async () => {
 // waits for Play, animates it exactly as the player saw it, and offers Play again. No
 // wallet call is ever made and nothing on screen can start a real round.
 let REPLAY = false;
+// (Ported from Voodoo on Bourbon, orleans 0cd0c03.) The replay window's words in the languages a replay link can name (lang=..; "pt-BR" reads as pt). The
+// game itself is English, but the replay window follows the link's language (review 2026-11-16). Social
+// mode is English only (the jurisdiction guideline), so there the English line is used and its
+// {real|social} pair is taken by T(). A language not listed falls back to English.
+const REPLAY_WORDS = {
+  //    tag, title, mode, base, cost, total, mult, win, start, again, retry, loading, error, unavailable, note
+  en: ["Replay", "{Bet Replay|Round Replay}", "Mode", "{Base Bet|Base Play}", "{Cost Multiplier|Play Multiplier}", "{Total Bet Cost|Total Play}",
+       "{Payout Multiplier|Win Multiplier}", "Total Win", "Start Replay", "Play Again", "Try Again", "Loading the round…",
+       "This replay could not be loaded. Check the link and try again.", "Replay Unavailable",
+       "{This is a replay of a previous bet round. No bets will be placed.|This is a replay of a previous round. No plays will be made.}"],
+  es: ["Repetición", "Repetición de apuesta", "Modo", "Apuesta base", "Multiplicador de coste", "Coste total de la apuesta", "Multiplicador de pago",
+       "Ganancia total", "Iniciar repetición", "Repetir de nuevo", "Reintentar", "Cargando la ronda…",
+       "No se pudo cargar esta repetición. Comprueba el enlace e inténtalo de nuevo.", "Repetición no disponible",
+       "Esta es una repetición de una ronda de apuesta anterior. No se realizará ninguna apuesta."],
+  pt: ["Replay", "Replay da aposta", "Modo", "Aposta base", "Multiplicador de custo", "Custo total da aposta", "Multiplicador de pagamento",
+       "Ganho total", "Iniciar replay", "Repetir novamente", "Tentar novamente", "Carregando a rodada…",
+       "Não foi possível carregar este replay. Verifique o link e tente novamente.", "Replay indisponível",
+       "Este é um replay de uma rodada de aposta anterior. Nenhuma aposta será feita."],
+  de: ["Replay", "Wett-Replay", "Modus", "Grundeinsatz", "Kostenmultiplikator", "Gesamtkosten des Einsatzes", "Auszahlungsmultiplikator",
+       "Gesamtgewinn", "Replay starten", "Erneut abspielen", "Erneut versuchen", "Runde wird geladen…",
+       "Dieses Replay konnte nicht geladen werden. Prüfe den Link und versuche es erneut.", "Replay nicht verfügbar",
+       "Dies ist ein Replay einer früheren Wettrunde. Es werden keine Einsätze platziert."],
+  fr: ["Replay", "Replay du pari", "Mode", "Mise de base", "Multiplicateur de coût", "Coût total de la mise", "Multiplicateur de gain",
+       "Gain total", "Lancer le replay", "Rejouer", "Réessayer", "Chargement de la manche…",
+       "Ce replay n'a pas pu être chargé. Vérifiez le lien et réessayez.", "Replay indisponible",
+       "Ceci est le replay d'une manche de pari précédente. Aucune mise ne sera placée."],
+  it: ["Replay", "Replay della puntata", "Modalità", "Puntata base", "Moltiplicatore di costo", "Costo totale della puntata", "Moltiplicatore di vincita",
+       "Vincita totale", "Avvia replay", "Rivedi di nuovo", "Riprova", "Caricamento del round…",
+       "Impossibile caricare questo replay. Controlla il link e riprova.", "Replay non disponibile",
+       "Questo è il replay di un round di puntata precedente. Non verrà piazzata alcuna puntata."],
+  tr: ["Tekrar", "Bahis Tekrarı", "Mod", "Temel Bahis", "Maliyet Çarpanı", "Toplam Bahis Maliyeti", "Ödeme Çarpanı",
+       "Toplam Kazanç", "Tekrarı Başlat", "Yeniden İzle", "Tekrar Dene", "Tur yükleniyor…",
+       "Bu tekrar yüklenemedi. Bağlantıyı kontrol edip yeniden deneyin.", "Tekrar Kullanılamıyor",
+       "Bu, önceki bir bahis turunun tekrarıdır. Hiçbir bahis yapılmayacaktır."],
+  ru: ["Повтор", "Повтор ставки", "Режим", "Базовая ставка", "Множитель стоимости", "Общая стоимость ставки", "Множитель выплаты",
+       "Общий выигрыш", "Начать повтор", "Повторить снова", "Попробовать снова", "Загрузка раунда…",
+       "Не удалось загрузить этот повтор. Проверьте ссылку и попробуйте ещё раз.", "Повтор недоступен",
+       "Это повтор предыдущего раунда ставки. Ставки не будут сделаны."],
+  pl: ["Powtórka", "Powtórka zakładu", "Tryb", "Zakład bazowy", "Mnożnik kosztu", "Całkowity koszt zakładu", "Mnożnik wypłaty",
+       "Łączna wygrana", "Rozpocznij powtórkę", "Odtwórz ponownie", "Spróbuj ponownie", "Wczytywanie rundy…",
+       "Nie udało się wczytać tej powtórki. Sprawdź link i spróbuj ponownie.", "Powtórka niedostępna",
+       "To powtórka poprzedniej rundy zakładu. Żaden zakład nie zostanie postawiony."],
+  fi: ["Uusinta", "Panoksen uusinta", "Tila", "Peruspanos", "Kustannuskerroin", "Panoksen kokonaiskustannus", "Voittokerroin",
+       "Kokonaisvoitto", "Aloita uusinta", "Toista uudelleen", "Yritä uudelleen", "Ladataan kierrosta…",
+       "Tätä uusintaa ei voitu ladata. Tarkista linkki ja yritä uudelleen.", "Uusinta ei saatavilla",
+       "Tämä on aiemman panoskierroksen uusinta. Panoksia ei aseteta."],
+  id: ["Replay", "Replay Taruhan", "Mode", "Taruhan Dasar", "Pengali Biaya", "Total Biaya Taruhan", "Pengali Pembayaran",
+       "Total Kemenangan", "Mulai Replay", "Putar Ulang", "Coba Lagi", "Memuat ronde…",
+       "Replay ini tidak dapat dimuat. Periksa tautan dan coba lagi.", "Replay Tidak Tersedia",
+       "Ini adalah replay dari ronde taruhan sebelumnya. Tidak ada taruhan yang akan dipasang."],
+  vi: ["Phát lại", "Phát lại cược", "Chế độ", "Cược cơ bản", "Hệ số chi phí", "Tổng chi phí cược", "Hệ số thanh toán",
+       "Tổng tiền thắng", "Bắt đầu phát lại", "Phát lại lần nữa", "Thử lại", "Đang tải vòng chơi…",
+       "Không thể tải bản phát lại này. Hãy kiểm tra liên kết và thử lại.", "Không có bản phát lại",
+       "Đây là bản phát lại của một vòng cược trước. Sẽ không có cược nào được đặt."],
+  ja: ["リプレイ", "ベットリプレイ", "モード", "ベースベット", "コスト倍率", "合計ベット額", "配当倍率",
+       "合計勝利額", "リプレイ開始", "もう一度再生", "再試行", "ラウンドを読み込み中…",
+       "このリプレイを読み込めませんでした。リンクを確認して、もう一度お試しください。", "リプレイを利用できません",
+       "これは過去のベットラウンドのリプレイです。ベットは行われません。"],
+  ko: ["리플레이", "베팅 리플레이", "모드", "기본 베팅", "비용 배수", "총 베팅 비용", "지급 배수",
+       "총 당첨금", "리플레이 시작", "다시 보기", "다시 시도", "라운드 불러오는 중…",
+       "이 리플레이를 불러올 수 없습니다. 링크를 확인하고 다시 시도하세요.", "리플레이를 사용할 수 없음",
+       "이전 베팅 라운드의 리플레이입니다. 베팅이 이루어지지 않습니다."],
+  zh: ["回放", "投注回放", "模式", "基础投注", "成本倍数", "投注总成本", "派彩倍数",
+       "总赢额", "开始回放", "再次回放", "重试", "正在加载本局…",
+       "无法加载此回放。请检查链接后重试。", "回放不可用",
+       "这是之前一局投注的回放，不会进行任何投注。"],
+};
+const REPLAY_KEYS = ["tag", "title", "mode", "base", "cost", "total", "mult", "win", "start", "again", "retry", "loading", "error", "unavailable", "note"];
+function replayWords() {
+  const lang = String(RGS.lang || "en").toLowerCase().split(/[-_]/)[0];
+  const use = SOCIAL || !REPLAY_WORDS[lang] ? "en" : lang;
+  const row = REPLAY_WORDS[use], out = { lang: use };
+  REPLAY_KEYS.forEach((k, i) => { out[k] = use === "en" ? T(row[i]) : row[i]; });
+  return out;
+}
+
 async function bootReplay(p) {
   REPLAY = true;
   document.body.classList.add("replay");
   const intro = $("intro"); if (intro) intro.remove();
-  if (p.currency) RGS.state.currency = p.currency;
-  state.bets = [p.amount || RGS.UNIT]; state.betIdx = 0;
+  // Only the round's coordinates are required; currency and amount are optional and may be missing or junk.
+  // A currency is a short letter code (it is written into the page) - anything else counts as missing: USD
+  // then, but in social mode bare figures (a "$" must never stand before a social coin amount).
+  const cur = /^[A-Za-z]{2,5}$/.test(p.currency || "") ? p.currency.toUpperCase() : "";
+  RGS.state.currency = cur || (SOCIAL ? "" : "USD");
+  // amount is the BASE bet in API units (1000000 = 1.00); 1.00 when the link names none
+  state.bets = [p.amount > 0 && Number.isFinite(p.amount) ? Math.round(p.amount) : RGS.UNIT]; state.betIdx = 0;
   state.mode = p.mode || "base";
-  const modeName = T({ base: "Base game", bonus: "Buy Bonus", extremebonus: "Buy Extreme", boost: "Boosted spin" }[state.mode] || state.mode);
-  $("balanceLbl").innerHTML = (SOCIAL ? "Replay" : "Replay bet") + `<span class="cur">${RGS.currencyName()}</span>`;
-  $("balance").textContent = fmt(bet());
   refreshBet(); setButtons(false);
-  const wrap = $("replayWrap"), meta = $("replayMeta"), status = $("replayStatus"),
-        result = $("replayResult"), play = $("replayPlay");
-  meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet ${fmt(bet())}`);
-  wrap.hidden = false;
-  let round;
-  try {
-    const d = await RGS.replay(p);
-    if (typeof d.costMultiplier === "number" && d.costMultiplier > 0) MODE_COST[state.mode] = d.costMultiplier;
-    round = { events: d.state, payoutMultiplier: d.payoutMultiplier || 0, amount: bet(), mode: state.mode };
-  } catch (err) {
-    status.textContent = T("This replay could not be loaded. Check the link and try again.");
-    return;
+
+  const W = replayWords();
+  document.documentElement.lang = W.lang;
+  // The window. Everything is a multiple of the BASE bet, as the RGS defines it: the mode's costMultiplier
+  // gives the total bet cost, payoutMultiplier (a plain multiple) the win.
+  const wrap = $("replayWrap"), status = $("rpStatus"), play = $("replayPlay");
+  const xn = v => (+(+v).toFixed(2)).toLocaleString("en-US", { maximumFractionDigits: 2 })   /* the same figures as the amounts (RGS.money), whatever the language */ + "x";
+  const costMult = () => MODE_COST[state.mode] > 0 ? MODE_COST[state.mode] : 1;
+  let round = null, busy = false;
+  function paint(phase) {   // "loading" | "ready" | "done" | "error"
+    const total = Math.round(costMult() * bet());
+    $("rpTag").textContent = W.tag;
+    $("rpTitle").textContent = phase === "error" ? W.unavailable : W.title;
+    $("rpModeLbl").textContent = W.mode;
+    // the mode by its one display name; an id the game does not know is shown as given (never in social mode)
+    $("rpMode").textContent = RULES.MODE_NAMES[state.mode] ? modeName(state.mode) : SOCIAL ? "—" : state.mode;
+    $("rpBaseLbl").textContent = W.base;
+    $("rpBase").textContent = fmt(bet());
+    $("rpCostLbl").textContent = W.cost;
+    $("rpCost").textContent = xn(costMult());
+    $("rpTotalLbl").textContent = W.total;
+    $("rpTotal").textContent = fmt(total);
+    $("rpMultLbl").textContent = W.mult;
+    $("rpMult").textContent = round ? xn(round.payoutMultiplier) : "—";
+    $("rpWinLbl").textContent = W.win;
+    $("rpWin").textContent = round ? fmt(Math.round(round.payoutMultiplier * bet())) : "—";
+    $("rpNote").textContent = W.note;
+    status.textContent = phase === "error" ? W.error : W.loading;
+    status.classList.toggle("err", phase === "error");
+    status.hidden = phase === "ready" || phase === "done";
+    play.hidden = phase === "loading";
+    play.classList.toggle("retry", phase === "error");
+    $("rpGoTxt").textContent = phase === "error" ? W.retry : phase === "done" ? W.again : W.start;
+    play.dataset.phase = phase;
+    $("rpCard").classList.toggle("nores", !round);
+    wrap.classList.toggle("done", phase === "done");
+    // the bar under the board keeps the round's figures while it plays: the total bet cost
+    $("balanceLbl").innerHTML = W.total + `<span class="cur">${RGS.currencyName()}</span>`;
+    $("balance").textContent = fmt(total);
+    fitFigure($("balance"), fmt(total));
+    showMenu(wrap, true);
+    fitReplay();
+    if (!play.hidden) play.focus({ preventScroll: true });
   }
-  // a replay has no loading screen: Play waits (at most 15 s) for what the round animates - the
-  // symbol rigs, the spray can and the characters - so nothing swaps or uploads once it runs
-  await Promise.race([Promise.all([loadSymFrames(), prepareSpray(), charsLoaded]).catch(() => {}), new Promise(r => setTimeout(r, 15000))]);
-  const cost = MODE_COST[state.mode] * bet();
-  const payout = Math.round(round.payoutMultiplier * bet());
-  meta.textContent = T(`${modeName} \u00b7 event ${p.event} \u00b7 bet cost ${fmt(cost)} (x${MODE_COST[state.mode]} the bet of ${fmt(bet())})`);
-  status.textContent = "";
-  play.hidden = false;
-  play.textContent = T("Play");
+  async function load() {
+    round = null;
+    paint("loading");
+    try {
+      const d = await RGS.replay(p);
+      if (typeof d.costMultiplier === "number" && d.costMultiplier > 0) MODE_COST[state.mode] = d.costMultiplier;
+      const mult = Number(d.payoutMultiplier);
+      round = { events: d.state, payoutMultiplier: mult > 0 && Number.isFinite(mult) ? mult : 0, amount: bet(), mode: state.mode };
+    } catch (err) {
+      paint("error");
+      return;
+    }
+    paint("loading");   // the figures are in; the button waits for the art
+    // a replay has no loading screen: Start waits (at most 15 s) for what the round animates - the
+    // symbol rigs, the spray can and the characters - so nothing swaps or uploads once it runs
+    await Promise.race([Promise.all([loadSymFrames(), prepareSpray(), charsLoaded]).catch(() => {}), new Promise(r => setTimeout(r, 15000))]);
+    paint("ready");
+  }
   play.addEventListener("click", async () => {
-    wrap.hidden = true;
+    if (busy) return;
+    if (play.dataset.phase === "error") { busy = true; try { await load(); } finally { busy = false; } return; }
+    if (!round) return;
+    busy = true;
+    showMenu(wrap, false);
     state.playing = true; state.skip = false;
     setButtons(false);
     try { await presentRound(round, { settle: false }); } catch (e) { /* shown in the ticker */ }
     state.playing = false;
     setButtons(false);   // the viewer's bar stays off, but Rapid and the menu come back
-    result.innerHTML = T(`Bet cost ${fmt(cost)}<br>Payout ${fmt(payout)} \u00b7 ${round.payoutMultiplier.toFixed(2)}x the bet`);
-    result.hidden = false;
-    play.textContent = T("Play again");
-    wrap.hidden = false;
+    await new Promise(r => setTimeout(r, 700));   // a beat on the final board before the window is back over it
+    paint("done");       // the same window again, the result in it, with Play Again
+    busy = false;
   });
+  addEventListener("resize", fitReplay);
+  await load();
+}
+// The replay card has one natural size; this scales it down to whatever window it is given - Popout S is
+// 400x225 - so it is whole on screen without scrolling.
+function fitReplay() {
+  const wrap = $("replayWrap"), card = $("rpCard");
+  if (!wrap || !card || wrap.hidden) return;
+  const k = Math.min((innerWidth - 16) / card.offsetWidth, (innerHeight - 16) / card.offsetHeight, 1);
+  card.style.scale = k < 1 ? k.toFixed(3) : "";
 }
 
 // Optional readouts a jurisdiction can require in the header: RTP, a session clock, and
@@ -9927,9 +10235,14 @@ async function boot() {
     // the small print says what actually failed - the code, and the server's answer or that
     // there was none - so a screenshot of this panel is enough to tell an outage from a block
     const detail = `${/^ERR_[A-Z_]+$/.test(err && err.code) ? err.code : "ERR"} · ${err && err.status ? "HTTP " + Number(err.status) : T("no answer from the game server")}`;
-    fatal(T("Can't connect"), `<b>${RGS_MESSAGE[err.code] || T("Could not connect to the game server.")}</b><br>` +
+    fatal(T("Can't connect"), `<b>${T(RGS_MESSAGE[err.code] || "Could not connect to the game server.")}</b><br>` +
       T("Reopen the game from the lobby, or reload to try again.") + `<br><small class="errcode">${detail}</small>`);
     return;
+  }
+  if (RGS.social && !SOCIAL) {   // the jurisdiction says social casino though the URL did not
+    SOCIAL = true;
+    for (const d of Object.values(SYM)) { d.label = T(d.label); d.sub = T(d.sub); }
+    applySocial();
   }
 
   const lbl = $("balanceLbl");
@@ -9950,6 +10263,13 @@ async function boot() {
   if (at < 0) at = state.bets.indexOf(def);
   if (at < 0 && def) at = state.bets.reduce((best, v, i) => Math.abs(v - def) < Math.abs(state.bets[best] - def) ? i : best, 0);
   state.betIdx = Math.max(0, at);
+  // A wallet that cannot cover that level (Engine review 2026-11-16: 1,000 GC against a bigger default) opens on
+  // the highest level it can cover instead, so the first spin is playable; with nothing affordable it stays put.
+  if (state.bets[state.betIdx] > RGS.state.balance) {
+    let ok = -1;
+    for (let i = 0; i < state.betIdx; i++) if (state.bets[i] <= RGS.state.balance) ok = i;
+    if (ok >= 0) state.betIdx = ok;
+  }
   if ($("maxWin")) $("maxWin").textContent = "x" + RULES.MAX_WIN;
   setBalance(RGS.state.balance);
 

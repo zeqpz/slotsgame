@@ -34,6 +34,24 @@ const RGS = (() => {
     XEC: { symbol: "SC", decimals: 2, after: true },
   };
   const CURRENCY_SOCIAL = new Set(["XGC", "XSC", "XEC"]);
+  // A currency missing from the table (new ones appear: XEC broke games in 2026) takes its symbol and
+  // precision from Intl when the browser knows the code, else shows the code after the amount.
+  const intlCache = {};
+  function intlMeta(code) {
+    if (!code) return { symbol: "", decimals: 2, after: true };
+    if (intlCache[code]) return intlCache[code];
+    let meta = { symbol: code, decimals: 2, after: true };
+    try {
+      const f = new Intl.NumberFormat("en", { style: "currency", currency: code, currencyDisplay: "narrowSymbol" });
+      const parts = f.formatToParts(1);
+      const sym = (parts.find(p => p.type === "currency") || {}).value;
+      const after = parts.findIndex(p => p.type === "currency") > parts.findIndex(p => p.type === "integer");
+      const s = sym || code;
+      // a bare letter code reads "1,234.56 CHF", as the table writes CLP and ARS
+      meta = { symbol: s, decimals: f.resolvedOptions().maximumFractionDigits, after: after || /^[A-Za-z]{2,}$/.test(s) };
+    } catch (e) { /* not an ISO code Intl knows: keep the code */ }
+    return (intlCache[code] = meta);
+  }
   // thousands grouped: 1,000,000.00 - the integer part only
   const group = s => s.replace(/^(\d+)/, d => d.replace(/\B(?=(\d{3})+(?!\d))/g, ","));
 
@@ -46,7 +64,8 @@ const RGS = (() => {
   // social=true means the game is loaded on a social casino (Stake.us): restricted gambling
   // vocabulary must not appear anywhere in the UI. The jurisdiction flag says the same
   // thing after authenticate; the URL param is there before it.
-  const social = q.get("social") === "true";
+  // `let`: authenticate turns it on when the jurisdiction says socialCasino (read RGS.social after it).
+  let social = q.get("social") === "true";
   const urlCurrency = (q.get("currency") || "").trim();
 
   const state = {
@@ -121,7 +140,8 @@ const RGS = (() => {
   }
 
   return {
-    UNIT, sessionID, lang, device, rgsUrl: root, social, urlCurrency,
+    UNIT, sessionID, lang, device, rgsUrl: root, urlCurrency,
+    get social() { return social; },
     get state() { return state; },
     RgsError,
 
@@ -143,6 +163,9 @@ const RGS = (() => {
       }
       if (lastErr) throw lastErr;
       if (d.config) state.config = d.config;
+      // the jurisdiction can make this a social-casino session even without the URL flag
+      const j = (state.config && state.config.jurisdiction) || {};
+      if (j.socialCasino === true) social = true;
       state.round = normalizeRound(d.round);
       state.authenticated = true;
       return d;
@@ -223,12 +246,22 @@ const RGS = (() => {
       return (m && typeof m.costMultiplier === "number") ? m.costMultiplier : null;
     },
 
-    /** A mode's own bet cap (gameModes[].maxBet, micro-units) or null when the RGS gives none.
-     *  0 means the mode is disabled for this player/currency (seen for every mode under XGC). */
-    modeMaxBet(mode) {
-      const modes = (state.config && state.config.gameModes) || [];
-      const m = modes.find(x => x.mode === mode);
-      return (m && typeof m.maxBet === "number") ? m.maxBet : null;
+    /** The highest BASE bet a mode allows: its own cap (gameModes[].maxBet) when the RGS names a
+     *  positive one, else the session's config.maxBet, else null (no cap known). A cap of 0 or a
+     *  missing one means "no cap of its own" - the RGS sends maxBet 0 for every mode under XGC,
+     *  and every mode is playable there (Engine review 2026-11-16: reading 0 as "switched off"
+     *  turned every bonus card to LOWER THE PLAY and refused every base spin under GC). */
+    maxBetOf(mode) {
+      const c = state.config || {};
+      const m = (c.gameModes || []).find(x => x.mode === mode);
+      if (m && typeof m.maxBet === "number" && m.maxBet > 0) return m.maxBet;
+      return (typeof c.maxBet === "number" && c.maxBet > 0) ? c.maxBet : null;
+    },
+
+    /** Whether a mode can be played at this base bet: not above its cap. Never false for a cap of 0. */
+    modeAllowed(mode, amount) {
+      const max = this.maxBetOf(mode);
+      return max === null || amount <= max;
     },
 
     /** Optional progress marker so a disconnect can resume mid-round. */
@@ -250,8 +283,7 @@ const RGS = (() => {
      *  amount needs them. Reviewers' current rule (May–Jun 2026): the balance is capped
      *  at the usual 2, bets and wins may carry up to 4 when a sub-cent value needs it. */
     money(amount, currency, extra = 2) {
-      const meta = CURRENCY[currency || state.currency] ||
-                   { symbol: currency || state.currency, decimals: 2, after: true };
+      const meta = CURRENCY[currency || state.currency] || intlMeta(currency || state.currency);
       const a = amount || 0;
       const v = a / UNIT;
       const maxDec = Math.min(6, meta.decimals + Math.max(0, extra));
@@ -262,8 +294,10 @@ const RGS = (() => {
         if (s.split(".")[1] && s.split(".")[1].length < meta.decimals) s = v.toFixed(meta.decimals);
       }
       s = group(s);
-      if (social && !CURRENCY_SOCIAL.has(currency || state.currency)) return `${s} ${currency || state.currency}`;   // social mode: never a $ / € sign
-      return meta.after ? `${s} ${meta.symbol}` : `${meta.symbol}${s}`;
+      // social mode: never a $ / € sign. A replay link in social mode that names no currency shows bare
+      // figures: no symbol, no stray space (trim).
+      if (social && !CURRENCY_SOCIAL.has(currency || state.currency)) return `${s} ${currency || state.currency}`.trim();
+      return (meta.after ? `${s} ${meta.symbol}` : `${meta.symbol}${s}`).trim();
     },
 
     /** Bet must sit within min/max and land on a step boundary. */

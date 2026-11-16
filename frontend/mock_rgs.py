@@ -127,16 +127,24 @@ LOADED = {}
 
 
 START_BALANCE = 1_000_000 * UNIT   # test float; the real wallet governs on Stake
+SOCIAL_COINS = {"XGC", "XSC", "XEC"}
 
 
 def wallet(session_id):
-    """Currency can be pinned for testing by suffixing the session: 'test@XSC', 'test@XGC'."""
+    """Currency can be pinned for testing by suffixing the session: 'test@XSC', 'test@XGC'.
+    A starting balance in whole units can be given with '~': 'low~5' or 'low~1000@XGC' (review tests)."""
     currency = "USD"
-    if "@" in session_id:
-        currency = session_id.rsplit("@", 1)[1].upper() or "USD"
+    sid = session_id
+    if "@" in sid:
+        sid, currency = sid.rsplit("@", 1)
+        currency = currency.upper() or "USD"
+    start = START_BALANCE
+    m = re.search(r"~(\d+(?:\.\d+)?)$", sid)
+    if m:
+        start = int(round(float(m.group(1)) * UNIT))
     return SESSIONS.setdefault(
         session_id,
-        {"balance": START_BALANCE, "currency": currency, "round": None, "bet": 0, "mode": "base"},
+        {"balance": start, "currency": currency, "round": None, "bet": 0, "mode": "base"},
     )
 
 
@@ -219,8 +227,11 @@ class Handler(BaseHTTPRequestHandler):
                     "stepBet": BET_LEVELS[0],
                     "defaultBetLevel": 1 * UNIT,
                     "betLevels": BET_LEVELS,
+                    # The live RGS sends maxBet 0 for every mode on a social-coin (GC/SC) wallet:
+                    # "no cap of its own", not "switched off" (Engine review 2026-11-16).
                     "gameModes": [
-                        {"mode": name, "costMultiplier": cost, "maxBet": BET_LEVELS[-1]}
+                        {"mode": name, "costMultiplier": cost,
+                         "maxBet": 0 if w["currency"] in SOCIAL_COINS else BET_LEVELS[-1]}
                         for name, cost in MODES.items()
                     ],
                     "jurisdiction": {"socialCasino": False, "disabledFullscreen": False, "disabledTurbo": False},
@@ -286,6 +297,7 @@ def main():
     url = (f"http://localhost:{PORT}/index.html?sessionID=test"
            f"&rgs_url=http://localhost:{PORT}&lang=en&device=desktop")
     print(f"\nMock RGS + game on {url}\n", flush=True)
+    ThreadingHTTPServer.request_queue_size = 64   # a page loads ~100 assets at once; 5 (the default) refuses some
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 
