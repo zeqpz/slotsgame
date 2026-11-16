@@ -244,7 +244,7 @@
 
   // ---------------------------------------------------------------- the frame
   function tick() {
-    if (document.hidden || !board) return;
+    if (document.hidden || !board || lost) return;   // (a lost context: nothing is drawn until it is back)
     if (geoDirty) layout();
     if (!C.length) return;
     const now = performance.now();

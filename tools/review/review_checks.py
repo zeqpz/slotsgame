@@ -14,6 +14,9 @@
            replay) free of the restricted words (RULES.SWEEPS) and "$"
   sizes    screenshots at 1920x1080, 390x844, 844x390 and 400x225 (Popout S)
 
+  --mobile every page opened with &mobile=1: the same checks on the phone tier (window.MOBILE, 2026-11-16);
+           screenshots go to research/review_2026-11-16/mobile/
+
 Screenshots go to research/review_2026-11-16/ (git-ignored scratch). Exit code 1 on any failure.
 """
 import json, random, sys, time
@@ -23,6 +26,13 @@ sys.stdout.reconfigure(encoding="utf-8")
 from cdp import Browser, MOCK, enter_game
 
 OUT = Path(__file__).resolve().parents[2] / "research" / "review_2026-11-16"
+MOBILE = "--mobile" in sys.argv
+if MOBILE:
+    sys.argv.remove("--mobile")
+    OUT = OUT / "mobile"
+    _open = Browser.open
+    # every game page opened on the phone tier (the mobile tier is forced by the URL, whatever the viewport)
+    Browser.open = lambda self, url, settle=1.0: _open(self, url + ("&mobile=1" if "rgs_url=" in url else ""), settle)
 U = 1_000_000
 FAIL = []
 
@@ -437,7 +447,7 @@ def main():
     want = sys.argv[1:] or ["buys", "auto", "openbet", "replay", "social", "sizes"]
     for name in want:
         globals()[name]()
-    print("\nFAIL:\n" + "\n".join(FAIL) if FAIL else "\nPASS: " + ", ".join(want))
+    print("\nFAIL:\n" + "\n".join(FAIL) if FAIL else "\nPASS: " + ", ".join(want) + (" (phone tier)" if MOBILE else ""))
     return 1 if FAIL else 0
 
 

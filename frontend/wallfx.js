@@ -612,7 +612,7 @@ void main() {
     const cv = document.createElement("canvas");
     cv.id = "walllight"; cv.setAttribute("aria-hidden", "true");
     bg.insertBefore(cv, layer);
-    lit = { cv, ctx: cv.getContext("2d"), tex: texture(null), hT: null, wT: null, rect: null, size: null, geo: null };
+    lit = { cv, ctx: ctx2d(cv), tex: texture(null), hT: null, wT: null, rect: null, size: null, geo: null };
     // the tube's points, merged pairwise (along each stretch) down to what the bake has room for
     let pts = meta.tube.pts.map(p => p.slice());
     while (pts.length > NT) {
@@ -746,12 +746,14 @@ void main() {
   // a small jet straight up out of its middle that falls back in. Off the tag a drop keeps the tag's
   // paint as the tag shows it (its see-through, none of the wall's darkening), so it never changes as it
   // leaves.
+  // (the safety net, index.html's gfxCtx: a canvas the browser refuses draws nothing instead of throwing every frame)
+  function ctx2d(cv) { return (window.gfxCtx ? gfxCtx(cv) : cv.getContext("2d")) || window.NULL2D; }
   function makeFall(R) {
     const cv = document.createElement("canvas");
     Object.assign(cv.style, { position: "absolute", display: "block", pointerEvents: "none" });
     const tag = R.kind === "tag";
     return {
-      kind: "fall", src: R, cv, ctx: cv.getContext("2d"), drops: [], splats: [], paint: R.paint, prev: null, vis: false,
+      kind: "fall", src: R, cv, ctx: ctx2d(cv), drops: [], splats: [], paint: R.paint, prev: null, vis: false,
       alloc: false, k: 1, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], box: null, swell: 0, light: null, floor: 0, litMap: null, alpha: 1,
       // a drop wears the outline of the drip it came off (the tag's heavy ink, as a share of its width);
       // a splat flattened on the pavement, a thin one
@@ -851,7 +853,7 @@ void main() {
     const cv = document.createElement("canvas");
     Object.assign(cv.style, { position: "absolute", display: "block", pointerEvents: "none" });
     const R = {
-      kind, src, i, cv, ctx: cv.getContext("2d"), tips: [], drips: [], due: [],
+      kind, src, i, cv, ctx: ctx2d(cv), tips: [], drips: [], due: [],
       paint: src.paint, dirty: null, prev: null, vis: false, k: 1, scale: 1, sprite: null, tex: null, swell: 0,
       light: null, x0: 0, y0: 0, x1: 1, y1: 1, dim: [0, 0], alloc: false,
     };

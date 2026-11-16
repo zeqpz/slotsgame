@@ -283,7 +283,8 @@ void main() {
     cv.setAttribute("aria-hidden", "true");
     Object.assign(cv.style, { position: "absolute", pointerEvents: "none", zIndex: String(o.z ?? -1) });
     host.appendChild(cv);
-    const t = { el, host, o, cv, ctx: cv.getContext("2d"), seed: Math.random() * 50, key: "" };
+    // (the safety net, index.html's gfxCtx: a canvas the browser refuses draws nothing instead of throwing every frame)
+    const t = { el, host, o, cv, ctx: (window.gfxCtx ? gfxCtx(cv) : cv.getContext("2d")) || window.NULL2D, seed: Math.random() * 50, key: "" };
     el.__rim = t;
     targets.push(t);
   }
