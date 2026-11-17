@@ -7602,18 +7602,6 @@ function setButtons(on) {
   $("rapidBtn").disabled = false;
   $("menuBtn").disabled = false;
 }
-// The bet survives a reload within the same session only: a new session always opens on the
-// server's defaultBetLevel (Engine checks that), a refresh mid-session keeps what was chosen.
-const betKey = () => "smukiez.bet." + RGS.state.currency;
-function rememberBet() {
-  try { localStorage.setItem(betKey(), JSON.stringify({ s: RGS.sessionID, v: bet() })); } catch (e) { /* ignore */ }
-}
-function recallBet() {
-  try {
-    const b = JSON.parse(localStorage.getItem(betKey()) || "null");
-    return b && b.s === RGS.sessionID ? Number(b.v) || 0 : 0;
-  } catch (e) { return 0; }
-}
 // last 50 rounds, per currency — no replay link because the RGS never returns the event id
 const histKey = () => "smukiez.hist." + RGS.state.currency;
 function recordRound(mode, amount, payout, mult) {
@@ -7648,7 +7636,6 @@ function refreshBet() {
     const lbl = st.querySelector(".lbl");
     if (lbl) lbl.textContent = boost ? T("Boost") : T("Bet");
   }
-  if (!REPLAY) rememberBet();
   paintBonus();   // the chooser shows prices at the live bet, so it follows the stepper
   setButtons(!state.playing);
 }
@@ -10516,21 +10503,15 @@ async function boot() {
     if (c) MODE_COST[m] = c;
   }
 
+  // Every betting value comes from /authenticate (Engine review 2026-11-17): the levels are the RGS's betLevels
+  // inside its minBet / maxBet / stepBet (RGS.betLevels), and every launch opens on its defaultBetLevel - or the
+  // level nearest it, should the default not be one of them. Never moved to fit the balance or a remembered bet:
+  // a wallet that cannot cover the default sees it and lowers the play itself.
   state.bets = RGS.betLevels();
-  // A reload within this session keeps the bet the player chose; anything else opens on the
-  // server's defaultBetLevel - or the level nearest it, should the default not be one of them.
-  const def = (RGS.state.config && RGS.state.config.defaultBetLevel) || 0;
-  let at = state.bets.indexOf(recallBet());
-  if (at < 0) at = state.bets.indexOf(def);
-  if (at < 0 && def) at = state.bets.reduce((best, v, i) => Math.abs(v - def) < Math.abs(state.bets[best] - def) ? i : best, 0);
+  const def = RGS.defaultBet();
+  let at = def ? state.bets.indexOf(def) : 0;
+  if (at < 0) at = state.bets.reduce((best, v, i) => Math.abs(v - def) < Math.abs(state.bets[best] - def) ? i : best, 0);
   state.betIdx = Math.max(0, at);
-  // A wallet that cannot cover that level (Engine review 2026-11-16: 1,000 GC against a bigger default) opens on
-  // the highest level it can cover instead, so the first spin is playable; with nothing affordable it stays put.
-  if (state.bets[state.betIdx] > RGS.state.balance) {
-    let ok = -1;
-    for (let i = 0; i < state.betIdx; i++) if (state.bets[i] <= RGS.state.balance) ok = i;
-    if (ok >= 0) state.betIdx = ok;
-  }
   if ($("maxWin")) $("maxWin").textContent = "x" + RULES.MAX_WIN;
   setBalance(RGS.state.balance);
 

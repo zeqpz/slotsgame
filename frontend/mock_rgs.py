@@ -132,19 +132,25 @@ SOCIAL_COINS = {"XGC", "XSC", "XEC"}
 
 def wallet(session_id):
     """Currency can be pinned for testing by suffixing the session: 'test@XSC', 'test@XGC'.
-    A starting balance in whole units can be given with '~': 'low~5' or 'low~1000@XGC' (review tests)."""
+    A starting balance in whole units can be given with '~': 'low~5' or 'low~1000@XGC' (review tests), and the
+    defaultBetLevel with '^': 'low~1000^10000@XGC' opens a 1,000 wallet on a 10,000 default (Engine review 2026-11-17)."""
     currency = "USD"
     sid = session_id
     if "@" in sid:
         sid, currency = sid.rsplit("@", 1)
         currency = currency.upper() or "USD"
+    default = 1 * UNIT
+    m = re.search(r"\^(\d+(?:\.\d+)?)$", sid)
+    if m:
+        default = int(round(float(m.group(1)) * UNIT))
+        sid = sid[:m.start()]
     start = START_BALANCE
     m = re.search(r"~(\d+(?:\.\d+)?)$", sid)
     if m:
         start = int(round(float(m.group(1)) * UNIT))
     return SESSIONS.setdefault(
         session_id,
-        {"balance": start, "currency": currency, "round": None, "bet": 0, "mode": "base"},
+        {"balance": start, "currency": currency, "round": None, "bet": 0, "mode": "base", "default": default},
     )
 
 
@@ -225,7 +231,7 @@ class Handler(BaseHTTPRequestHandler):
                     "minBet": BET_LEVELS[0],
                     "maxBet": BET_LEVELS[-1],
                     "stepBet": BET_LEVELS[0],
-                    "defaultBetLevel": 1 * UNIT,
+                    "defaultBetLevel": w.get("default", 1 * UNIT),
                     "betLevels": BET_LEVELS,
                     # The live RGS sends maxBet 0 for every mode on a social-coin (GC/SC) wallet:
                     # "no cap of its own", not "switched off" (Engine review 2026-11-16).

@@ -304,16 +304,30 @@ const RGS = (() => {
     validBet(amount) {
       const c = state.config;
       if (!c) return true;
-      if (amount < c.minBet || amount > c.maxBet) return false;
+      if (c.minBet && amount < c.minBet) return false;
+      if (c.maxBet && amount > c.maxBet) return false;
       if (c.stepBet && amount % c.stepBet !== 0) return false;
       return true;
     },
 
+    /** The bet ladder, all from /authenticate: config.betLevels, keeping only the levels inside
+     *  minBet..maxBet on a stepBet boundary (validBet). Should that leave nothing, the RGS's own list
+     *  as sent; with no list at all, minBet. */
     betLevels() {
       const c = state.config;
-      if (c && Array.isArray(c.betLevels) && c.betLevels.length) return c.betLevels.slice();
+      if (c && Array.isArray(c.betLevels) && c.betLevels.length) {
+        const all = c.betLevels.map(Number).filter(v => Number.isFinite(v) && v > 0);
+        const ok = all.filter(v => this.validBet(v));
+        return (ok.length ? ok : all).sort((a, b) => a - b);
+      }
       if (c && c.minBet) return [c.minBet];
       return [UNIT];
+    },
+
+    /** The level a session opens on: config.defaultBetLevel, else minBet, else the lowest level. */
+    defaultBet() {
+      const c = state.config || {};
+      return Number(c.defaultBetLevel) || Number(c.minBet) || 0;
     },
 
     jurisdiction() { return (state.config && state.config.jurisdiction) || {}; },

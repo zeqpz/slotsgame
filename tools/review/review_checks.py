@@ -8,7 +8,7 @@
   auto     the reviewer's autoplay scenario in both modes: a low balance, 25 rounds at 1.00 - autoplay ends by
            itself, the bar is fully back, a plain spin works at the lowest level; Auto and Spin stop a run;
            a run that cannot cover even its first round never starts
-  openbet  a default level above the balance opens on the highest level the balance covers
+  openbet  every launch opens on the defaultBetLevel from authenticate, even above the balance
   replay   the Bet Replay window for a loss, a small win, a big win, a bonus and an extreme bonus, real and social
   social   every screen in social mode (HUD, shop, autoplay, rules, notices, bonus intro, win sign, history,
            replay) free of the restricted words (RULES.SWEEPS) and "$"
@@ -256,13 +256,14 @@ OPENBET = """(() => { const real = window.fetch;
 
 
 def openbet():
-    print("\n== openbet: default above the balance -> the highest level covered ==")
+    # Engine review 2026-11-17: the game must open on the RGS's defaultBetLevel, never one moved to fit the balance.
+    print("\n== openbet: every launch opens on authenticate's defaultBetLevel, whatever the balance ==")
     b = Browser(1280, 720)
     try:
         ident = b.preload(OPENBET)
         for social, cur in ((False, "USD"), (True, "XGC")):
             b.open(url(session("ob", 2.5, cur), social, cur if social else None)); enter_game(b)
-            check(b.js("bet()") == 2_000_000, f"{'GC/social' if social else 'real'}: 2.50 in the wallet, default 5.00 -> opens at 2.00 ({b.js('fmt(bet())')})")
+            check(b.js("bet()") == 5_000_000, f"{'GC/social' if social else 'real'}: 2.50 in the wallet, default 5.00 -> opens at the default 5.00 ({b.js('fmt(bet())')})")
             b.open(url(session("ob", 1000, cur), social, cur if social else None)); enter_game(b)
             check(b.js("bet()") == 5_000_000, f"{'GC/social' if social else 'real'}: 1,000 in the wallet -> opens at the default 5.00 ({b.js('fmt(bet())')})")
         b.unpreload(ident)
